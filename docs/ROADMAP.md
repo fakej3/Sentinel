@@ -2,7 +2,7 @@
 
 ## Overall Progress
 
-`0%` — Architecture defined. Development not yet started.
+`8%` — Module 1 (Binance Data Engine) complete. 1 of 13 modules done.
 
 ---
 
@@ -10,7 +10,7 @@
 
 | # | Module | Status | Notes |
 |---|--------|--------|-------|
-| 1 | Binance Data Engine | Not Started | OHLC, price, volume, 24H stats, funding rate, OI |
+| 1 | Binance Data Engine | **Complete** | OHLC, price, volume, 24H stats, funding rate, OI — 34 tests passing |
 | 2 | Technical Indicator Engine | Not Started | EMA, SMA, RSI, MACD, ATR, ADX, VWAP, BB, StochRSI, OBV, MFI, CCI, Vol MA |
 | 3 | Market Structure Engine | Not Started | HH/HL/LH/LL, BOS, CHOCH, consolidation, breakout, pullback |
 | 4 | Support & Resistance Engine | Not Started | Static levels, dynamic EMA S/R, pivot zones, swing levels |
@@ -29,29 +29,39 @@
 ## Completed
 
 - [x] Architecture design and project specification
+- [x] Documentation suite (`docs/` — ARCHITECTURE, ENGINE_RULES, INDICATOR_RULES, VALIDATION_RULES, WRITING_GUIDELINES, ANALYSIS_MANIFESTO)
+- [x] Project setup — Vite + React + TypeScript + Vitest
+- [x] MODULE 1 — Binance Data Engine
+  - [x] `types.ts` — Candle, Ticker24h, FundingRate, OpenInterest, MarketData, FetchOptions
+  - [x] `constants.ts` — base URLs, limits, valid timeframes
+  - [x] `client.ts` — fetch wrapper with timeout, BinanceApiError, spot + futures request helpers
+  - [x] `normalise.ts` — raw API response → typed domain objects
+  - [x] `endpoints.ts` — fetchCandles, fetchTicker24h, fetchFundingRate, fetchOpenInterest
+  - [x] `index.ts` — fetchMarketData (public API)
+  - [x] 34 unit tests passing (normalise × 11, endpoints × 13, index × 10)
 
 ---
 
 ## Current Task
 
-None — awaiting development start.
+Module 2 — Technical Indicator Engine (next)
 
 ---
 
 ## Remaining Tasks
 
 ### Foundation
-- [ ] Initialize project (framework, tooling, folder structure)
+- [x] Initialize project (Vite + React + TypeScript + Vitest)
 - [ ] Set up PWA scaffold (manifest, service worker, responsive layout)
 - [ ] Define shared data types and interfaces across all modules
 
 ### Data Layer
-- [ ] MODULE 1: Binance Data Engine
-  - [ ] Candle fetching (OHLC)
-  - [ ] Current price and 24H stats
-  - [ ] Volume data
-  - [ ] Funding rate (optional)
-  - [ ] Open interest (optional)
+- [x] MODULE 1: Binance Data Engine
+  - [x] Candle fetching (OHLC)
+  - [x] Current price and 24H stats
+  - [x] Volume data
+  - [x] Funding rate (optional)
+  - [x] Open interest (optional)
 
 ### Analysis Layer
 - [ ] MODULE 2: Technical Indicator Engine
