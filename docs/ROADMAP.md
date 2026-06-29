@@ -2,7 +2,7 @@
 
 ## Overall Progress
 
-`15%` — Modules 1–2 complete. 2 of 13 modules done.
+`23%` — Modules 1–3 complete. 3 of 13 modules done.
 
 ---
 
@@ -12,7 +12,7 @@
 |---|--------|--------|-------|
 | 1 | Binance Data Engine | **Complete** | OHLC, price, volume, 24H stats, funding rate, OI — 34 tests passing |
 | 2 | Technical Indicator Engine | **Complete** | EMA×4, SMA×3, RSI, MACD, ATR, ADX, VWAP, BB, StochRSI, OBV, MFI, CCI, Vol MA — 97 tests passing |
-| 3 | Market Structure Engine | Not Started | HH/HL/LH/LL, BOS, CHOCH, consolidation, breakout, pullback |
+| 3 | Market Structure Engine | **Complete** | Swing detection, HH/HL/LH/LL labeling, BOS, CHOCH, consolidation, breakout, pullback — 88 tests passing |
 | 4 | Support & Resistance Engine | Not Started | Static levels, dynamic EMA S/R, pivot zones, swing levels |
 | 5 | Volume Analysis Engine | Not Started | Relative volume, spikes, trend, buy/sell pressure |
 | 6 | Evidence Engine | Not Started | Every conclusion must carry supporting evidence |
@@ -57,12 +57,26 @@
   - [x] `compute/volume-ma.ts` — Volume MA(20) with relative volume
   - [x] `index.ts` — computeIndicators (public API)
   - [x] 97 unit tests passing across 15 test files
+- [x] MODULE 3 — Market Structure Engine
+  - [x] `types.ts` — SwingPoint, StructureEvent, MarketStructureResult, MarketStructureConfig, and all sub-types
+  - [x] `config.ts` — DEFAULT_CONFIG with all thresholds documented
+  - [x] `swings.ts` — detectRawSwings (strict inequality pivot detection) + filterDominantSwings (zigzag collapse)
+  - [x] `labels.ts` — labelSwings: HH/HL/LH/LL/EH/EL relative to previous same-type swing; non-mutating
+  - [x] `trend.ts` — countStructure + determineTrend: bull/bear ratio with recent-window sliding view, strong/moderate/weak strength
+  - [x] `bos-choch.ts` — detectBosChoch: chronological forward scan; close-only rule; bias tracking; each level fires once; CHOCH flips bias
+  - [x] `consolidation.ts` — detectConsolidation: last N swings, rejects HH/LL, tight range threshold
+  - [x] `breakout.ts` — detectBreakout: close outside consolidation range + volume filter; failed breakout detection
+  - [x] `pullback.ts` — detectPullback: after BOS, price between BOS level and anchor swing; depth ratio
+  - [x] `confidence.ts` — computeConfidence: evidence-weighted 0-100 score; bullish/bearish/ranging paths
+  - [x] `evidence.ts` — buildEvidence: human-readable string[] explaining every conclusion
+  - [x] `index.ts` — computeMarketStructure (public API); merges partial config; returns EMPTY_RESULT for insufficient data
+  - [x] 88 unit tests passing across 6 test files
 
 ---
 
 ## Current Task
 
-Module 3 — Market Structure Engine (next)
+Module 4 — Support & Resistance Engine (next)
 
 ---
 
@@ -83,7 +97,7 @@ Module 3 — Market Structure Engine (next)
 
 ### Analysis Layer
 - [x] MODULE 2: Technical Indicator Engine
-- [ ] MODULE 3: Market Structure Engine
+- [x] MODULE 3: Market Structure Engine
 - [ ] MODULE 4: Support & Resistance Engine
 - [ ] MODULE 5: Volume Analysis Engine
 

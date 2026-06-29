@@ -11,6 +11,32 @@ Work in progress. No released version yet.
 
 ---
 
+## [0.4.0] — 2026-06-29
+
+### Added
+- `src/modules/market-structure/types.ts` — `SwingPoint`, `StructureEvent`, `MarketStructureResult`, `MarketStructureConfig`, `StructureCounts`, `PullbackResult`, `ConsolidationResult`, `BreakoutResult`, `TrendDirection`, `TrendStrength`, `SwingLabel`, `SwingType`, `StructureEventType`.
+- `src/modules/market-structure/config.ts` — `DEFAULT_CONFIG`: `swingLookback=2`, `consolidationSwings=5`, `consolidationThreshold=3.0`, `breakoutVolumeMultiplier=1.3`, `minSwingsForTrend=4`, `equalThreshold=0.1`.
+- `src/modules/market-structure/swings.ts` — `detectRawSwings(candles, config)`: strict inequality pivot detection (edges excluded, both sides must be strictly less/greater); `filterDominantSwings(rawSwings)`: collapses consecutive same-type pivots into a single most-extreme point (alternating zigzag).
+- `src/modules/market-structure/labels.ts` — `labelSwings(dominantSwings, config)`: non-mutating; assigns HH/HL/LH/LL/EH/EL relative to previous same-type swing; `equalThreshold` (%) controls EH/EL tolerance; first of each type returns `null`.
+- `src/modules/market-structure/trend.ts` — `countStructure(swings)`: full-history label counts; `determineTrend(swings, config)`: slides a window of last `minSwingsForTrend × 2` labeled swings; bull ratio ≥ 0.75 → bullish, ≤ 0.25 → bearish, else ranging; strength: strong = ratio ≥ 0.75 AND count ≥ 6 AND HH ≥ 2 AND HL ≥ 2, moderate = HH ≥ 2 AND HL ≥ 2, weak otherwise.
+- `src/modules/market-structure/bos-choch.ts` — `detectBosChoch(candles, dominantSwings, config)`: chronological forward scan; swing becomes visible at index + swingLookback; close-only rule (wicks do not trigger); bias tracks last structural direction; same-direction break = BOS (continuation), opposite-direction break = CHOCH (potential reversal, flips bias); each structural level fires at most one event. Three-pass design: check existing levels first, then promote newly-confirmed swings, then check newly-promoted levels.
+- `src/modules/market-structure/consolidation.ts` — `detectConsolidation(labeledSwings, config)`: checks last `consolidationSwings` swings; rejects if any label is HH or LL; computes rangePercent = (maxHigh − minLow) / minLow × 100; detects if ≤ `consolidationThreshold`%.
+- `src/modules/market-structure/breakout.ts` — `detectBreakout(candles, consolidation, config)`: requires active consolidation; close above rangeHigh = bullish breakout, below rangeLow = bearish; confirmed when relative volume ≥ `breakoutVolumeMultiplier`; failed breakout = previous candle broke out but current returned inside the range.
+- `src/modules/market-structure/pullback.ts` — `detectPullback(candles, labeledSwings, bosEvents)`: after last BOS, identifies anchor swing (last structural low/high before the BOS), detects pullback if close retraces between BOS level and anchor (structural violation not breached); depth ratio = (bosLevel − close) / (bosLevel − anchor).
+- `src/modules/market-structure/confidence.ts` — `computeConfidence(...)`: evidence-weighted 0–100 integer; bullish path: base 20 + 10 per HH (max 3) + 10 per HL (max 3) + 20/10 strength bonus + 10 per bullish BOS (max 2) − 20 per CHOCH − 10 per LH (max 2) − 10 per LL (max 2); bearish path: symmetric; ranging: 30 + 20 if consolidation − 10 if any BOS.
+- `src/modules/market-structure/evidence.ts` — `buildEvidence(...)`: returns `string[]` with one entry per conclusion; includes trend summary, structure counts, BOS/CHOCH details, consolidation range, breakout direction, pullback depth.
+- `src/modules/market-structure/index.ts` — public `computeMarketStructure(candles, partialConfig?)` API; merges partial config with `DEFAULT_CONFIG`; returns `EMPTY_RESULT` when `candles.length < swingLookback × 2 + 1`; full 11-step deterministic pipeline.
+- `src/modules/market-structure/__tests__/helpers.ts` — `candle()` and `candles()` test factory functions.
+- 88 unit tests across 6 test files — all passing.
+
+### Modules Affected
+- MODULE 3 — Market Structure Engine: **complete**.
+
+### Known Side Effects
+- None.
+
+---
+
 ## [0.3.0] — 2026-06-29
 
 ### Added
