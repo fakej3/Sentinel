@@ -2,7 +2,7 @@
 
 ## Overall Progress
 
-`8%` — Module 1 (Binance Data Engine) complete. 1 of 13 modules done.
+`15%` — Modules 1–2 complete. 2 of 13 modules done.
 
 ---
 
@@ -11,7 +11,7 @@
 | # | Module | Status | Notes |
 |---|--------|--------|-------|
 | 1 | Binance Data Engine | **Complete** | OHLC, price, volume, 24H stats, funding rate, OI — 34 tests passing |
-| 2 | Technical Indicator Engine | Not Started | EMA, SMA, RSI, MACD, ATR, ADX, VWAP, BB, StochRSI, OBV, MFI, CCI, Vol MA |
+| 2 | Technical Indicator Engine | **Complete** | EMA×4, SMA×3, RSI, MACD, ATR, ADX, VWAP, BB, StochRSI, OBV, MFI, CCI, Vol MA — 97 tests passing |
 | 3 | Market Structure Engine | Not Started | HH/HL/LH/LL, BOS, CHOCH, consolidation, breakout, pullback |
 | 4 | Support & Resistance Engine | Not Started | Static levels, dynamic EMA S/R, pivot zones, swing levels |
 | 5 | Volume Analysis Engine | Not Started | Relative volume, spikes, trend, buy/sell pressure |
@@ -39,12 +39,30 @@
   - [x] `endpoints.ts` — fetchCandles, fetchTicker24h, fetchFundingRate, fetchOpenInterest
   - [x] `index.ts` — fetchMarketData (public API)
   - [x] 34 unit tests passing (normalise × 11, endpoints × 13, index × 10)
+- [x] MODULE 2 — Technical Indicator Engine
+  - [x] `types.ts` — MACDResult, ADXResult, BollingerResult, StochRSIResult, VolumeMaResult, IndicatorResult
+  - [x] `utils.ts` — emaSeries, rsiSeries (shared building blocks)
+  - [x] `compute/ema.ts` — EMA20/50/100/200
+  - [x] `compute/sma.ts` — SMA20/50/200
+  - [x] `compute/rsi.ts` — RSI(14) with Wilder's smoothing
+  - [x] `compute/macd.ts` — MACD(12,26,9) with bias
+  - [x] `compute/atr.ts` — ATR(14) with Wilder's smoothing
+  - [x] `compute/adx.ts` — ADX(14) with +DI/-DI
+  - [x] `compute/vwap.ts` — rolling VWAP (always non-null)
+  - [x] `compute/bollinger.ts` — Bollinger Bands(20,2) with bandwidth
+  - [x] `compute/stoch-rsi.ts` — StochRSI(14,14,3,3) with degenerate range handling
+  - [x] `compute/obv.ts` — cumulative OBV (always non-null)
+  - [x] `compute/mfi.ts` — MFI(14) Money Flow Index
+  - [x] `compute/cci.ts` — CCI(20) Commodity Channel Index
+  - [x] `compute/volume-ma.ts` — Volume MA(20) with relative volume
+  - [x] `index.ts` — computeIndicators (public API)
+  - [x] 97 unit tests passing across 15 test files
 
 ---
 
 ## Current Task
 
-Module 2 — Technical Indicator Engine (next)
+Module 3 — Market Structure Engine (next)
 
 ---
 
@@ -64,7 +82,7 @@ Module 2 — Technical Indicator Engine (next)
   - [x] Open interest (optional)
 
 ### Analysis Layer
-- [ ] MODULE 2: Technical Indicator Engine
+- [x] MODULE 2: Technical Indicator Engine
 - [ ] MODULE 3: Market Structure Engine
 - [ ] MODULE 4: Support & Resistance Engine
 - [ ] MODULE 5: Volume Analysis Engine
