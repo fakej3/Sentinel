@@ -11,6 +11,19 @@ Work in progress. No released version yet.
 
 ---
 
+## [0.1.1] — 2026-06-29
+
+### Added
+- `docs/ANALYSIS_MANIFESTO.md` — 12 core principles governing every design decision: data first, explain before predicting, transparency over certainty, no hidden reasoning, AI as writer only, evidence-required statements, balanced bullish/bearish reporting, prohibited absolute language, confidence-is-not-probability, educational value, institutional tone, and continuous improvement.
+
+### Modules Affected
+- None (documentation only).
+
+### Known Side Effects
+- None.
+
+---
+
 ## [0.1.0] — 2026-06-29
 
 ### Added
