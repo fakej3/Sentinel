@@ -817,4 +817,76 @@ audit trail purposes.
 
 ---
 
-*Last updated: Module 6 — Analysis Engine (v0.9.0)*
+---
+
+## Validation Engine (Module 7)
+
+---
+
+### LIM-028 — Stage 2 Post-AI Text Scanning Deferred to Module 9
+
+**Description:**
+`VALIDATION_RULES.md` defines three validation stages. Stage 2 (post-AI output
+scanning: numeric claims, indicator state claims, market structure claims, trend
+claims, S/R claims, confidence claims) and the remaining post-AI Stage 3 text
+contradiction checks are not implemented in Module 7.
+
+Module 7 implements pre-AI validation only: completeness, consistency, contradiction
+detection in the computed `MarketAnalysisResult`, and structural integrity of zones
+and market structure events.
+
+**Why it exists:**
+Stage 2 and post-AI Stage 3 require the AI-generated text to exist before validation
+can run. They are inherently coupled to Module 9 (AI Writing Engine), which does not
+yet exist. Implementing a text scanner without a text generator would produce no
+testable behavior.
+
+**Current impact:**
+The Validation Engine (`validateAnalysis`) only validates the computed JSON payload.
+Once Module 9 is implemented, AI-generated prose is not yet validated against the
+source data. Any factual error introduced by the AI during prose generation will not
+be caught until Module 9 integrates with a post-generation validation pass.
+
+**Risk level:** High (production risk once AI writing is active; no impact during
+Modules 1–8 development)
+
+**Planned resolution:**
+Module 9 implementation must include a post-generation validation loop that
+re-uses `validateAnalysis` for data-accuracy checks and adds text-scanning logic
+for Stage 2 claims (as documented in `VALIDATION_RULES.md §Stage 2`).
+
+**Target:** Module 9 — AI Writing Engine.
+
+---
+
+### LIM-029 — Timestamp Recency Check Not Implemented
+
+**Description:**
+`VALIDATION_RULES.md` Stage 1 specifies that the analysis timestamp must be within
+5 minutes of the current time to prevent stale data from reaching the AI writer.
+Module 7 does not perform this check.
+
+**Why it exists:**
+Modules 1–8 are pure computation functions with no access to the system clock.
+`validateAnalysis` is a deterministic pure function; calling `Date.now()` inside
+it would violate the determinism requirement (ADR-001) because the result would
+differ depending on when the function was called.
+
+**Current impact:**
+A stale `MarketAnalysisResult` (e.g., from a cached analysis computed hours ago)
+will pass Module 7 validation. No mechanism currently prevents stale data from
+reaching Module 9.
+
+**Risk level:** Medium (stale data is misleading; not a critical correctness failure)
+
+**Planned resolution:**
+Implement timestamp recency as an optional check in Module 9's orchestration layer,
+where the caller knows the current time and can pass a `maxAgeMs` threshold as
+context. Alternatively, expose a `checkTimestamp(result, currentTime)` utility
+in Module 7 for callers that can supply the current time.
+
+**Target:** Module 9 integration.
+
+---
+
+*Last updated: Module 7 — Validation Engine (v0.10.0)*

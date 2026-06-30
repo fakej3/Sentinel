@@ -11,6 +11,58 @@ Work in progress. No released version yet.
 
 ---
 
+## [0.10.0] — 2026-06-30
+
+### MODULE 7 — Validation Engine
+
+#### Added
+
+- **`src/modules/validation/types.ts`** — `ValidationSeverity` (`critical | warning | info`), `ValidationCategory` (`completeness | consistency | contradiction | structural`), `ValidationIssue`, `ValidationResult`, `ValidationConfig`.
+
+- **`src/modules/validation/config.ts`** — `DEFAULT_VALIDATION_CONFIG` (11 parameters: `zoneCenterTolerance`, `minEvidenceItems`, `minHighImpactEvidence`, `failOnWarning`, `rsiBullishMin`, `rsiBearishMax`, `adxWeakThreshold`, `rsiNeutralLow`, `rsiNeutralHigh`, `minBullishSwingsForTrend`, `minBearishSwingsForTrend`).
+
+- **`src/modules/validation/validate/completeness.ts`** — `checkCompleteness(result, cfg)`: validates `price.current > 0`, non-empty symbol, `evidence.length >= minEvidenceItems`, high-impact evidence count, `bullishConditionsMet`/`bearishConditionsMet` ∈ [0,5], `neutralConditionsMet` ∈ [0,4].
+
+- **`src/modules/validation/validate/consistency.ts`** — `checkConsistency(result, cfg)`: cross-checks all 19 `TrendConditions` booleans against their raw upstream sources (8 EMA price comparisons, 2 EMA order checks, 2 swing structure counts, 3 RSI checks, 2 MACD checks, 1 ADX check, 2 derived booleans, 2 S/R zone type checks, 11 volume context fields). Uses M6's exact RSI classification boundaries and MACD bias logic.
+
+- **`src/modules/validation/validate/contradictions.ts`** — `checkContradictions(result)`: verifies `priceAboveAllEMAs`/`priceBelowAllEMAs` derivability, mutual exclusivity of above/below and bullish/bearish EMA order, condition-met count tallies (bullish/bearish/neutral), trend label matches `deriveTrendLabel` priority order, evidence sorted high → medium → low.
+
+- **`src/modules/validation/validate/structural.ts`** — `checkStructural(result, cfg)`: zone geometry (`lower ≤ center ≤ upper`, `lower < upper`, optional width consistency warning), active zone type and broken-flag integrity, BOS/CHOCH detected-flag vs event array consistency, `last` pointer accuracy, chronological event ordering for BOS events, CHOCH events, and combined events array.
+
+- **`src/modules/validation/index.ts`** — `validateAnalysis(result, config?)` public API. Merges partial config with `DEFAULT_VALIDATION_CONFIG`. Calls all four checkers in sequence. Computes `criticalCount`, `warningCount`, `infoCount`, `passed` (no critical issues; optionally no warnings when `failOnWarning`), `clean` (no issues at all), `summary` (human-readable one-liner). Re-exports all public types and `DEFAULT_VALIDATION_CONFIG`.
+
+- **`src/modules/validation/__tests__/helpers.ts`** — `makeIndicators()`, `makeStructure()`, `makePriceZone()`, `makeSupportResistance()`, `makeVolumeAnalysis()`, `makeTrendConditions()`, `makeFullTrend()`, `makeEvidence()`, `makeValidResult()` — fully consistent strong-bullish scenario factory with all cross-field values aligned.
+
+- **84 unit tests** across 5 test files: completeness × 13, consistency × 23, contradictions × 16, structural × 17, index × 15.
+
+#### Changed
+
+- **`docs/ARCHITECTURE.md`** — Replaced Module 7 placeholder description with full implementation detail: four validation categories, public API, configuration, test count, ADR reference.
+
+- **`docs/ENGINE_RULES.md`** — Added §15 Validation Engine Rules (§15.1 public API, §15.2 result structure, §15.3 completeness check table, §15.4 consistency check table with all 22 field sources, §15.5 contradiction check table, §15.6 structural check tables for zone geometry + active zone integrity + event consistency, §15.7 default configuration table).
+
+- **`docs/VALIDATION_RULES.md`** — Updated Stage 1 to document Module 7 implementation status and map each check to its checker function. Updated Stage 3 to separate implemented pre-AI checks (Module 7) from deferred post-AI text scanning (Module 9). Updated footer.
+
+- **`docs/DECISIONS.md`** — Added ADR-020 (Validation Engine splits into four independent checkers).
+
+- **`docs/KNOWN_LIMITATIONS.md`** — Added Module 7 section with LIM-028 (Stage 2 post-AI text scanning deferred to Module 9) and LIM-029 (timestamp recency check not implemented — pure function constraint).
+
+- **`docs/ROADMAP.md`** — Progress 46% → 54%. Module 7 status: Not Started → Complete. Updated current task to Module 8.
+
+- **`docs/TESTING_STRATEGY.md`** — Updated test count: 505/48 → 589/53.
+
+### Modules Affected
+
+- MODULE 7 — Validation Engine: **complete**. 84 tests passing.
+
+### Test count: 589 tests passing (505 prior + 84 new)
+
+### Known Side Effects
+
+- None. Module 7 reads from but does not modify Modules 1–6 outputs.
+
+---
+
 ## [0.9.0] — 2026-06-30
 
 ### MODULE 6 — Analysis Engine

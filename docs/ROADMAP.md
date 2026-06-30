@@ -2,7 +2,7 @@
 
 ## Overall Progress
 
-`46%` — Modules 1–6 complete + Engineering Standards established. Foundation stable.
+`54%` — Modules 1–7 complete + Engineering Standards established. Foundation stable.
 
 ---
 
@@ -16,7 +16,7 @@
 | 4 | Support & Resistance Engine | **Complete** | Price zones from swing points, ATR-based width, greedy merge, interaction detection, zone state machine, strength scoring — 93 tests passing |
 | 5 | Volume Analysis Engine | **Complete** | Relative volume, trend (OLS), buy/sell pressure, climax, exhaustion, acc/dist, OBV, VWAP — 72 tests passing |
 | 6 | Analysis Engine | **Complete** | Full trend synthesis (5-condition), EMA context, indicator interpretation, S/R context, volume context, evidence collection — 115 tests passing |
-| 7 | Validation Engine | Not Started | Rejects hallucinations, fake numbers, unsupported claims |
+| 7 | Validation Engine | **Complete** | Completeness, consistency, contradiction, structural checks — 84 tests passing |
 | 8 | Confidence Engine | Not Started | Evidence-weighted scoring system (0–10) |
 | 9 | AI Writing Engine | Not Started | Writes from validated JSON only; no data invention |
 | 10 | Content Generator | Not Started | Multiple output styles from the same analysis |
@@ -118,11 +118,27 @@
 - [x] LIM-023 through LIM-027 added to KNOWN_LIMITATIONS.md
 - [x] ENGINE_RULES.md §14 (Analysis Engine) added; §8 volume thresholds corrected
 
+### Module 7 — Validation Engine ✅
+
+- [x] `types.ts` — ValidationSeverity, ValidationCategory, ValidationIssue, ValidationResult, ValidationConfig
+- [x] `config.ts` — DEFAULT_VALIDATION_CONFIG (11 parameters)
+- [x] `validate/completeness.ts` — checkCompleteness; price > 0; non-empty symbol; evidence count; high-impact evidence warning; condition-met range checks
+- [x] `validate/consistency.ts` — checkConsistency; 8 priceAboveEMA* comparisons; 8 priceBelowEMA* comparisons; EMA order booleans; swing structure counts; RSI/MACD/ADX booleans; derived booleans; S/R zone type; 11 volume context fields
+- [x] `validate/contradictions.ts` — checkContradictions; priceAboveAllEMAs/priceBelowAllEMAs derivability; mutual exclusivity checks; condition-met count tallies; trend label vs deriveTrendLabel; evidence sort order
+- [x] `validate/structural.ts` — checkStructural; zone geometry (lower ≤ center ≤ upper, lower < upper, width consistency); active zone type + broken-flag; BOS/CHOCH detected vs events; last pointer; chronological order of BOS/CHOCH/events arrays
+- [x] `index.ts` — validateAnalysis (public API); merges config; calls all four checkers; computes passed/clean/counts/summary; re-exports types
+- [x] `__tests__/helpers.ts` — makeIndicators, makeStructure, makePriceZone, makeSupportResistance, makeVolumeAnalysis, makeTrendConditions, makeFullTrend, makeEvidence, makeValidResult
+- [x] 84 unit tests passing across 5 test files (completeness×13, consistency×23, contradictions×16, structural×17, index×15)
+- [x] ADR-020 added to DECISIONS.md
+- [x] LIM-028 and LIM-029 added to KNOWN_LIMITATIONS.md
+- [x] ENGINE_RULES.md §15 (Validation Engine) added
+- [x] VALIDATION_RULES.md Stage 1 and Stage 3 updated to reflect implementation status
+
 ---
 
 ## Current Task
 
-Module 7 — Validation Engine (not yet started).
+Module 8 — Confidence Engine (not yet started).
 
 ---
 
@@ -148,8 +164,8 @@ Module 7 — Validation Engine (not yet started).
 - [x] MODULE 5: Volume Analysis Engine
 
 ### Reasoning Layer
-- [ ] MODULE 6: Evidence Engine
-- [ ] MODULE 7: Validation Engine
+- [x] MODULE 6: Analysis Engine
+- [x] MODULE 7: Validation Engine
 - [ ] MODULE 8: Confidence Engine
 
 ### Output Layer

@@ -908,4 +908,57 @@ Additionally, Module 9 (AI Writing Engine) may need specific values (e.g., exact
 
 ---
 
-*Last updated: Module 6 — Analysis Engine (v0.9.0)*
+## ADR-020 — Validation Engine Splits Into Four Independent Checkers
+
+**Date:** 2026-06-30
+**Status:** Accepted
+
+### Decision
+
+Module 7's validation logic is split into four pure, independently callable functions:
+`checkCompleteness`, `checkConsistency`, `checkContradictions`, and `checkStructural`.
+The public `validateAnalysis` function calls all four in sequence and merges their
+`ValidationIssue[]` arrays.
+
+### Reason
+
+A single monolithic validator function would be:
+1. Untestable in isolation — it is not possible to write a targeted test for zone
+   geometry without also setting up valid trend conditions.
+2. Difficult to maintain — a change to completeness logic would require reading through
+   structural checks to understand the impact.
+3. Hard to categorize — each issue type has a different cause (missing data vs wrong
+   calculation vs logical impossibility vs geometric error). Separate functions
+   produce categorized issues naturally.
+
+Four separate functions map directly to the four `ValidationCategory` values
+(`completeness`, `consistency`, `contradiction`, `structural`) and make the
+issue source self-documenting.
+
+### Alternatives Considered
+
+- **Single `validate(result, cfg)` function with internal sections:** Simpler entry
+  point but the function body grows to hundreds of lines with no clear internal
+  structure. Rejected.
+- **Class-based validator with methods:** Would allow shared state between checks.
+  Rejected because shared state violates the determinism requirement (ADR-001).
+
+### Tradeoffs
+
+- Gain: each checker is independently testable; test failures pinpoint the exact
+  category; the order of checkers is explicit in `validateAnalysis`.
+- Loss: `validateAnalysis` performs four passes over `result` (once per checker)
+  instead of one. At analysis time, this is negligible (< 1 ms for 1 analysis object).
+
+### Consequences
+
+- Each checker is exported from its own file under `validate/`.
+- `validateAnalysis` in `index.ts` is the only entry point callers should use.
+- Tests for each checker import the checker directly for precise isolation.
+- The `ValidationCategory` type has exactly four values matching the four checkers.
+
+**Review date:** When Module 8 is designed and we confirm what additional validation is needed.
+
+---
+
+*Last updated: Module 7 — Validation Engine (v0.10.0)*

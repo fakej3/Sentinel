@@ -861,4 +861,175 @@ Items are sorted by impact (high → medium → low) in `MarketAnalysisResult.ev
 | `minBullishSwingsForTrend` | 2 | §1 |
 | `minBearishSwingsForTrend` | 2 | §1 |
 
-*Last updated: Module 6 — Analysis Engine (v0.9.0)*
+---
+
+## 15. Validation Engine — Module 7 Rules
+
+Module 7 (`validateAnalysis`) is the **deterministic gatekeeper** between Module 6
+synthesis and Module 8 confidence scoring. It runs four independent checks on a
+`MarketAnalysisResult` and returns a structured `ValidationResult`.
+
+Module 7 performs no calculations. It only validates.
+
+---
+
+### 15.1 Public API
+
+```typescript
+validateAnalysis(
+  result: MarketAnalysisResult,
+  config?: Partial<ValidationConfig>,
+): ValidationResult
+```
+
+Merges the caller-supplied partial config with `DEFAULT_VALIDATION_CONFIG` and
+runs all four checkers in sequence. Issues from all checkers are combined into a
+single `issues[]` array.
+
+---
+
+### 15.2 ValidationResult Structure
+
+| Field | Type | Meaning |
+|-------|------|---------|
+| `passed` | `boolean` | No critical issues (and no warnings when `failOnWarning` is set) |
+| `clean` | `boolean` | No issues at all |
+| `issues` | `ValidationIssue[]` | All detected problems |
+| `criticalCount` | `number` | Count of `severity === 'critical'` issues |
+| `warningCount` | `number` | Count of `severity === 'warning'` issues |
+| `infoCount` | `number` | Count of `severity === 'info'` issues |
+| `summary` | `string` | Human-readable one-line summary |
+
+`ValidationIssue` fields: `severity` (`critical | warning | info`), `category`
+(`completeness | consistency | contradiction | structural`), `field` (dot-path
+into `MarketAnalysisResult`), `message`, optional `expected` and `actual`.
+
+---
+
+### 15.3 Completeness Check (`checkCompleteness`)
+
+All findings are `category: 'completeness'`.
+
+| Check | Severity | Condition |
+|-------|----------|-----------|
+| `price.current` | critical | `price.current <= 0` |
+| `symbol` | critical | `symbol.trim() === ''` |
+| `evidence` count | critical | `evidence.length < minEvidenceItems` |
+| High-impact evidence | warning | `highImpactCount < minHighImpactEvidence` |
+| `bullishConditionsMet` range | critical | value not in [0, 5] |
+| `bearishConditionsMet` range | critical | value not in [0, 5] |
+| `neutralConditionsMet` range | critical | value not in [0, 4] |
+
+Default thresholds: `minEvidenceItems = 3`, `minHighImpactEvidence = 1`.
+
+---
+
+### 15.4 Consistency Check (`checkConsistency`)
+
+Verifies that each `TrendConditions` boolean matches its raw upstream source.
+All findings are `category: 'consistency'`.
+
+| Field | Source | Derived as |
+|-------|--------|-----------|
+| `priceAboveEMA20` | `indicators.ema20` | `price > ema20` (false when null) |
+| `priceAboveEMA50` | `indicators.ema50` | `price > ema50` (false when null) |
+| `priceAboveEMA100` | `indicators.ema100` | `price > ema100` (false when null) |
+| `priceAboveEMA200` | `indicators.ema200` | `price > ema200` (false when null) |
+| `priceBelowEMA20` | `indicators.ema20` | `price < ema20` (false when null) |
+| `priceBelowEMA50` | `indicators.ema50` | `price < ema50` (false when null) |
+| `priceBelowEMA100` | `indicators.ema100` | `price < ema100` (false when null) |
+| `priceBelowEMA200` | `indicators.ema200` | `price < ema200` (false when null) |
+| `emaInBullishOrder` | all 4 EMAs | `ema20 > ema50 > ema100 > ema200` (false when any null) |
+| `emaInBearishOrder` | all 4 EMAs | `ema20 < ema50 < ema100 < ema200` (false when any null) |
+| `hasConsistentHHHL` | `marketStructure.structure` | `higherHighs >= 2 && higherLows >= 2` |
+| `hasConsistentLHLL` | `marketStructure.structure` | `lowerHighs >= 2 && lowerLows >= 2` |
+| `rsiSupportsBullish` | `indicators.rsi` | `rsi >= rsiBullishMin` (false when null) |
+| `rsiSupportsBearish` | `indicators.rsi` | `rsi <= rsiBearishMax` (false when null) |
+| `rsiInNeutralRange` | `indicators.rsi` | `rsi >= rsiNeutralLow && rsi <= rsiNeutralHigh` (false when null) |
+| `macdBullish` | `indicators.macd` | `macdLine > signalLine` (false when null) |
+| `macdBearish` | `indicators.macd` | `macdLine < signalLine` (false when null) |
+| `adxBelowWeakThreshold` | `indicators.adx` | `adx < adxWeakThreshold` (false when null) |
+| `noConsistentStructure` | other conditions | `!hasConsistentHHHL && !hasConsistentLHLL` |
+| `priceBetweenEMAsWithoutClearOrder` | other conditions | `!priceAboveAllEMAs && !priceBelowAllEMAs && !emaInBullishOrder && !emaInBearishOrder` |
+| `insideSupport` | `supportResistance.currentZone` | `currentZone?.type === 'support' ?? false` |
+| `insideResistance` | `supportResistance.currentZone` | `currentZone?.type === 'resistance' ?? false` |
+| Volume context fields | `volumeAnalysis` | All 11 `VolumeContextResult` fields matched to their Module 5 sources |
+
+RSI classification is re-derived using M6's exact boundaries (`< 30` oversold, `< 45` weak_bearish, `≤ 55` neutral, `≤ 70` healthy_bullish, else overbought). MACD bias is re-derived from `macdLine > signalLine` (bullish), `< signalLine` (bearish), else neutral.
+
+---
+
+### 15.5 Contradiction Check (`checkContradictions`)
+
+Verifies logical consistency within the derived fields. All findings are `category: 'contradiction'`.
+
+| Check | Severity | Rule |
+|-------|----------|------|
+| `priceAboveAllEMAs` derivation | critical | Must equal AND of all four `priceAboveEMA*` booleans |
+| `priceBelowAllEMAs` derivation | critical | Must equal AND of all four `priceBelowEMA*` booleans |
+| Both above and below all EMAs | critical | `priceAboveAllEMAs && priceBelowAllEMAs` is impossible |
+| Both EMA orders | critical | `emaInBullishOrder && emaInBearishOrder` is impossible |
+| `bullishConditionsMet` tally | critical | Must equal count of true values in [priceAboveAllEMAs, emaInBullishOrder, hasConsistentHHHL, rsiSupportsBullish, macdBullish] |
+| `bearishConditionsMet` tally | critical | Must equal count of true values in [priceBelowAllEMAs, emaInBearishOrder, hasConsistentLHLL, rsiSupportsBearish, macdBearish] |
+| `neutralConditionsMet` tally | critical | Must equal count of true values in [adxBelowWeakThreshold, rsiInNeutralRange, noConsistentStructure, priceBetweenEMAsWithoutClearOrder] |
+| Trend label | critical | Must match `deriveTrendLabel(bullish, bearish, neutral)` priority order (§1) |
+| Evidence sort order | warning | Evidence items must be sorted high → medium → low impact; first violation reported only |
+
+---
+
+### 15.6 Structural Check (`checkStructural`)
+
+Validates the geometric and logical integrity of S/R zones and market structure events.
+All findings are `category: 'structural'`.
+
+**Zone geometry** (for each zone in `supportResistance.zones[]`):
+
+| Check | Severity | Rule |
+|-------|----------|------|
+| `lower > center` | critical | `lower > center + zoneCenterTolerance × center` |
+| `center > upper` | critical | `center > upper + zoneCenterTolerance × upper` |
+| `lower >= upper` | critical | Zone has no width |
+| Width mismatch | warning | `|zone.width − (zone.upper − zone.lower)| >= 0.0001` |
+
+**Active zone lists**:
+
+| Check | Severity | Rule |
+|-------|----------|------|
+| `activeSupport` type | critical | Every zone must have `type === 'support'` |
+| `activeSupport` broken | critical | No zone in `activeSupport` may have `broken === true` |
+| `activeResistance` type | critical | Every zone must have `type === 'resistance'` |
+| `activeResistance` broken | critical | No zone in `activeResistance` may have `broken === true` |
+
+**Market structure event consistency**:
+
+| Check | Severity | Rule |
+|-------|----------|------|
+| `bos.detected` vs `bos.events` | critical | `bos.detected === (bos.events.length > 0)` |
+| `bos.last` when detected | critical | `bos.last` must equal `bos.events[bos.events.length − 1]` |
+| `bos.last` when not detected | critical | `bos.last` must be `null` |
+| `choch.detected` vs `choch.events` | critical | `choch.detected === (choch.events.length > 0)` |
+| `choch.last` consistency | critical | Same rules as `bos.last` |
+| BOS events chronological order | critical | `bos.events[i].index < bos.events[i+1].index` for all i |
+| CHOCH events chronological order | critical | Same rule for `choch.events` |
+| `events` count | critical | `events.length === bos.events.length + choch.events.length` |
+| `events` chronological order | critical | `events[i].index < events[i+1].index` for all i |
+
+---
+
+### 15.7 Default Configuration
+
+| Parameter | Default | Purpose |
+|-----------|---------|---------|
+| `zoneCenterTolerance` | 0.001 | Tolerance for zone geometry comparisons (0.1%) |
+| `minEvidenceItems` | 3 | Minimum total evidence items (critical if below) |
+| `minHighImpactEvidence` | 1 | Minimum high-impact evidence items (warning if below) |
+| `failOnWarning` | false | When true, warnings also cause `passed: false` |
+| `rsiBullishMin` | 45 | Threshold for `rsiSupportsBullish` (ENGINE_RULES.md §1) |
+| `rsiBearishMax` | 55 | Threshold for `rsiSupportsBearish` (ENGINE_RULES.md §1) |
+| `adxWeakThreshold` | 20 | Threshold for `adxBelowWeakThreshold` (ENGINE_RULES.md §7) |
+| `rsiNeutralLow` | 40 | Lower bound of RSI neutral range (ENGINE_RULES.md §1) |
+| `rsiNeutralHigh` | 60 | Upper bound of RSI neutral range (ENGINE_RULES.md §1) |
+| `minBullishSwingsForTrend` | 2 | Swing count floor for `hasConsistentHHHL` |
+| `minBearishSwingsForTrend` | 2 | Swing count floor for `hasConsistentLHLL` |
+
+*Last updated: Module 7 — Validation Engine (v0.10.0)*

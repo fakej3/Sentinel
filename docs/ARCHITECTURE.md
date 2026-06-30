@@ -112,10 +112,17 @@ Binance Square Ready Post
 - 115 tests passing across 8 test files.
 
 ### MODULE 7 — Validation Engine
-- Acts as a gatekeeper before AI writing.
-- Validates every claim against raw computed values.
-- Rejects hallucinated numbers, unsupported conclusions, contradictions.
-- Rules documented in `VALIDATION_RULES.md`.
+- **Gatekeeper layer**: Runs after Module 6 and before Module 8. Validates the complete `MarketAnalysisResult` produced by Module 6 against the raw upstream data embedded in that result.
+- Performs four independent validation categories:
+  - **Completeness** (`checkCompleteness`): price > 0, non-empty symbol, minimum evidence count, valid condition-met ranges.
+  - **Consistency** (`checkConsistency`): each `TrendConditions` boolean matches its raw upstream source (RSI, MACD, EMA values, market structure swing counts, S/R zone type, volume context fields).
+  - **Contradictions** (`checkContradictions`): `priceAboveAllEMAs`/`priceBelowAllEMAs` consistency, EMA order exclusivity, condition-met counts match the boolean tally, trend label matches the `deriveTrendLabel` priority order, evidence sorted high → medium → low.
+  - **Structural** (`checkStructural`): price zone geometry (lower ≤ center ≤ upper, lower < upper), active zone type and broken-flag correctness, BOS/CHOCH detected-flag vs event array consistency, `last` pointer accuracy, chronological event order.
+- Returns `ValidationResult`: `passed`, `clean`, `issues[]`, `criticalCount`, `warningCount`, `infoCount`, `summary`.
+- Public API: `validateAnalysis(result, config?)` — deterministic, pure, no side effects.
+- Configuration: `ValidationConfig` with `DEFAULT_VALIDATION_CONFIG` (thresholds for evidence counts, zone geometry tolerance, etc.).
+- Rules documented in `VALIDATION_RULES.md` and `ENGINE_RULES.md §15`.
+- 84 tests passing across 5 test files. ADR: ADR-020.
 
 ### MODULE 8 — Confidence Engine
 - Scores the overall analysis using an evidence-weighted formula.

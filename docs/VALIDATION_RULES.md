@@ -21,17 +21,35 @@ It ensures:
 
 ### Stage 1 — Input Validation (Before AI Writing)
 
+**Implementation status: IMPLEMENTED in Module 7 (`src/modules/validation/`)**
+
+`checkCompleteness` and `checkConsistency` implement Stage 1 validation.
+`checkContradictions` and `checkStructural` implement structural integrity checks
+that also belong before AI writing. See `ENGINE_RULES.md §15` for full rule details.
+
 Before the JSON payload is passed to the AI Writing Engine, validate that:
 
-| Check | Rule |
-|-------|------|
-| All required fields present | coin, timeframe, price, indicators, marketStructure, levels, volume, evidence, confidence |
-| No null indicator values | Every indicator used in evidence must have a computed value |
-| Price is a positive number | current price > 0 |
-| Timestamp is recent | Within 5 minutes of current time (to prevent stale data) |
-| Confidence score is in range | 0.0 ≤ confidence ≤ 10.0 (per ENGINE_RULES.md §11) |
-| Evidence list is non-empty | At least 1 evidence item must be present |
-| No contradiction in trend | If trend = "bullish", bullish evidence must outweigh bearish |
+| Check | Rule | Module 7 checker |
+|-------|------|-----------------|
+| All required fields present | coin, timeframe, price, indicators, marketStructure, levels, volume, evidence, confidence | `checkCompleteness` |
+| Price is a positive number | current price > 0 | `checkCompleteness` |
+| Evidence list is non-empty | At least `minEvidenceItems` (default: 3) evidence items present | `checkCompleteness` |
+| Condition-met counts in range | bullishConditionsMet ∈ [0,5]; bearishConditionsMet ∈ [0,5]; neutralConditionsMet ∈ [0,4] | `checkCompleteness` |
+| TrendConditions consistency | Each boolean matches its raw source (EMA values, RSI, MACD, structure counts, volume fields) | `checkConsistency` |
+| No contradiction in trend | Trend label matches derived label; condition-met counts match boolean tallies | `checkContradictions` |
+| Zone geometry valid | lower ≤ center ≤ upper; lower < upper for all S/R zones | `checkStructural` |
+| Active zone type correct | activeSupport zones have type='support'; activeResistance have type='resistance' | `checkStructural` |
+| BOS/CHOCH event integrity | detected flag matches event array; last pointer correct; events chronological | `checkStructural` |
+
+**Checks deferred to later modules:**
+
+| Check | Rule | Deferred to |
+|-------|------|------------|
+| Timestamp is recent | Within 5 minutes of current time | Module 9 integration (LIM-028) |
+| Confidence score in range | 0.0 ≤ confidence ≤ 10.0 | Module 8 (produces the score) |
+
+If any completeness or contradiction check produces a critical issue →
+**`validateAnalysis` returns `passed: false`** — the payload must not proceed to Module 9.
 
 If any Stage 1 check fails → **reject the entire analysis payload and surface an error to the user.**
 
@@ -142,6 +160,31 @@ Every S/R claim must be validated against a specific zone in this array.
 
 ### Stage 3 — Contradiction Detection
 
+**Implementation status: PARTIALLY IMPLEMENTED in Module 7.**
+
+`checkContradictions` detects internal contradictions within the computed
+`MarketAnalysisResult` *before* the AI writes. This catches logical errors in
+the computed data before they ever reach the AI writer.
+
+Post-AI text scanning for contradictions in generated prose is deferred to Module 9
+(see LIM-028).
+
+**Implemented pre-AI contradiction checks (Module 7):**
+
+| Contradiction | Check | Severity |
+|---|---|---|
+| `priceAboveAllEMAs` but a `priceAboveEMA*` is false | `checkContradictions` | critical |
+| `priceBelowAllEMAs` but a `priceBelowEMA*` is false | `checkContradictions` | critical |
+| Both `priceAboveAllEMAs` and `priceBelowAllEMAs` true | `checkContradictions` | critical |
+| Both `emaInBullishOrder` and `emaInBearishOrder` true | `checkContradictions` | critical |
+| `bullishConditionsMet` count doesn't match boolean tally | `checkContradictions` | critical |
+| `bearishConditionsMet` count doesn't match boolean tally | `checkContradictions` | critical |
+| `neutralConditionsMet` count doesn't match boolean tally | `checkContradictions` | critical |
+| Trend label doesn't match deriveTrendLabel result | `checkContradictions` | critical |
+| Evidence not sorted high → medium → low | `checkContradictions` | warning |
+
+**Deferred post-AI contradiction checks (Module 9):**
+
 Scan the full generated text for internal contradictions:
 
 | Contradiction | Example |
@@ -221,4 +264,4 @@ This log must be stored alongside each completed analysis in the History Databas
 
 ---
 
-*Last updated: Foundation Stabilization (post-audit v0.1)*
+*Last updated: Module 7 — Validation Engine (v0.10.0)*
