@@ -2,7 +2,7 @@
 
 ## Overall Progress
 
-`23%` — Modules 1–3 complete. 3 of 13 modules done.
+`25%` — Modules 1–3 complete + Engineering Standards established. Foundation stable.
 
 ---
 
@@ -30,6 +30,7 @@
 
 - [x] Architecture design and project specification
 - [x] Documentation suite (`docs/` — ARCHITECTURE, ENGINE_RULES, INDICATOR_RULES, VALIDATION_RULES, WRITING_GUIDELINES, ANALYSIS_MANIFESTO)
+- [x] Engineering Standards (QUALITY_GATE, VERSIONING, TESTING_STRATEGY, DECISIONS, KNOWN_LIMITATIONS)
 - [x] Project setup — Vite + React + TypeScript + Vitest
 - [x] MODULE 1 — Binance Data Engine
   - [x] `types.ts` — Candle, Ticker24h, FundingRate, OpenInterest, MarketData, FetchOptions
@@ -76,7 +77,7 @@
 
 ## Current Task
 
-Foundation Stabilization complete. Module 4 — Support & Resistance Engine (next).
+Module 4 — Support & Resistance Engine.
 
 ---
 

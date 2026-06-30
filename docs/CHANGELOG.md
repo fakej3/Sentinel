@@ -11,6 +11,32 @@ Work in progress. No released version yet.
 
 ---
 
+## [0.6.0] — 2026-06-30
+
+### Milestone 0.4 — Engineering Standards
+
+#### Added
+
+- `docs/QUALITY_GATE.md` — Permanent Definition of Done for every module. Seven sections: Code Quality (clean architecture, no dead code, meaningful naming, modular design, documented public API), Correctness (determinism, explainability, no AI calculations, no silent failures, no magic numbers, configurable thresholds, numerical stability, edge case handling), Testing (required test categories and quality bar), Documentation (required doc updates per module), Performance (allocation, redundant calculation, complexity, scalability), Architecture (module boundaries, no circular dependencies, shared contracts), and an Engineering Review checklist (7 questions). Concludes with a formal Definition of Done checklist.
+
+- `docs/VERSIONING.md` — Complete semantic versioning strategy. Defines PATCH/MINOR/MAJOR rules with examples. Documents the development milestone roadmap (0.x through 3.0.0): v1.0.0 = complete deterministic analysis engine; v1.5.0 = AI Writing Engine; v2.0.0 = multi-exchange; v3.0.0 = institutional platform. Branching strategy, release process (9-step checklist), and stability expectations per version series.
+
+- `docs/TESTING_STRATEGY.md` — Permanent testing handbook. Philosophy section (correctness over coverage, determinism as first-class guarantee, regression prevention, tests as documentation). Six implemented test categories (unit, integration, regression, boundary, invalid input, property) with naming patterns and code examples. Two future categories (historical replay, TradingView comparison). Naming conventions, folder structure, mock strategy (network: vi.stubGlobal; time/randomness: not needed), test factory patterns (canonical `candle()` factory and scenario builders), reference dataset plan, and CI expectations.
+
+- `docs/DECISIONS.md` — Architecture Decision Records (ADR). 12 records: ADR-001 (Deterministic Analysis Engine), ADR-002 (AI Is a Writer Not an Analyst), ADR-003 (Canonical 0–10 Confidence Scale), ADR-004 (Server-Side Binance Proxy), ADR-005 (Structural Bias vs Full Trend), ADR-006 (Modular Pipeline Architecture), ADR-007 (Configuration Over Hardcoding), ADR-008 (Evidence-First Analysis), ADR-009 (Validation Before Publishing), ADR-010 (Wilder's Smoothing for RSI and ATR), ADR-011 (Testing-First Development), ADR-012 (Documentation as Source of Truth). Each record includes decision, reason, alternatives considered, tradeoffs, consequences, and review date.
+
+- `docs/KNOWN_LIMITATIONS.md` — Permanent record of intentional limitations and accepted technical debt. 14 open entries organized into sections: Indicator Engine (VWAP cumulative not session-based; TradingView parity not verified; StochRSI returns 0 on flat series), Market Structure (historical replay not implemented; structural bias ≠ full trend), Infrastructure (server-side proxy required; no rate limiting; no retry strategy), Performance (no caching; no multi-market optimization), AI Layer (writing engine not implemented; hallucination benchmarking not implemented), Testing (no historical replay suite; no performance benchmarks), Future Features (11 deferred analysis capabilities). Resolved section tracks 6 limitations fixed in v0.5.0.
+
+### Modules Affected
+
+- None (documentation only).
+
+### Known Side Effects
+
+- None.
+
+---
+
 ## [0.5.0] — 2026-06-30
 
 ### Foundation Stabilization — Post-Audit v0.1 (Critical + High Issues)
