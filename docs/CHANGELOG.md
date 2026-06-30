@@ -11,6 +11,41 @@ Work in progress. No released version yet.
 
 ---
 
+## [0.7.0] — 2026-06-30
+
+### MODULE 4 — Support & Resistance Engine
+
+#### Added
+
+- **`src/modules/support-resistance/types.ts`** — `ZoneState`, `ZoneOrigin`, `PriceZone`, `SupportResistanceConfig`, `SupportResistanceResult`.
+- **`src/modules/support-resistance/config.ts`** — `DEFAULT_CONFIG` (`atrMultiplier: 0.25`, `mergeTolerance: 0.5`, `minTouchCount: 2`, `maxZoneAge: 200`, `lookback: 100`, `strengthDecayAge: 50`).
+- **`src/modules/support-resistance/zones.ts`** — `createZoneCandidates` (zone seeds from swing points), `computeAtr` (Wilder's 14-period), `zoneHalfWidth` (ATR × multiplier; 0.3% fallback), `resetZoneCounter` (deterministic IDs per call).
+- **`src/modules/support-resistance/merge.ts`** — `mergeZones`: greedy nearest-first merge. Zones of same type merge when gap < ATR × `mergeTolerance`. Merged zone properties (center, upper, lower, counts) computed per ENGINE_RULES.md §12.3.
+- **`src/modules/support-resistance/interactions.ts`** — `applyInteractions`: non-mutating candle-by-candle scan. Detects touches, successful reactions (bounces), failed reactions (breaks with close-only confirmation, 3-candle reversal window), and retests (broken zone re-entered; close must confirm new role).
+- **`src/modules/support-resistance/strength.ts`** — `computeStrength` (ENGINE_RULES.md §12.6 formula; clamped 0–10), `computeZoneConfidence` (reaction ratio scoring), `deriveState` (7-state machine per §12.5).
+- **`src/modules/support-resistance/evidence.ts`** — `buildZoneEvidence` (per-zone strings), `buildResultEvidence` (result summary with nearest zones and active count).
+- **`src/modules/support-resistance/index.ts`** — `computeSupportResistance(candles, marketStructure, config?)` public API. 9-step pipeline: validate → ATR → zone candidates → interactions → minTouchCount filter → merge (support and resistance separately) → finalize state/strength/confidence/evidence → classify active/nearest/current → build result evidence. Re-exports `DEFAULT_CONFIG` and all public types.
+- **`src/modules/support-resistance/__tests__/helpers.ts`** — Shared test factories: `candle()`, `flatCandles()`, `emptyStructure()`, `swing()`, `withSwings()`.
+- **93 unit tests** across 5 test files (zones × 12, merge × 13, strength × 17, interactions × 14, index × 37).
+
+#### Changed
+
+- **`docs/ROADMAP.md`** — Overall progress 25% → 31%. Module 4 status: Not Started → Complete. Completed section updated with full Module 4 file list.
+- **`docs/CHANGELOG.md`** — This entry.
+- **`docs/KNOWN_LIMITATIONS.md`** — Module 4 section: LIM-015 and LIM-016 promoted from "future" notes to tracked open items.
+
+### Modules Affected
+
+- MODULE 4 — Support & Resistance Engine: **complete**. 93 tests passing.
+
+### Test count: 320 tests passing (227 prior + 93 new)
+
+### Known Side Effects
+
+- None. Module 4 has no dependencies on future modules and does not modify any existing module.
+
+---
+
 ## [0.6.1] — 2026-06-30
 
 ### Architectural Improvement — Support & Resistance as Price Zones

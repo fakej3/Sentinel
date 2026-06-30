@@ -105,7 +105,7 @@ to suppress the StochRSI evidence line when the range is degenerate.
 
 ---
 
-## Support & Resistance Engine (Module 4 — Architecture Defined, Not Yet Implemented)
+## Support & Resistance Engine (Module 4)
 
 ---
 
@@ -116,25 +116,26 @@ Zone boundaries are computed as `center ± ATR × atrMultiplier`. The ATR value
 must come from Module 2's `computeIndicators` output. Module 4 therefore has a
 runtime dependency on Module 2: it cannot compute zone widths without an ATR value.
 
-If Module 4 is called without an ATR (e.g. in isolation during testing), a
-fallback of `center × 0.003` (0.3% of the center price) is used as a minimum
-width. This fallback is less accurate than the ATR-based width.
+If Module 4 is called in isolation (e.g., unit tests without full candle history),
+the ATR may be very small or zero, causing zones to have very narrow widths or fall
+back to `center × 0.003` (0.3% of price).
 
 **Why it exists:**
-ATR is the correct measure of current volatility and is the best basis for zone
-width. Computing a second ATR inside Module 4 would duplicate Module 2's work.
-Accepting Module 2's output as an optional parameter is the cleanest design.
+ATR is computed internally from the candle input (Wilder's 14-period). For the
+full platform pipeline, candles come from Module 1 and carry realistic ATR values.
+In unit tests with synthetic flat candles, ATR = 0 triggers the fallback.
 
 **Current impact:**
-None (Module 4 not yet implemented). When implemented, the public API signature
-will be `computeSupportResistance(candles, swings, atr?, config?)`.
+Zone widths in synthetic test scenarios may differ from production zone widths.
+The fallback produces valid zones — just less adaptive to current volatility.
 
-**Risk level:** Low
+**Risk level:** Low (documented; test factories should inject appropriate ranges)
 
 **Planned resolution:**
-Pass ATR as an optional parameter. Document the fallback clearly in `types.ts`.
+When the full platform pipeline is assembled, Module 4 will receive real candles
+from Module 1 and produce realistic ATR-based widths automatically.
 
-**Target:** Module 4 implementation.
+**Target:** Platform integration (Module 9+).
 
 ---
 
@@ -528,4 +529,4 @@ audit trail purposes.
 
 ---
 
-*Last updated: Milestone 0.4 — Engineering Standards*
+*Last updated: Module 4 — Support & Resistance Engine*

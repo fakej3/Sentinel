@@ -2,7 +2,7 @@
 
 ## Overall Progress
 
-`25%` — Modules 1–3 complete + Engineering Standards established. Foundation stable.
+`31%` — Modules 1–4 complete + Engineering Standards established. Foundation stable.
 
 ---
 
@@ -13,7 +13,7 @@
 | 1 | Binance Data Engine | **Complete** | OHLC, price, volume, 24H stats, funding rate, OI — 34 tests passing |
 | 2 | Technical Indicator Engine | **Complete** | EMA×4, SMA×3, RSI, MACD, ATR, ADX, VWAP, BB, StochRSI, OBV, MFI, CCI, Vol MA — 97 tests passing |
 | 3 | Market Structure Engine | **Complete** | Swing detection, HH/HL/LH/LL labeling, BOS, CHOCH, consolidation, breakout, pullback — 88 tests passing |
-| 4 | Support & Resistance Engine | Not Started | Static levels, dynamic EMA S/R, pivot zones, swing levels |
+| 4 | Support & Resistance Engine | **Complete** | Price zones from swing points, ATR-based width, greedy merge, interaction detection, zone state machine, strength scoring — 93 tests passing |
 | 5 | Volume Analysis Engine | Not Started | Relative volume, spikes, trend, buy/sell pressure |
 | 6 | Evidence Engine | Not Started | Every conclusion must carry supporting evidence |
 | 7 | Validation Engine | Not Started | Rejects hallucinations, fake numbers, unsupported claims |
@@ -59,6 +59,16 @@
   - [x] `index.ts` — computeIndicators (public API)
   - [x] 97 unit tests passing across 15 test files
 - [x] MODULE 3 — Market Structure Engine
+- [x] MODULE 4 — Support & Resistance Engine
+  - [x] `types.ts` — ZoneState, ZoneOrigin, PriceZone, SupportResistanceConfig, SupportResistanceResult
+  - [x] `config.ts` — DEFAULT_CONFIG (atrMultiplier: 0.25, mergeTolerance: 0.5, minTouchCount: 2, maxZoneAge: 200, lookback: 100, strengthDecayAge: 50)
+  - [x] `zones.ts` — Zone candidates from swing points, ATR computation (Wilder's), zone width with fallback
+  - [x] `merge.ts` — Greedy nearest-first merge (gap < ATR × mergeTolerance)
+  - [x] `interactions.ts` — Touch, bounce, break, retest detection; close-only confirmation; non-mutating
+  - [x] `strength.ts` — Strength scoring (ENGINE_RULES.md §12.6), confidence, state machine
+  - [x] `evidence.ts` — Per-zone evidence strings + result summary evidence
+  - [x] `index.ts` — computeSupportResistance (public API); 9-step pipeline; DEFAULT_CONFIG + all types re-exported
+  - [x] 93 unit tests passing across 5 test files
   - [x] `types.ts` — SwingPoint, StructureEvent, MarketStructureResult, MarketStructureConfig, and all sub-types
   - [x] `config.ts` — DEFAULT_CONFIG with all thresholds documented
   - [x] `swings.ts` — detectRawSwings (strict inequality pivot detection) + filterDominantSwings (zigzag collapse)
@@ -77,7 +87,7 @@
 
 ## Current Task
 
-Module 4 — Support & Resistance Engine (architecture defined; implementation next).
+Module 5 — Volume Analysis Engine (not yet started).
 
 ---
 
@@ -99,7 +109,7 @@ Module 4 — Support & Resistance Engine (architecture defined; implementation n
 ### Analysis Layer
 - [x] MODULE 2: Technical Indicator Engine
 - [x] MODULE 3: Market Structure Engine
-- [ ] MODULE 4: Support & Resistance Engine
+- [x] MODULE 4: Support & Resistance Engine
 - [ ] MODULE 5: Volume Analysis Engine
 
 ### Reasoning Layer
