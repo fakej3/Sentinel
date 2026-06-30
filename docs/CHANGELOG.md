@@ -11,6 +11,106 @@ Work in progress. No released version yet.
 
 ---
 
+## [0.7.1] — 2026-06-30
+
+### Module 4 Stabilization — Post-Audit v0.2
+
+#### Fixed
+
+- **H-001 — Remove module-level mutable state** (`src/modules/support-resistance/zones.ts`):
+  Removed `let zoneCounter = 0`, `resetZoneCounter()`, and `nextZoneId()`. Zone IDs are
+  now generated locally within `createZoneCandidates` using the new `idOffset` parameter.
+  `computeSupportResistance` is now fully stateless — calling it twice with identical input
+  always produces identical output (enforced by the new determinism test).
+
+- **H-002 — Remove duplicated ATR implementation** (`src/modules/support-resistance/zones.ts`,
+  `src/modules/support-resistance/index.ts`, `src/modules/indicators/index.ts`):
+  Removed `computeAtr(candles: Candle[])` from `zones.ts`. Module 4 now uses Module 2's
+  canonical `computeAtr(highs, lows, closes, period)` exported from `src/modules/indicators`.
+  `createZoneCandidates` now accepts an `atr: number | null` parameter. The caller
+  (`computeSupportResistance`) computes ATR via Module 2 and passes it in.
+
+- **H-003 — Fix pipeline order** (`src/modules/support-resistance/index.ts`):
+  Pipeline is now **Create → Merge → Interactions → Filter → Finalize → Classify**.
+  Previously the order was Create → Interactions → Filter → Merge, which caused
+  interactions to be detected against pre-merge zone boundaries — systematically
+  underestimating interaction history for merged zones.
+
+- **M-001 — Fix test helper import path** (`src/modules/support-resistance/__tests__/helpers.ts`):
+  Changed import of `MarketStructureResult` and `SwingPoint` from internal
+  `'../../market-structure/types'` to public `'../../market-structure'` index.
+
+- **M-002 — Fix VolumeMA self-reference** (`src/modules/indicators/compute/volume-ma.ts`):
+  `computeVolumeMa` now uses prior bars only (`volumes.slice(-(period+1), -1)`).
+  Minimum input length is now `period + 1`. Previously the current bar was included
+  in the MA, inflating the baseline on high-volume candles.
+
+#### Added
+
+- **L-001 — Determinism test** (`src/modules/support-resistance/__tests__/index.test.ts`):
+  Added a test that calls `computeSupportResistance` twice with identical input and
+  asserts `JSON.stringify(r1) === JSON.stringify(r2)`.
+
+- **L-007 — Remove internal exports** (`src/modules/support-resistance/zones.ts`):
+  `zoneHalfWidth` is now an unexported internal function (was previously exported
+  for test access). Its behavior is covered indirectly via `createZoneCandidates` tests.
+
+#### Changed
+
+- **`src/modules/support-resistance/__tests__/zones.test.ts`**: Removed `computeAtr`
+  tests (function removed from zones.ts), removed `zoneHalfWidth` tests (unexported),
+  removed `resetZoneCounter` beforeEach, updated `createZoneCandidates` calls to pass
+  `atr` parameter. Added `idOffset` test and ATR-based width test.
+
+- **`src/modules/support-resistance/__tests__/index.test.ts`**: Removed
+  `resetZoneCounter` import and `beforeEach` call.
+
+- **`src/modules/indicators/__tests__/volume-ma.test.ts`**: Updated test assertions to
+  match the prior-bars-only MA convention.
+
+- **`docs/ENGINE_RULES.md` §12**: Added "Pipeline Order" section documenting the
+  Create → Merge → Interactions → Filter → Finalize order. Updated §12.2 to document
+  that ATR comes from Module 2's `computeAtr`. Updated §12.5 to document state
+  priority explicitly (`weakening` takes priority over `strengthened` when both conditions hold).
+
+- **`docs/ARCHITECTURE.md`**: Fixed JSON schema — `activeSupport` and `activeResistance`
+  now show `PriceZone[]` abbreviated objects instead of incorrect string arrays. Fixed
+  `nearestSupport` and `nearestResistance` to show `PriceZone` objects instead of
+  string IDs. (M-004)
+
+- **`docs/KNOWN_LIMITATIONS.md`**: Updated LIM-015 (ATR now shared from Module 2,
+  not duplicated). Added LIM-017 (merge-before-interactions constituent touch
+  double-counting tradeoff), LIM-018 (look-ahead bias in `didReverseWithin3`),
+  LIM-019 (VolumeMA prior-bars-only convention; minimum input `period + 1`).
+
+- **`docs/DECISIONS.md`**: Added ADR-014 (pipeline order: merge before interactions)
+  and ADR-015 (computeAtr exported from Module 2, not duplicated in Module 4).
+  Updated ADR-011 test count.
+
+- **`docs/INDICATOR_RULES.md`**: Updated §13 VolumeMA calculation to document
+  prior-bars-only convention and new minimum input requirement. Updated footer.
+
+- **`docs/TESTING_STRATEGY.md`**: Updated test count from 227/25 to 318/30.
+
+### Modules Affected
+
+- MODULE 2 — Technical Indicator Engine: VolumeMA fix (prior bars only); `computeAtr` exported.
+- MODULE 4 — Support & Resistance Engine: H-001, H-002, H-003 fixes; pipeline order corrected;
+  mutable global state removed; duplicate ATR removed.
+
+### Test count: 318 tests passing (30 test files)
+
+### Known Side Effects
+
+- **Breaking change:** `computeVolumeMa` now requires `volumes.length >= period + 1`
+  (was `period`). Any caller passing exactly `period` volumes will now receive `null`.
+- **Breaking change:** `createZoneCandidates` now requires an `atr` parameter (fourth
+  argument). Callers outside the module must pass the ATR value explicitly.
+- `resetZoneCounter` is removed from `zones.ts` exports. Any external caller of this
+  function must be updated (internal tests already updated).
+
+---
+
 ## [0.7.0] — 2026-06-30
 
 ### MODULE 4 — Support & Resistance Engine

@@ -1,11 +1,8 @@
-import { describe, it, expect, beforeEach } from 'vitest'
+import { describe, it, expect } from 'vitest'
 import { computeSupportResistance } from '../index'
 import { DEFAULT_CONFIG } from '../config'
-import { resetZoneCounter } from '../zones'
 import { candle, flatCandles, emptyStructure, swing, withSwings } from './helpers'
 import type { Candle } from '../../binance/types'
-
-beforeEach(() => resetZoneCounter())
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
@@ -323,6 +320,21 @@ describe('computeSupportResistance — zone field invariants', () => {
     for (const z of result.zones) {
       expect(z.id).toMatch(/^sr-\d+$/)
     }
+  })
+})
+
+// ─── Determinism ──────────────────────────────────────────────────────────────
+
+describe('computeSupportResistance — determinism', () => {
+  it('two calls with identical input return identical results', () => {
+    const candles = priceCandles(50, 100)
+    const structure = withSwings([
+      swing({ index: 10, price: 110, type: 'high' }),
+      swing({ index: 20, price: 90, type: 'low' }),
+    ])
+    const r1 = computeSupportResistance(candles, structure, { minTouchCount: 1 })
+    const r2 = computeSupportResistance(candles, structure, { minTouchCount: 1 })
+    expect(JSON.stringify(r1)).toBe(JSON.stringify(r2))
   })
 })
 

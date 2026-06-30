@@ -23,6 +23,10 @@ export type {
   VolumeMaResult,
 } from './types'
 
+// Exported for downstream modules that need ATR without running the full indicator suite.
+// Module 4 (Support & Resistance) uses this to compute zone widths per ENGINE_RULES.md §12.2.
+export { computeAtr } from './compute/atr'
+
 const NULL_RESULT: IndicatorResult = {
   ema20: null, ema50: null, ema100: null, ema200: null,
   sma20: null, sma50: null, sma200: null,

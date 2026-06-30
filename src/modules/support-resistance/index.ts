@@ -2,7 +2,8 @@ import type { Candle } from '../binance/types'
 import type { MarketStructureResult } from '../market-structure/types'
 import type { PriceZone, SupportResistanceConfig, SupportResistanceResult } from './types'
 import { DEFAULT_CONFIG } from './config'
-import { createZoneCandidates, computeAtr, zoneHalfWidth, resetZoneCounter } from './zones'
+import { createZoneCandidates } from './zones'
+import { computeAtr } from '../indicators'
 import { mergeZones } from './merge'
 import { applyInteractions } from './interactions'
 import { computeStrength, computeZoneConfidence, deriveState } from './strength'
@@ -28,11 +29,11 @@ function makeEmptyResult(): SupportResistanceResult {
  *
  * Pipeline:
  * 1. Validate inputs — return empty result when data is insufficient.
- * 2. Compute ATR from candles for zone sizing and merge threshold.
+ * 2. Compute ATR (Module 2 canonical implementation) for zone sizing and merge threshold.
  * 3. Create zone candidates from swing highs (resistance) and swing lows (support).
- * 4. Apply candle interactions to each zone (touches, bounces, breaks, retests).
- * 5. Filter: drop zones below minTouchCount.
- * 6. Merge overlapping / close zones of the same type.
+ * 4. Merge overlapping / close zones of the same type.
+ * 5. Apply candle interactions to each merged zone (touches, bounces, breaks, retests).
+ * 6. Filter: drop zones below minTouchCount.
  * 7. Compute strength, confidence, state, and evidence for each zone.
  * 8. Classify: activeSupport, activeResistance, nearest, currentZone.
  * 9. Build result evidence summary.
@@ -48,33 +49,29 @@ export function computeSupportResistance(
     return makeEmptyResult()
   }
 
-  // Reset counter so IDs are deterministic per call (tests rely on this)
-  resetZoneCounter()
-
   const currentPrice = candles[candles.length - 1].close
-  const atr = computeAtr(candles)
+  const highs = candles.map(c => c.high)
+  const lows = candles.map(c => c.low)
+  const closes = candles.map(c => c.close)
+  const atr = computeAtr(highs, lows, closes)
   const mergeThreshold = atr !== null ? atr * cfg.mergeTolerance : currentPrice * 0.003
 
   // 1. Create zone candidates from swing points
-  let zones = createZoneCandidates(marketStructure.swings, candles, cfg)
+  const candidates = createZoneCandidates(marketStructure.swings, candles, cfg, atr)
 
-  // 2. Apply candle interactions to each candidate
-  zones = zones.map(z => applyInteractions(z, candles))
+  // 2. Merge zones of the same type before applying interactions
+  const mergedSupport = mergeZones(candidates.filter(z => z.type === 'support'), mergeThreshold)
+  const mergedResistance = mergeZones(candidates.filter(z => z.type === 'resistance'), mergeThreshold)
 
-  // 3. Filter: require at least minTouchCount
-  zones = zones.filter(z => z.touchCount >= cfg.minTouchCount)
+  // 3. Apply candle interactions to merged zones
+  const interacted = [...mergedSupport, ...mergedResistance].map(z => applyInteractions(z, candles))
 
-  // 4. Merge zones of same type that are close together
-  const supportCandidates = zones.filter(z => z.type === 'support')
-  const resistanceCandidates = zones.filter(z => z.type === 'resistance')
+  // 4. Filter: require at least minTouchCount
+  const filtered = interacted.filter(z => z.touchCount >= cfg.minTouchCount)
 
-  const mergedSupport = mergeZones(supportCandidates, mergeThreshold)
-  const mergedResistance = mergeZones(resistanceCandidates, mergeThreshold)
-
-  // 5. Final passes: apply interactions again after merge (merged zones
-  //    inherit combined history; recompute age and state freshly)
+  // 5. Finalize: recompute age, state, strength, confidence, evidence
   const totalCandles = candles.length
-  const finalZones: PriceZone[] = [...mergedSupport, ...mergedResistance].map(z => {
+  const finalZones: PriceZone[] = filtered.map(z => {
     const age = totalCandles - 1 - z.firstDetectedIndex
     const withAge = { ...z, age }
     const state = deriveState(withAge, cfg.maxZoneAge)

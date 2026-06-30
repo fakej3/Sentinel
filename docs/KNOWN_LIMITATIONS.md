@@ -109,33 +109,126 @@ to suppress the StochRSI evidence line when the range is degenerate.
 
 ---
 
-### LIM-015 — Zone Width Requires ATR from Module 2
+### LIM-015 — Zone Width Uses Module 2's ATR Implementation
 
 **Description:**
 Zone boundaries are computed as `center ± ATR × atrMultiplier`. The ATR value
-must come from Module 2's `computeIndicators` output. Module 4 therefore has a
-runtime dependency on Module 2: it cannot compute zone widths without an ATR value.
+is computed by Module 2's `computeAtr` function (exported from
+`src/modules/indicators`). Module 4 extracts `highs[]`, `lows[]`, and `closes[]`
+from the candle array and calls `computeAtr` directly. Module 4 does not contain
+its own ATR implementation.
 
-If Module 4 is called in isolation (e.g., unit tests without full candle history),
-the ATR may be very small or zero, causing zones to have very narrow widths or fall
-back to `center × 0.003` (0.3% of price).
+If Module 4 is called with insufficient candle data (< 15 candles for 14-period
+ATR), `computeAtr` returns `null` and zone widths fall back to `center × 0.003`
+(0.3% of price).
 
 **Why it exists:**
-ATR is computed internally from the candle input (Wilder's 14-period). For the
-full platform pipeline, candles come from Module 1 and carry realistic ATR values.
-In unit tests with synthetic flat candles, ATR = 0 triggers the fallback.
+ATR is a Module 2 concept. Sharing the canonical implementation avoids
+duplication and ensures all modules compute ATR identically.
 
 **Current impact:**
-Zone widths in synthetic test scenarios may differ from production zone widths.
-The fallback produces valid zones — just less adaptive to current volatility.
+Zone widths in synthetic test scenarios with flat candles (zero ATR) use the
+fallback width. The fallback produces valid zones — just less adaptive to
+current volatility.
 
-**Risk level:** Low (documented; test factories should inject appropriate ranges)
+**Risk level:** Low (documented; test factories can inject ATR values via the `atr` parameter)
 
 **Planned resolution:**
 When the full platform pipeline is assembled, Module 4 will receive real candles
 from Module 1 and produce realistic ATR-based widths automatically.
 
 **Target:** Platform integration (Module 9+).
+
+---
+
+### LIM-017 — Merge-Before-Interactions May Double-Count Constituent Swing Touches
+
+**Description:**
+The Module 4 pipeline merges zones before applying candle interactions (Create →
+Merge → Interactions). After a merge, the merged zone inherits a `touchCount`
+of `N` from its `N` constituent swing points. When `applyInteractions` then scans
+the candle history, a candle near one of those constituent swings may re-enter the
+merged zone's (now wider) boundaries and be counted as an additional touch.
+
+**Why it exists:**
+The merge-before-interactions order is intentional. The alternative (Create →
+Interactions → Filter → Merge) caused interactions to be detected against each
+zone's narrow pre-merge boundaries, missing interactions that fell inside the
+merged zone area. The current order produces correct interaction history at the
+cost of potential minor overcounting.
+
+**Current impact:**
+At most `N − 1` extra touches for `N` merged constituent swings. In real market
+data, constituent swing candles genuinely interacted with the merged price area,
+so the overcounting reflects real market activity. In unit tests with synthetic
+flat candles the constituent swing candles are far from zone boundaries, so no
+overcounting occurs.
+
+**Risk level:** Low (accepted tradeoff; strength score impact is bounded — at most +1.0 per extra touch)
+
+**Planned resolution:**
+Track constituent swing candle indices and skip them in `applyInteractions`.
+Deferred because the benefit is minor and the implementation adds complexity.
+
+**Target:** Post-v1.0.0.
+
+---
+
+### LIM-018 — Look-Ahead Bias in `didReverseWithin3`
+
+**Description:**
+The `didReverseWithin3` helper in `interactions.ts` reads up to 3 candles ahead
+of the current position to determine whether a potential break reversed back into
+the zone. This is a form of look-ahead bias: the classification of candle `i` as
+a "break" depends on what happens at candles `i+1`, `i+2`, and `i+3`.
+
+**Why it exists:**
+A break confirmed at candle `i` that reverses at candle `i+1` is not a real
+break — it is a wick-through or a failed break attempt. Look-ahead is needed
+to distinguish genuine breaks from transient excursions.
+
+**Current impact:**
+The engine is designed for batch analysis (a complete candle history). In a
+streaming context where candles arrive one at a time, `i+1` through `i+3` are not
+yet available, and the break classification must be deferred until they arrive.
+The current implementation is not compatible with streaming without modification.
+
+**Risk level:** Low (batch analysis only; streaming is not yet implemented)
+
+**Planned resolution:**
+When streaming analysis is introduced, implement a deferred classification queue
+that holds potential breaks for 3 candles before finalising.
+
+**Target:** When streaming analysis is introduced.
+
+---
+
+### LIM-019 — VolumeMA Uses Prior Bars Only (Minimum Input: period + 1)
+
+**Description:**
+`computeVolumeMa(volumes, period)` computes the moving average of the **prior**
+`period` bars, excluding the current bar. This means `relativeVolume` compares
+the current bar's volume against a baseline that does not include it.
+
+As a consequence, the minimum input length is `period + 1` (not `period`). With
+the default period of 20, at least 21 volume bars are required for a non-null result.
+
+**Why it exists:**
+Including the current bar in its own moving average inflates the MA during
+high-volume candles and suppresses the `relativeVolume` reading. Excluding the
+current bar provides a true comparison: current bar vs. prior history.
+
+**Current impact:**
+Any caller passing exactly `period` bars will receive `null` instead of a result.
+The prior implementation (before v0.7.1) accepted `period` bars and included the
+current bar in the MA.
+
+**Risk level:** Low (breaking change from v0.7.0; all internal callers updated)
+
+**Planned resolution:**
+No change planned. Prior-bars-only is the correct convention.
+
+**Target:** N/A — this is intentional behavior.
 
 ---
 
@@ -529,4 +622,4 @@ audit trail purposes.
 
 ---
 
-*Last updated: Module 4 — Support & Resistance Engine*
+*Last updated: Module 4 Stabilization (post-audit v0.2)*

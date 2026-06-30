@@ -346,6 +346,22 @@ regions defined by a center price and a width derived from the current ATR.
 
 See `ARCHITECTURE.md` — "Price Zone Architecture" for the full type definitions.
 
+### Pipeline Order
+
+The Module 4 computation pipeline processes zones in this strict order:
+
+1. **Create** zone candidates from swing points (§12.1, §12.2).
+2. **Merge** same-type zones that are close together (§12.3).
+3. **Apply interactions** to each merged zone — touches, bounces, breaks, retests (§12.4).
+4. **Filter** zones below `minTouchCount` (§12.1).
+5. **Finalize** — compute age, state (§12.5), strength (§12.6), confidence, and evidence.
+6. **Classify** — activeSupport, activeResistance, nearest, currentZone (§12.7).
+
+Merging before interactions is intentional: a merged zone covers a wider price area,
+so interactions are detected against the correct combined boundary rather than the
+narrower boundary of each constituent zone. See KNOWN_LIMITATIONS.md LIM-017 for
+the accepted tradeoff.
+
 ---
 
 ### 12.1 Zone Creation
@@ -378,8 +394,10 @@ lower     = center − halfWidth
 width     = upper − lower = 2 × halfWidth
 ```
 
-**ATR used:** The 14-period ATR computed by Module 2 at the time of zone creation.
-If Module 2 output is not available, use the ATR of the most recent 14 candles.
+**ATR used:** The 14-period Wilder ATR computed by Module 2's `computeAtr` function
+(exported from `src/modules/indicators`). The caller extracts `highs[]`, `lows[]`,
+and `closes[]` from the candle array and passes them directly. Module 4 does not
+contain its own ATR implementation.
 
 **Never hardcode widths.** If the ATR is zero (degenerate flat series), default
 to `center × 0.003` (0.3% of price) as a fallback minimum width.
@@ -467,8 +485,17 @@ After zones are established, scan each candle to detect interactions:
 | `flipped` | Broken zone retested from the opposite side | `broken === true` AND `retested === true` |
 | `archived` | Zone is too old to be relevant | `age > maxZoneAge` (default: 200 candles) |
 
-**Priority:** `archived` overrides all other states when `age > maxZoneAge`.
-`broken` and `flipped` take precedence over `weakening` and `strengthened`.
+**Priority order (highest to lowest):**
+1. `archived` — overrides all other states when `age > maxZoneAge`.
+2. `flipped` — requires `broken === true` AND `retested === true`.
+3. `broken` — requires a confirmed close-through with no reversal within 3 candles.
+4. `weakening` — any `failedReactions ≥ 1` that has not yet met the `broken` threshold.
+   **When `failedReactions ≥ 1` and `successfulReactions ≥ 2` are both true,
+   `weakening` takes priority over `strengthened`.** Failed reactions signal
+   deterioration regardless of historical bounce count.
+5. `strengthened` — `successfulReactions ≥ 2` with no failed reactions.
+6. `tested` — `successfulReactions === 1`.
+7. `active` — default state after zone creation.
 
 ---
 
@@ -522,4 +549,4 @@ When reporting active zones relative to the current price:
 
 ---
 
-*Last updated: Foundation Stabilization (post-audit v0.1)*
+*Last updated: Module 4 Stabilization (post-audit v0.2)*

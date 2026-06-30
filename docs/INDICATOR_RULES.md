@@ -387,14 +387,25 @@ A moving average of volume used to determine whether current volume is above or 
 
 **Calculation:**
 ```
-Volume MA = SMA(Volume, 20)
+Volume MA = SMA(prior 20 volumes, excluding current bar)
 Relative Volume = Current Volume / Volume MA
 ```
+
+The moving average is computed from the **prior `period` bars only** — the current
+bar is excluded. This ensures `relativeVolume` compares the current bar against an
+uncontaminated historical baseline.
+
+Minimum input: `period + 1` volumes (e.g., 21 for the default period of 20).
+Returns `null` when insufficient data.
 
 **Interpretation:**
 - Relative Volume > 1.5 → strong participation.
 - Relative Volume < 0.7 → weak participation.
 - Trend is confirmed when relative volume supports the price direction.
+
+**Limitations:**
+- Minimum input is `period + 1`, not `period`. A caller with exactly 20 volumes
+  will receive `null`.
 
 **Dependencies:** Volume data.
 
@@ -415,5 +426,4 @@ These will be documented here before implementation:
 
 ---
 
-*Last updated: project initialization*
-*Next update: when Module 2 (Technical Indicator Engine) implementation begins*
+*Last updated: Module 4 Stabilization (post-audit v0.2)*

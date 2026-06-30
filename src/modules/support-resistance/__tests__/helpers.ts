@@ -1,5 +1,5 @@
 import type { Candle } from '../../binance/types'
-import type { MarketStructureResult, SwingPoint } from '../../market-structure/types'
+import type { MarketStructureResult, SwingPoint } from '../../market-structure'
 
 export function candle(overrides: Partial<Candle> & { close: number }): Candle {
   const c = overrides.close

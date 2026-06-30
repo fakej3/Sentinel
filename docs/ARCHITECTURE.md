@@ -251,10 +251,10 @@ All inter-module data is passed as structured typed objects. The canonical struc
         "evidence": ["4 touches at support zone 104180–105420", "3 successful bounces"]
       }
     ],
-    "activeSupport": ["sr-002"],
-    "activeResistance": ["sr-001"],
-    "nearestSupport": "sr-002",
-    "nearestResistance": "sr-001",
+    "activeSupport": [{ "id": "sr-002", "type": "support", "center": 104800, "...": "full PriceZone — same shape as zones[] entries" }],
+    "activeResistance": [{ "id": "sr-001", "type": "resistance", "center": 109200, "...": "full PriceZone — same shape as zones[] entries" }],
+    "nearestSupport": { "id": "sr-002", "type": "support", "center": 104800, "...": "full PriceZone — same shape as zones[] entries" },
+    "nearestResistance": { "id": "sr-001", "type": "resistance", "center": 109200, "...": "full PriceZone — same shape as zones[] entries" },
     "currentZone": null,
     "evidence": ["Strong resistance zone at 109200 (3 touches)", "Strengthened support zone at 104800 (4 touches)"]
   },

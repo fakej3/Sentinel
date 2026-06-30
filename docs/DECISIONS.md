@@ -508,7 +508,7 @@ The project has followed this principle since Module 1 (34 tests), Module 2
 
 - The Definition of Done in `QUALITY_GATE.md` requires all test categories.
 - CI runs `npm test` on every commit.
-- Total tests as of v0.5.0: 227 across 25 test files.
+- Total tests as of v0.7.1: 318 across 30 test files.
 
 **Review date:** Evergreen — this decision is permanent.
 
@@ -670,4 +670,104 @@ against real historical data.
 
 ---
 
-*Last updated: Milestone 0.4 — Engineering Standards + Price Zone Architecture*
+## ADR-014 — Pipeline Order: Merge Before Interactions
+
+**Date:** 2026-06-30 (Module 4 Stabilization, post-audit v0.2)
+**Status:** Accepted
+
+### Decision
+
+Module 4's internal pipeline processes zones in this order:
+**Create → Merge → Interactions → Filter → Finalize → Classify**
+
+Specifically: zones are merged into their final shapes before `applyInteractions`
+scans the candle history. The previous order was Create → Interactions → Filter →
+Merge (interactions before merge).
+
+### Reason
+
+With the old order (interactions before merge), each zone's interaction history
+was scanned against its narrow pre-merge boundary. After merging, the merged zone
+covered a wider area, but its inherited interaction counts were computed against
+a smaller range — systematically underestimating how many candles actually entered
+the combined zone area.
+
+With the new order (merge before interactions), `applyInteractions` runs against
+the correct final merged boundary, capturing all candles that interacted with the
+merged zone area.
+
+### Alternatives Considered
+
+- **Merge after interactions (old order):** Simpler to reason about — each zone's
+  history is independent. Rejected because it produces incorrect interaction counts
+  for merged zones, which affects strength scoring and state classification.
+- **Apply interactions twice (pre-merge and post-merge):** Theoretically precise but
+  double-counts interactions detected in both passes. Rejected for complexity.
+
+### Tradeoffs
+
+- Gain: merged zones have correct interaction history (touches, bounces, breaks)
+  computed against their actual boundaries.
+- Loss: constituent swing candles may register as extra touches after merge (see
+  KNOWN_LIMITATIONS.md LIM-017). The overcounting is bounded and minor.
+
+### Consequences
+
+- `computeSupportResistance` in `index.ts` runs `mergeZones` before `applyInteractions`.
+- `ENGINE_RULES.md §12` documents the pipeline order explicitly.
+- LIM-017 in `KNOWN_LIMITATIONS.md` documents the accepted overcounting tradeoff.
+
+**Review date:** When streaming analysis is introduced (order has implications for
+incremental computation — see LIM-018).
+
+---
+
+## ADR-015 — computeAtr Exported from Module 2, Not Duplicated in Module 4
+
+**Date:** 2026-06-30 (Module 4 Stabilization, post-audit v0.2)
+**Status:** Accepted
+
+### Decision
+
+Module 4 (Support & Resistance) uses Module 2's (Indicator Engine) `computeAtr`
+function — exported from `src/modules/indicators` — for all ATR computations.
+Module 4 does not contain its own ATR implementation.
+
+The original Module 4 implementation duplicated `computeAtr` with a different
+signature (`computeAtr(candles: Candle[])` vs Module 2's
+`computeAtr(highs[], lows[], closes[], period)`). The duplicate has been removed.
+
+### Reason
+
+Two ATR implementations in the same codebase create a risk of divergence: one
+may be updated while the other is not, causing different modules to compute
+different ATR values for the same candle data. ATR is a Module 2 concept. The
+canonical implementation belongs there and must be shared.
+
+### Alternatives Considered
+
+- **Keep Module 4's internal ATR:** Simpler in the short term — no cross-module
+  dependency. Rejected because divergence risk grows as the codebase evolves.
+- **Move ATR to a shared `utils` module:** Would work but introduces a new
+  shared utility module for a single function. The cleaner approach is to export
+  it from the module that owns the concept (Module 2).
+
+### Tradeoffs
+
+- Gain: single canonical ATR implementation; any fix or improvement to Module 2's
+  ATR automatically benefits Module 4.
+- Loss: Module 4's `index.ts` must import from `../indicators`, creating a
+  cross-module dependency. This is an intentional, documented dependency.
+
+### Consequences
+
+- `computeAtr` is exported from `src/modules/indicators/index.ts`.
+- `src/modules/support-resistance/index.ts` imports `computeAtr` from `../indicators`.
+- Module 4's `zones.ts` no longer contains an ATR function.
+- `ENGINE_RULES.md §12.2` documents that ATR comes from Module 2.
+
+**Review date:** When the full platform pipeline is assembled and tested end-to-end.
+
+---
+
+*Last updated: Module 4 Stabilization (post-audit v0.2)*
