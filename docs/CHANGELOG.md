@@ -11,6 +11,68 @@ Work in progress. No released version yet.
 
 ---
 
+## [0.8.0] — 2026-06-30
+
+### MODULE 5 — Volume Analysis Engine
+
+#### Added
+
+- **`src/modules/volume-analysis/types.ts`** — `VolumeClassification`, `VolumeTrendDirection`, `DominantSide`, `AccDistState`, `OBVDirection`; `RelativeVolumeResult`, `VolumeTrendResult`, `BuySellPressureResult`, `VolumeConfirmationResult`, `ClimaxResult`, `AccumulationDistributionResult`, `OBVAnalysisResult`, `VWAPAnalysisResult`, `VolumeAnalysisResult`, `VolumeAnalysisConfig`.
+
+- **`src/modules/volume-analysis/config.ts`** — `DEFAULT_CONFIG` (14 parameters, all documented in ENGINE_RULES.md §13.11).
+
+- **`src/modules/volume-analysis/compute/utils.ts`** — `linearRegression` (OLS; returns `{ slope, r² }`; handles n < 2, SSxx = 0, SSyy = 0); `localOBVSeries` (window-based OBV starting from 0).
+
+- **`src/modules/volume-analysis/compute/relative-volume.ts`** — `computeRelativeVolume`: uses `indicators.volumeMA` when non-null; falls back to raw prior candles. Current bar is always excluded from the average.
+
+- **`src/modules/volume-analysis/compute/volume-trend.ts`** — `computeVolumeTrend`: OLS regression on volumes over `volumeTrendWindow` candles; normalized slope determines direction; `confidence = clamp(r² × 10, 0, 10)`.
+
+- **`src/modules/volume-analysis/compute/buy-sell-pressure.ts`** — `computeBuySellPressure`: sums `takerBuyVolume` and `takerSellVolume` from Binance kline data over `pressureWindow` candles; computes delta, deltaPercent, dominantSide.
+
+- **`src/modules/volume-analysis/compute/volume-confirmation.ts`** — `computeVolumeConfirmation`: confirmed, reason, supportsTrend, supportsBreakout, supportsBOS, supportsCHOCH. Historical BOS/CHoCH volume ratios computed from raw prior bars.
+
+- **`src/modules/volume-analysis/compute/climax.ts`** — `computeClimax`: buying climax, selling climax (high volume + large body + multi-bar directional close), exhaustion (high volume + small body). 10-candle lookback for multi-bar high/low.
+
+- **`src/modules/volume-analysis/compute/accumulation-distribution.ts`** — `computeAccumulationDistribution`: rule-based composite score −10..+10 from 14 signal categories; state = accumulation / distribution / neutral based on score > ±3.
+
+- **`src/modules/volume-analysis/compute/obv-analysis.ts`** — `computeOBVAnalysis`: local OBV series regression vs price close regression; direction, confirmingPrice, diverging.
+
+- **`src/modules/volume-analysis/compute/vwap-analysis.ts`** — `computeVWAPAnalysis`: above/below, distancePercent, respectingVWAP (proximity OR 5-candle cross detection).
+
+- **`src/modules/volume-analysis/compute/strength.ts`** — `computeOverallStrength`: 0–10 composite from relative volume (max 3), trend confidence (max 2), pressure imbalance (max 2), OBV confirmation (max 1), acc/dist (max 2).
+
+- **`src/modules/volume-analysis/compute/evidence.ts`** — `buildEvidence`: aggregates factual strings from all sub-results into the top-level `evidence[]` array.
+
+- **`src/modules/volume-analysis/index.ts`** — `computeVolumeAnalysis(candles, indicators, marketStructure, supportResistance, config?)` public API. Merges partial config with defaults. Re-exports all public types.
+
+- **`src/modules/volume-analysis/__tests__/helpers.ts`** — `candle()`, `flatCandles()`, `emptyIndicators()`, `emptyStructure()`, `emptySupportResistance()`.
+
+- **72 unit tests** across 10 test files: relative-volume × 12, volume-trend × 7, buy-sell-pressure × 8, volume-confirmation × 9, climax × 6, accumulation-distribution × 4, obv-analysis × 6, vwap-analysis × 7, strength × 5, index × 8.
+
+#### Changed
+
+- **`docs/ENGINE_RULES.md`** — Added §13 Volume Analysis Rules (§13.1–§13.11): public API, relative volume, volume trend, buy/sell pressure, confirmation, climax/exhaustion, accumulation/distribution, OBV analysis, VWAP analysis, strength scoring, and default configuration table.
+
+- **`docs/ARCHITECTURE.md`** — Updated MODULE 5 description with full capability list.
+
+- **`docs/ROADMAP.md`** — Progress 31% → 38%. Module 5 status: Not Started → Complete. Added Module 5 completed file list. Updated current task to Module 6.
+
+- **`docs/KNOWN_LIMITATIONS.md`** — Added Module 5 section with LIM-020 (VWAP cross approximation), LIM-021 (10-candle climax lookback), LIM-022 (fixed acc/dist weights).
+
+- **`docs/TESTING_STRATEGY.md`** — Updated test count: 318/30 → 390/40.
+
+### Modules Affected
+
+- MODULE 5 — Volume Analysis Engine: **complete**. 72 tests passing.
+
+### Test count: 390 tests passing (318 prior + 72 new)
+
+### Known Side Effects
+
+- None. Module 5 has no dependencies on future modules and does not modify any existing module.
+
+---
+
 ## [0.7.1] — 2026-06-30
 
 ### Module 4 Stabilization — Post-Audit v0.2

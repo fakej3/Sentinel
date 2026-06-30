@@ -549,4 +549,137 @@ When reporting active zones relative to the current price:
 
 ---
 
-*Last updated: Module 4 Stabilization (post-audit v0.2)*
+---
+
+## §13 Volume Analysis Rules
+
+Module 5 (`src/modules/volume-analysis/`) produces a `VolumeAnalysisResult` from raw candle data, indicator outputs, market structure, and support/resistance zones.
+
+### 13.1 Public API
+
+```typescript
+computeVolumeAnalysis(
+  candles: Candle[],
+  indicators: IndicatorResult,
+  marketStructure: MarketStructureResult,
+  supportResistance: SupportResistanceResult,
+  config?: Partial<VolumeAnalysisConfig>,
+): VolumeAnalysisResult
+```
+
+### 13.2 Relative Volume
+
+- **Average** = mean of the prior `relativeVolumePeriod` candles, excluding the current bar.
+- When `indicators.volumeMA` is non-null (Module 2 pre-computed), use it directly.
+- Fallback: compute from raw candles using `min(period, priorCandles.length)` bars.
+- **ratio** = `current / average`; 0 when average is 0.
+
+| Ratio | Classification |
+|-------|---------------|
+| < 0.5 | `very_low` |
+| 0.5 – 0.7 | `low` |
+| 0.7 – 1.5 | `normal` |
+| 1.5 – 2.5 | `high` |
+| ≥ 2.5 | `very_high` |
+
+### 13.3 Volume Trend
+
+- Extracts volumes from the last `volumeTrendWindow` candles.
+- Fits OLS linear regression; returns `slope` and `r²`.
+- `normalizedSlope = slope / meanVolume`
+- `direction`: `increasing` when normalizedSlope > `volumeSlopeThreshold`; `decreasing` when < `-threshold`; else `flat`.
+- `confidence = clamp(r² × 10, 0, 10)`. A perfectly flat series has r² = 1 → confidence = 10.
+
+### 13.4 Buy/Sell Pressure
+
+- Sums `takerBuyVolume` and `takerSellVolume` from the last `pressureWindow` candles.
+- Source: Binance kline fields representing aggressive market-order takers.
+- `deltaPercent = (delta / totalVolume) × 100`
+- `dominantSide`: `balanced` when `|deltaPercent| < pressureBalanceThreshold`; else `buyers` or `sellers`.
+
+### 13.5 Volume Confirmation
+
+- `confirmed`: ratio ≥ `confirmationThreshold`
+- `supportsTrend`: confirmed AND market trend is not `ranging`
+- `supportsBreakout`: confirmed AND `breakout.confirmed`
+- `supportsBOS`: the candle at `bos.last.index` had relative volume ≥ `confirmationThreshold` (computed from raw prior bars)
+- `supportsCHOCH`: same logic for `choch.last.index`
+
+### 13.6 Climax / Exhaustion Detection
+
+Operates on the current (last) candle. Uses the last 10 candles to establish multi-bar high/low.
+
+| Signal | Conditions |
+|--------|-----------|
+| Buying climax | ratio ≥ `climaxThreshold` AND body/range ≥ `climaxBodyRatio` AND bullish candle AND close = 10-bar high close |
+| Selling climax | ratio ≥ `climaxThreshold` AND body/range ≥ `climaxBodyRatio` AND bearish candle AND close = 10-bar low close |
+| Exhaustion | ratio ≥ `climaxThreshold` AND body/range ≤ `exhaustionBodyRatio` |
+
+### 13.7 Accumulation / Distribution
+
+Rule-based composite score −10 to +10. State: score > 3 → `accumulation`; < −3 → `distribution`; else `neutral`.
+
+| Signal | Score |
+|--------|-------|
+| Dominant buyers | +1 |
+| Dominant sellers | −1 |
+| OBV confirms bullish trend | +2 |
+| OBV confirms bearish trend | −2 |
+| OBV diverges from bullish price | −1 |
+| OBV diverges from bearish price | +1 |
+| Price above VWAP | +1 |
+| Price below VWAP | −1 |
+| Last BOS bullish | +1 |
+| Last BOS bearish | −1 |
+| Last CHoCH bullish | +2 |
+| Last CHoCH bearish | −2 |
+| Price inside support zone | +1 |
+| Price inside resistance zone | −1 |
+
+### 13.8 OBV Analysis
+
+- Computes a local OBV series over the last `volumeTrendWindow` candles starting from 0.
+- Fits OLS regression on OBV series and on close prices.
+- `direction`: bullish/bearish/neutral based on OBV slope sign.
+- `confirmingPrice`: OBV and price slope have the same sign.
+- `diverging`: OBV and price slope have opposite signs.
+
+### 13.9 VWAP Analysis
+
+Uses `indicators.vwap` (single rolling VWAP from Module 2).
+
+- `distancePercent = (close − vwap) / vwap × 100`
+- `respectingVWAP`: `|distancePercent| ≤ vwapProximityPercent` OR price crossed VWAP within the last 5 candles.
+- Cross detection uses current VWAP value against recent closes (approximation — see LIM-020).
+
+### 13.10 Overall Strength Score (0–10)
+
+| Component | Max |
+|-----------|-----|
+| Relative volume classification | 3 |
+| Volume trend confidence (r² based) | 2 |
+| Buy/sell pressure imbalance | 2 |
+| OBV confirming price | 1 |
+| Accumulation/distribution (mapped from −10..+10 → 0..2) | 2 |
+| **Total** | **10** |
+
+### 13.11 Default Configuration
+
+| Parameter | Default | Meaning |
+|-----------|---------|---------|
+| `relativeVolumePeriod` | 20 | Prior bars for RVOL average |
+| `relativeVolumeVeryLow` | 0.5 | Below this = very_low |
+| `relativeVolumeLow` | 0.7 | Below this = low |
+| `relativeVolumeHigh` | 1.5 | At or above = high |
+| `relativeVolumeVeryHigh` | 2.5 | At or above = very_high |
+| `volumeTrendWindow` | 10 | Candles for trend regression |
+| `volumeSlopeThreshold` | 0.01 | 1% per candle = trend threshold |
+| `pressureWindow` | 10 | Candles for buy/sell aggregation |
+| `pressureBalanceThreshold` | 10.0 | ±10% delta = balanced |
+| `confirmationThreshold` | 1.2 | 1.2× average = confirmed |
+| `climaxThreshold` | 2.0 | 2× average = climax candidate |
+| `climaxBodyRatio` | 0.6 | 60% body/range = large body |
+| `exhaustionBodyRatio` | 0.3 | ≤30% body/range = small body |
+| `vwapProximityPercent` | 0.5 | ±0.5% of VWAP = respecting |
+
+*Last updated: Module 5 — Volume Analysis Engine (v0.8.0)*

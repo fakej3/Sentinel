@@ -87,8 +87,16 @@ Binance Square Ready Post
 - See also: "Price Zone Architecture" section below.
 
 ### MODULE 5 — Volume Analysis Engine
-- Classifies volume against historical averages.
-- Determines volume trend direction and confirmation strength.
+- Classifies volume against historical averages (relative volume: very_low → very_high).
+- Determines volume trend direction and confidence from OLS linear regression over a configurable window.
+- Computes buy/sell pressure from Binance taker trade data (`takerBuyVolume` / `takerSellVolume`).
+- Detects climax and exhaustion candles based on volume spikes and body/range ratios.
+- Computes accumulation/distribution state via a rule-based composite score (−10 to +10).
+- Analyzes local OBV trend and its relationship to price movement (confirming vs. diverging).
+- Assesses VWAP proximity and crossing behaviour.
+- Outputs an overall volume strength score (0–10) and full evidence strings.
+- Rules documented in `ENGINE_RULES.md §13`.
+- No AI, no ML, no probability guessing. Fully deterministic and configurable.
 
 ### MODULE 6 — Evidence Engine
 - Aggregates outputs from Modules 2–5.

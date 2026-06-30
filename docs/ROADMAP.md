@@ -2,7 +2,7 @@
 
 ## Overall Progress
 
-`31%` — Modules 1–4 complete + Engineering Standards established. Foundation stable.
+`38%` — Modules 1–5 complete + Engineering Standards established. Foundation stable.
 
 ---
 
@@ -14,7 +14,7 @@
 | 2 | Technical Indicator Engine | **Complete** | EMA×4, SMA×3, RSI, MACD, ATR, ADX, VWAP, BB, StochRSI, OBV, MFI, CCI, Vol MA — 97 tests passing |
 | 3 | Market Structure Engine | **Complete** | Swing detection, HH/HL/LH/LL labeling, BOS, CHOCH, consolidation, breakout, pullback — 88 tests passing |
 | 4 | Support & Resistance Engine | **Complete** | Price zones from swing points, ATR-based width, greedy merge, interaction detection, zone state machine, strength scoring — 93 tests passing |
-| 5 | Volume Analysis Engine | Not Started | Relative volume, spikes, trend, buy/sell pressure |
+| 5 | Volume Analysis Engine | **Complete** | Relative volume, trend (OLS), buy/sell pressure, climax, exhaustion, acc/dist, OBV, VWAP — 72 tests passing |
 | 6 | Evidence Engine | Not Started | Every conclusion must carry supporting evidence |
 | 7 | Validation Engine | Not Started | Rejects hallucinations, fake numbers, unsupported claims |
 | 8 | Confidence Engine | Not Started | Evidence-weighted scoring system (0–10) |
@@ -83,11 +83,29 @@
   - [x] `index.ts` — computeMarketStructure (public API); merges partial config; factory-function empty result; type + DEFAULT_CONFIG re-exports
   - [x] 95 unit tests passing across 7 test files (88 original + 7 stabilization)
 
+### Module 5 — Volume Analysis Engine ✅
+
+- [x] `types.ts` — VolumeClassification, VolumeTrendDirection, DominantSide, AccDistState, OBVDirection; RelativeVolumeResult, VolumeTrendResult, BuySellPressureResult, VolumeConfirmationResult, ClimaxResult, AccumulationDistributionResult, OBVAnalysisResult, VWAPAnalysisResult, VolumeAnalysisResult, VolumeAnalysisConfig
+- [x] `config.ts` — DEFAULT_CONFIG (14 parameters, all documented in ENGINE_RULES.md §13.11)
+- [x] `compute/utils.ts` — linearRegression (OLS, slope + r²); localOBVSeries
+- [x] `compute/relative-volume.ts` — computeRelativeVolume; prefers indicators.volumeMA; fallback to raw candles; prior-bars-only
+- [x] `compute/volume-trend.ts` — computeVolumeTrend; OLS regression on volumes; normalized slope; direction + confidence
+- [x] `compute/buy-sell-pressure.ts` — computeBuySellPressure; takerBuyVolume/takerSellVolume; delta, deltaPercent, dominantSide
+- [x] `compute/volume-confirmation.ts` — computeVolumeConfirmation; confirmed, supportsTrend, supportsBreakout, supportsBOS, supportsCHOCH
+- [x] `compute/climax.ts` — computeClimax; buyingClimax, sellingClimax, exhaustion; 10-bar lookback
+- [x] `compute/accumulation-distribution.ts` — computeAccumulationDistribution; rule-based score −10..+10; accumulation/distribution/neutral
+- [x] `compute/obv-analysis.ts` — computeOBVAnalysis; localOBVSeries regression vs price regression; confirmingPrice/diverging
+- [x] `compute/vwap-analysis.ts` — computeVWAPAnalysis; distancePercent; respectingVWAP via proximity or 5-candle cross detection
+- [x] `compute/strength.ts` — computeOverallStrength; 0–10 composite from 5 components
+- [x] `compute/evidence.ts` — buildEvidence; aggregates factual strings from all sub-results
+- [x] `index.ts` — computeVolumeAnalysis (public API); merges partial config; all type re-exports
+- [x] 72 unit tests passing across 10 test files
+
 ---
 
 ## Current Task
 
-Module 5 — Volume Analysis Engine (not yet started).
+Module 6 — Evidence Engine (not yet started).
 
 ---
 
@@ -110,7 +128,7 @@ Module 5 — Volume Analysis Engine (not yet started).
 - [x] MODULE 2: Technical Indicator Engine
 - [x] MODULE 3: Market Structure Engine
 - [x] MODULE 4: Support & Resistance Engine
-- [ ] MODULE 5: Volume Analysis Engine
+- [x] MODULE 5: Volume Analysis Engine
 
 ### Reasoning Layer
 - [ ] MODULE 6: Evidence Engine

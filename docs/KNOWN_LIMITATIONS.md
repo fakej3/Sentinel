@@ -590,6 +590,74 @@ The following analysis features are mentioned in `ROADMAP.md` under Future Ideas
 They are recorded here as deferred items so that their absence is explicit and
 intentional.
 
+---
+
+## Volume Analysis Engine (Module 5)
+
+---
+
+### LIM-020 — VWAP Cross Detection Uses Current VWAP Against Historical Closes
+
+**Description:**
+`computeVWAPAnalysis` detects whether price crossed the VWAP within the last 5 candles by comparing each close against the single `indicators.vwap` value. This is an approximation: the true rolling VWAP changes with each candle, so a past close may have been above/below the VWAP that existed at that point in time, not the current one.
+
+**Why it exists:**
+Module 5 receives only the current snapshot `IndicatorResult`. Historical VWAP values per candle are not stored or passed down. Recomputing the full VWAP for each historical candle would require raw candle data and additional computation not in scope for this function.
+
+**Current impact:**
+The cross detection may produce false positives or miss true crosses when the VWAP has moved significantly over the lookback window. For small windows (≤5 candles) and stable VWAP values, this approximation is acceptable.
+
+**Risk level:** Low
+
+**Planned resolution:**
+If historical VWAP per candle is ever stored in `IndicatorResult` (as an array), upgrade to exact per-candle comparison.
+
+**Target:** Post-1.0.0
+
+---
+
+### LIM-021 — Climax Multi-Bar High/Low Uses Last 10 Candles Only
+
+**Description:**
+Buying climax requires `current.close === highestClose` over the last 10 candles. Selling climax requires `current.close === lowestClose`. The lookback window of 10 is hardcoded.
+
+**Why it exists:**
+A configurable lookback was considered but rejected in favor of simplicity. Ten candles represents approximately 2.5 sessions on the 1h timeframe — a reasonable "recent high/low" window for most timeframes.
+
+**Current impact:**
+May miss climax signals on longer timeframes where 10 candles is insufficient context. May over-trigger on short timeframes where price frequently makes new 10-bar highs/lows.
+
+**Risk level:** Low
+
+**Planned resolution:**
+Add `climaxLookback` to `VolumeAnalysisConfig` if users report sensitivity issues.
+
+**Target:** TBD
+
+---
+
+### LIM-022 — Accumulation/Distribution Score Uses Fixed Signal Weights
+
+**Description:**
+Each ACC/DIST signal contributes a hardcoded weight (+1, +2, −1, or −2). The weights are not configurable.
+
+**Why it exists:**
+A configurable weight table would add significant interface complexity. The current weights reflect reasonable signal importance rankings based on conventional market analysis (e.g., CHoCH is weighted +2 as it signals a structural shift, while buy pressure is +1 as it is more noise-sensitive).
+
+**Current impact:**
+Different market participants weight signals differently. The fixed weights may not match all use cases.
+
+**Risk level:** Low
+
+**Planned resolution:**
+Add `accDistWeights` config map if user feedback indicates misaligned weights.
+
+**Target:** TBD
+
+---
+
+## Deferred Features
+
 | Feature | Reason Deferred | Target |
 |---------|-----------------|--------|
 | Multi-timeframe confluence | Requires cross-timeframe data model (not in Module 1 API) | Post-1.0.0 |
@@ -622,4 +690,4 @@ audit trail purposes.
 
 ---
 
-*Last updated: Module 4 Stabilization (post-audit v0.2)*
+*Last updated: Module 5 — Volume Analysis Engine (v0.8.0)*
