@@ -739,6 +739,69 @@ Add `stochRsi.crossover: 'bullish' | 'bearish' | 'none'` to `StochRSIResult`.
 
 ---
 
+### LIM-030 — MACD `previousHistogram` Unavailable at Minimum Candle Count (34 Closes)
+
+**Description:**
+`computeMacd` requires at least 34 closes (EMA26 = 26 candles + signal EMA9 = 9 values − 1 overlap = 34).
+At exactly 34 closes, the signal EMA series has exactly one value, so `previousHistogram` (the histogram
+one bar earlier) cannot be computed and is returned as `null`.
+
+The full MACD bullish/bearish three-condition rule (`macdLine > signalLine AND histogram > 0 AND
+histogram > previousHistogram`) requires a non-null `previousHistogram`. When null, `macdBullish`
+and `macdBearish` are both `false` — a conservative fallback that avoids a spurious signal on the
+very first bar MACD is available.
+
+With 35 or more closes, `previousHistogram` is always non-null.
+
+**Why it exists:**
+The three-condition rule (implemented in CRIT-03) is safer than the old single-condition rule
+(`macdLine > signalLine`), but requires two consecutive histogram values. At minimum candle count,
+only one exists.
+
+**Current impact:**
+On the first bar MACD is available (exactly 34 closes), neither `macdBullish` nor `macdBearish`
+is true. A symbol with exactly 34 candles in the input loses one MACD condition point. In practice,
+callers pass 200+ candles, so this is never triggered.
+
+**Risk level:** Low (degenerate edge case; real callers always pass ≥ 200 candles)
+
+**Planned resolution:**
+No change planned. The conservative null fallback is correct behavior.
+
+**Target:** N/A — intentional.
+
+---
+
+### LIM-031 — RSI Overlap Zone: 45–55 Satisfies Both Bullish and Bearish Thresholds
+
+**Description:**
+`rsiBullishMin = 45` and `rsiBearishMax = 55` create an intentional overlap zone. Any RSI
+value in the range [45, 55] simultaneously satisfies both `rsiSupportsBullish (rsi ≥ 45)` and
+`rsiSupportsBearish (rsi ≤ 55)`, contributing one point to each condition count.
+
+**Why it exists:**
+The thresholds reflect genuine market ambiguity at neutral RSI levels. An RSI of 50 is not
+clearly bullish or bearish; allowing it to contribute a weak point in both directions prevents
+the engine from forcing a definitive bias on an ambiguous signal. The overlapping design is
+intentional (ENGINE_RULES.md §1 and §3).
+
+**Current impact:**
+When both conditions are simultaneously true:
+- Module 6 evidence emits `'RSI in neutral overlap zone'` (medium impact) with an explicit note
+  that RSI contributes one point to each direction.
+- Module 7 (`checkContradictions`) emits a `warning`-severity `contradiction` issue for
+  `fullTrend.conditions` mentioning `rsiSupportsBullish and rsiSupportsBearish`.
+- The validation result still `passed: true` (warnings do not fail unless `failOnWarning: true`).
+
+**Risk level:** Low (documented behavior; warning surfaced in Module 7 output)
+
+**Planned resolution:**
+No change to thresholds planned. The overlap zone and warning are the intended design.
+
+**Target:** N/A — intentional.
+
+---
+
 ### LIM-027 — Volume Trend Acceleration Not Available
 
 **Description:**

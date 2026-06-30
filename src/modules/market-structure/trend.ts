@@ -32,6 +32,35 @@ export function countStructure(labeledSwings: SwingPoint[]): StructureCounts {
 }
 
 /**
+ * Counts HH/HL/LH/LL/EH/EL labels within the same recent window used by
+ * determineTrend() — the last (minSwingsForTrend × 2) labeled swings.
+ * Returns all-zero counts when fewer than 2 labeled swings exist.
+ */
+export function countRecentStructure(
+  labeledSwings: SwingPoint[],
+  config: MarketStructureConfig,
+): StructureCounts {
+  const labeled = labeledSwings.filter(s => s.label !== null)
+  const window = labeled.slice(-(config.minSwingsForTrend * 2))
+
+  let higherHighs = 0, higherLows = 0, lowerHighs = 0, lowerLows = 0
+  let equalHighs = 0, equalLows = 0
+
+  for (const s of window) {
+    switch (s.label) {
+      case 'HH': higherHighs++; break
+      case 'HL': higherLows++; break
+      case 'LH': lowerHighs++; break
+      case 'LL': lowerLows++; break
+      case 'EH': equalHighs++; break
+      case 'EL': equalLows++; break
+    }
+  }
+
+  return { higherHighs, higherLows, lowerHighs, lowerLows, equalHighs, equalLows }
+}
+
+/**
  * Determines the current trend direction and strength from recent swing structure.
  *
  * Algorithm:

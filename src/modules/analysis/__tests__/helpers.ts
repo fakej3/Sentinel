@@ -98,11 +98,12 @@ export function indicators(overrides: Partial<IndicatorResult> = {}): IndicatorR
   }
 }
 
-export function macd(macdLine: number, signalLine: number): MACDResult {
+export function macd(macdLine: number, signalLine: number, previousHistogram: number | null = null): MACDResult {
   return {
     macdLine,
     signalLine,
     histogram: macdLine - signalLine,
+    previousHistogram,
     bias: macdLine > signalLine ? 'bullish' : macdLine < signalLine ? 'bearish' : 'neutral',
   }
 }
@@ -129,7 +130,7 @@ export function bullishIndicators(): IndicatorResult {
     ema100: 85,
     ema200: 80,
     rsi: 60,
-    macd: macd(10, 5),
+    macd: macd(10, 5, 4), // histogram=5, previousHistogram=4 → increasing → macdBullish=true
     adx: adx(30),
   })
 }
@@ -142,7 +143,7 @@ export function bearishIndicators(): IndicatorResult {
     ema100: 115,
     ema200: 120,
     rsi: 40,
-    macd: macd(5, 10),
+    macd: macd(5, 10, -4), // histogram=-5, previousHistogram=-4 → decreasing → macdBearish=true
     adx: adx(30),
   })
 }
@@ -150,18 +151,13 @@ export function bearishIndicators(): IndicatorResult {
 // ─── MarketStructureResult factory ───────────────────────────────────────────
 
 export function emptyStructure(): MarketStructureResult {
+  const emptyCounts = { higherHighs: 0, higherLows: 0, lowerHighs: 0, lowerLows: 0, equalHighs: 0, equalLows: 0 }
   return {
     trend: 'ranging',
     strength: 'weak',
     confidence: 0,
-    structure: {
-      higherHighs: 0,
-      higherLows: 0,
-      lowerHighs: 0,
-      lowerLows: 0,
-      equalHighs: 0,
-      equalLows: 0,
-    },
+    structure: { ...emptyCounts },
+    recentStructure: { ...emptyCounts },
     bos: { detected: false, events: [], last: null },
     choch: { detected: false, events: [], last: null },
     pullback: { detected: false, depth: null },
@@ -185,6 +181,7 @@ export function bullishStructure(): MarketStructureResult {
     trend: 'bullish',
     strength: 'strong',
     structure: { higherHighs: 3, higherLows: 3, lowerHighs: 0, lowerLows: 0, equalHighs: 0, equalLows: 0 },
+    recentStructure: { higherHighs: 3, higherLows: 3, lowerHighs: 0, lowerLows: 0, equalHighs: 0, equalLows: 0 },
   }
 }
 
@@ -194,6 +191,7 @@ export function bearishStructure(): MarketStructureResult {
     trend: 'bearish',
     strength: 'strong',
     structure: { higherHighs: 0, higherLows: 0, lowerHighs: 3, lowerLows: 3, equalHighs: 0, equalLows: 0 },
+    recentStructure: { higherHighs: 0, higherLows: 0, lowerHighs: 3, lowerLows: 3, equalHighs: 0, equalLows: 0 },
   }
 }
 

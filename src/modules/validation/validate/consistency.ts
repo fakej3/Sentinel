@@ -111,28 +111,28 @@ export function checkConsistency(
 
   // ── Market structure conditions ────────────────────────────────────────────
 
-  const { structure } = marketStructure
+  const { recentStructure } = marketStructure
 
   const expectedHHHL =
-    structure.higherHighs >= cfg.minBullishSwingsForTrend &&
-    structure.higherLows >= cfg.minBullishSwingsForTrend
+    recentStructure.higherHighs >= cfg.minBullishSwingsForTrend &&
+    recentStructure.higherLows >= cfg.minBullishSwingsForTrend
 
   if (conditions.hasConsistentHHHL !== expectedHHHL) {
     issues.push(critical(
       'fullTrend.conditions.hasConsistentHHHL',
-      `hasConsistentHHHL is ${conditions.hasConsistentHHHL} but HH=${structure.higherHighs}, HL=${structure.higherLows} (min=${cfg.minBullishSwingsForTrend}) implies ${expectedHHHL}`,
+      `hasConsistentHHHL is ${conditions.hasConsistentHHHL} but recent HH=${recentStructure.higherHighs}, HL=${recentStructure.higherLows} (min=${cfg.minBullishSwingsForTrend}) implies ${expectedHHHL}`,
       String(expectedHHHL), String(conditions.hasConsistentHHHL),
     ))
   }
 
   const expectedLHLL =
-    structure.lowerHighs >= cfg.minBearishSwingsForTrend &&
-    structure.lowerLows >= cfg.minBearishSwingsForTrend
+    recentStructure.lowerHighs >= cfg.minBearishSwingsForTrend &&
+    recentStructure.lowerLows >= cfg.minBearishSwingsForTrend
 
   if (conditions.hasConsistentLHLL !== expectedLHLL) {
     issues.push(critical(
       'fullTrend.conditions.hasConsistentLHLL',
-      `hasConsistentLHLL is ${conditions.hasConsistentLHLL} but LH=${structure.lowerHighs}, LL=${structure.lowerLows} (min=${cfg.minBearishSwingsForTrend}) implies ${expectedLHLL}`,
+      `hasConsistentLHLL is ${conditions.hasConsistentLHLL} but recent LH=${recentStructure.lowerHighs}, LL=${recentStructure.lowerLows} (min=${cfg.minBearishSwingsForTrend}) implies ${expectedLHLL}`,
       String(expectedLHLL), String(conditions.hasConsistentLHLL),
     ))
   }
@@ -181,20 +181,28 @@ export function checkConsistency(
   // ── MACD conditions ───────────────────────────────────────────────────────
 
   if (indicators.macd !== null) {
-    const { macdLine, signalLine } = indicators.macd
-    const expectedMacdBullish = macdLine > signalLine
+    const { macdLine, signalLine, histogram, previousHistogram } = indicators.macd
+    const expectedMacdBullish =
+      macdLine > signalLine &&
+      histogram > 0 &&
+      previousHistogram !== null &&
+      histogram > previousHistogram
     if (conditions.macdBullish !== expectedMacdBullish) {
       issues.push(critical(
         'fullTrend.conditions.macdBullish',
-        `macdBullish is ${conditions.macdBullish} but macdLine (${macdLine}) > signalLine (${signalLine}) is ${expectedMacdBullish}`,
+        `macdBullish is ${conditions.macdBullish} but full rule (macdLine>signalLine && histogram>0 && histogram>previousHistogram) is ${expectedMacdBullish}`,
         String(expectedMacdBullish), String(conditions.macdBullish),
       ))
     }
-    const expectedMacdBearish = macdLine < signalLine
+    const expectedMacdBearish =
+      macdLine < signalLine &&
+      histogram < 0 &&
+      previousHistogram !== null &&
+      histogram < previousHistogram
     if (conditions.macdBearish !== expectedMacdBearish) {
       issues.push(critical(
         'fullTrend.conditions.macdBearish',
-        `macdBearish is ${conditions.macdBearish} but macdLine (${macdLine}) < signalLine (${signalLine}) is ${expectedMacdBearish}`,
+        `macdBearish is ${conditions.macdBearish} but full rule (macdLine<signalLine && histogram<0 && histogram<previousHistogram) is ${expectedMacdBearish}`,
         String(expectedMacdBearish), String(conditions.macdBearish),
       ))
     }

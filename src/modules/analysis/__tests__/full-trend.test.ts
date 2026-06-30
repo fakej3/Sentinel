@@ -115,8 +115,8 @@ describe('synthesizeFullTrend', () => {
 
   it('hasConsistentHHHL requires at least minBullishSwingsForTrend of each', () => {
     const structure = emptyStructure()
-    structure.structure.higherHighs = 1  // only 1, need 2
-    structure.structure.higherLows = 2
+    structure.recentStructure.higherHighs = 1  // only 1, need 2
+    structure.recentStructure.higherLows = 2
     const result = synthesizeFullTrend(100, indicators(), structure, cfg)
     expect(result.conditions.hasConsistentHHHL).toBe(false)
   })
@@ -137,5 +137,91 @@ describe('synthesizeFullTrend', () => {
     const r1 = synthesizeFullTrend(100, ind, s, cfg)
     const r2 = synthesizeFullTrend(100, ind, s, cfg)
     expect(r1).toEqual(r2)
+  })
+
+  // ── CRIT-01: hasConsistentHHHL/LHLL use recentStructure, not structure ──────
+
+  it('hasConsistentHHHL is false when recentStructure.higherHighs is below min, even if structure.higherHighs is high', () => {
+    const structure = emptyStructure()
+    structure.structure.higherHighs = 10  // high lifetime count
+    structure.structure.higherLows = 10
+    // recentStructure remains all-zero → hasConsistentHHHL = false
+    const result = synthesizeFullTrend(100, indicators(), structure, cfg)
+    expect(result.conditions.hasConsistentHHHL).toBe(false)
+  })
+
+  it('hasConsistentHHHL is true when recentStructure meets threshold, regardless of structure', () => {
+    const structure = emptyStructure()
+    structure.recentStructure.higherHighs = 2  // meets cfg.minBullishSwingsForTrend=2
+    structure.recentStructure.higherLows = 2
+    // structure (lifetime) remains zero — but recentStructure drives the condition
+    const result = synthesizeFullTrend(100, indicators(), structure, cfg)
+    expect(result.conditions.hasConsistentHHHL).toBe(true)
+  })
+
+  it('hasConsistentLHLL is false when recentStructure.lowerHighs is below min, even if structure.lowerHighs is high', () => {
+    const structure = emptyStructure()
+    structure.structure.lowerHighs = 10
+    structure.structure.lowerLows = 10
+    // recentStructure remains all-zero
+    const result = synthesizeFullTrend(100, indicators(), structure, cfg)
+    expect(result.conditions.hasConsistentLHLL).toBe(false)
+  })
+
+  // ── CRIT-03: MACD three-condition rule ───────────────────────────────────────
+
+  it('macdBullish is true when histogram is positive and increasing', () => {
+    // histogram=5, previousHistogram=4 → increasing
+    const ind = indicators({ macd: macd(10, 5, 4) })
+    const result = synthesizeFullTrend(100, ind, emptyStructure(), cfg)
+    expect(result.conditions.macdBullish).toBe(true)
+  })
+
+  it('macdBullish is false when histogram is flat (not increasing)', () => {
+    // histogram=5, previousHistogram=5 → not increasing (5 > 5 is false)
+    const ind = indicators({ macd: macd(10, 5, 5) })
+    const result = synthesizeFullTrend(100, ind, emptyStructure(), cfg)
+    expect(result.conditions.macdBullish).toBe(false)
+  })
+
+  it('macdBullish is false when histogram is decreasing', () => {
+    // histogram=3, previousHistogram=5 → decreasing
+    const ind = indicators({ macd: macd(8, 5, 5) })
+    const result = synthesizeFullTrend(100, ind, emptyStructure(), cfg)
+    expect(result.conditions.macdBullish).toBe(false)
+  })
+
+  it('macdBullish is false when previousHistogram is null (minimum candle count)', () => {
+    // null previousHistogram → cannot verify increasing → macdBullish = false
+    const ind = indicators({ macd: macd(10, 5, null) })
+    const result = synthesizeFullTrend(100, ind, emptyStructure(), cfg)
+    expect(result.conditions.macdBullish).toBe(false)
+  })
+
+  it('macdBullish is false when histogram is positive but macdLine <= signalLine', () => {
+    // All three conditions must hold: macdLine > signalLine is required
+    const ind = indicators({ macd: macd(5, 5, 3) }) // histogram=0, not positive
+    const result = synthesizeFullTrend(100, ind, emptyStructure(), cfg)
+    expect(result.conditions.macdBullish).toBe(false)
+  })
+
+  it('macdBearish is true when histogram is negative and decreasing', () => {
+    // histogram=-5, previousHistogram=-4 → more negative → decreasing → macdBearish=true
+    const ind = indicators({ macd: macd(5, 10, -4) })
+    const result = synthesizeFullTrend(100, ind, emptyStructure(), cfg)
+    expect(result.conditions.macdBearish).toBe(true)
+  })
+
+  it('macdBearish is false when histogram is negative but flattening', () => {
+    // histogram=-5, previousHistogram=-5 → flat, not strictly decreasing
+    const ind = indicators({ macd: macd(5, 10, -5) })
+    const result = synthesizeFullTrend(100, ind, emptyStructure(), cfg)
+    expect(result.conditions.macdBearish).toBe(false)
+  })
+
+  it('macdBearish is false when previousHistogram is null', () => {
+    const ind = indicators({ macd: macd(5, 10, null) })
+    const result = synthesizeFullTrend(100, ind, emptyStructure(), cfg)
+    expect(result.conditions.macdBearish).toBe(false)
   })
 })

@@ -54,11 +54,11 @@ export interface TrendConditions {
   priceAboveAllEMAs: boolean
   /** EMA20 > EMA50 > EMA100 > EMA200 */
   emaInBullishOrder: boolean
-  /** marketStructure.structure.higherHighs >= 2 && marketStructure.structure.higherLows >= 2 */
+  /** marketStructure.recentStructure.higherHighs >= 2 && marketStructure.recentStructure.higherLows >= 2 */
   hasConsistentHHHL: boolean
   /** RSI >= rsiBullishMin (default 45) */
   rsiSupportsBullish: boolean
-  /** indicators.macd.macdLine > indicators.macd.signalLine */
+  /** macdLine > signalLine AND histogram > 0 AND histogram > previousHistogram (ENGINE_RULES.md §4) */
   macdBullish: boolean
 
   // ── Bearish conditions (ENGINE_RULES.md §1)
@@ -70,11 +70,11 @@ export interface TrendConditions {
   priceBelowAllEMAs: boolean
   /** EMA20 < EMA50 < EMA100 < EMA200 */
   emaInBearishOrder: boolean
-  /** marketStructure.structure.lowerHighs >= 2 && marketStructure.structure.lowerLows >= 2 */
+  /** marketStructure.recentStructure.lowerHighs >= 2 && marketStructure.recentStructure.lowerLows >= 2 */
   hasConsistentLHLL: boolean
   /** RSI <= rsiBearishMax (default 55) */
   rsiSupportsBearish: boolean
-  /** indicators.macd.macdLine < indicators.macd.signalLine */
+  /** macdLine < signalLine AND histogram < 0 AND histogram < previousHistogram (ENGINE_RULES.md §4) */
   macdBearish: boolean
 
   // ── Neutral conditions (ENGINE_RULES.md §1)

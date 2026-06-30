@@ -85,6 +85,19 @@ export function checkContradictions(
     ))
   }
 
+  // ── RSI overlap zone: both bullish and bearish RSI conditions satisfied ───
+  // rsiBullishMin=45 and rsiBearishMax=55 intentionally overlap; when RSI is
+  // in 45–55, both conditions are true. This is by design but must be flagged
+  // so callers know each direction received one point from RSI.
+
+  if (conditions.rsiSupportsBullish && conditions.rsiSupportsBearish) {
+    issues.push(warning(
+      'fullTrend.conditions',
+      `rsiSupportsBullish and rsiSupportsBearish are both true — RSI is in the overlap zone where both thresholds are satisfied; RSI contributes one point to each direction`,
+      'at most one true', 'both true',
+    ))
+  }
+
   // ── bullishConditionsMet must equal the actual count of satisfied conditions
 
   const actualBullish = [

@@ -20,7 +20,7 @@ export type {
 } from './types'
 import { detectRawSwings, filterDominantSwings } from './swings'
 import { labelSwings } from './labels'
-import { countStructure, determineTrend } from './trend'
+import { countStructure, countRecentStructure, determineTrend } from './trend'
 import { detectBosChoch } from './bos-choch'
 import { detectConsolidation } from './consolidation'
 import { detectBreakout } from './breakout'
@@ -30,18 +30,13 @@ import { buildEvidence } from './evidence'
 
 /** Returns a fresh empty result with independent nested objects — never share. */
 function makeEmptyResult(): MarketStructureResult {
+  const emptyCounts = { higherHighs: 0, higherLows: 0, lowerHighs: 0, lowerLows: 0, equalHighs: 0, equalLows: 0 }
   return {
     trend: 'ranging',
     strength: 'weak',
     confidence: 0,
-    structure: {
-      higherHighs: 0,
-      higherLows: 0,
-      lowerHighs: 0,
-      lowerLows: 0,
-      equalHighs: 0,
-      equalLows: 0,
-    },
+    structure: { ...emptyCounts },
+    recentStructure: { ...emptyCounts },
     bos: { detected: false, events: [], last: null },
     choch: { detected: false, events: [], last: null },
     pullback: { detected: false, depth: null },
@@ -98,6 +93,7 @@ export function computeMarketStructure(
   const dominantSwings = filterDominantSwings(rawSwings)
   const labeledSwings = labelSwings(dominantSwings, cfg)
   const structure = countStructure(labeledSwings)
+  const recentStructure = countRecentStructure(labeledSwings, cfg)
   const { direction: trend, strength } = determineTrend(labeledSwings, cfg)
   const allEvents = detectBosChoch(candles, dominantSwings, cfg)
   const bosEvents = allEvents.filter(e => e.type === 'BOS')
@@ -118,6 +114,7 @@ export function computeMarketStructure(
     strength,
     confidence,
     structure,
+    recentStructure,
     bos: {
       detected: bosEvents.length > 0,
       events: bosEvents,

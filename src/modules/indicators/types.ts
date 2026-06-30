@@ -2,6 +2,13 @@ export interface MACDResult {
   macdLine: number
   signalLine: number
   histogram: number
+  /**
+   * Histogram value from the previous bar (n−1).
+   * null when the signal series has only one value (exactly 34 closes — minimum for MACD).
+   * ENGINE_RULES.md §4: macdBullish requires histogram > previousHistogram.
+   * When null, the increasing check cannot be verified and macdBullish is false.
+   */
+  previousHistogram: number | null
   bias: 'bullish' | 'bearish' | 'neutral'
 }
 

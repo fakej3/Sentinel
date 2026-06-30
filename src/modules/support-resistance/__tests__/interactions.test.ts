@@ -167,6 +167,72 @@ describe('applyInteractions — support zone', () => {
   })
 })
 
+// ── CRIT-04 regression: bounce confirmation boundary ─────────────────────────
+describe('applyInteractions — bounce confirmation boundary (CRIT-04)', () => {
+  // Zone: center=100, lower=98, upper=102
+
+  describe('resistance zone', () => {
+    it('does NOT confirm bounce when next candle high is inside zone (high=99)', () => {
+      // Bug: old code checked next.high < zone.upper (102) → 99 < 102 is true → confirmed
+      // Fix: new code checks next.high < zone.lower (98) → 99 < 98 is false → not confirmed
+      // Zone: lower=98, upper=102
+      const z = zone({ firstDetectedIndex: 0, type: 'resistance' })
+      const candles = makeCandles([
+        { close: 100 },                      // 0 - skip
+        { close: 97, high: 101, low: 95 },   // 1 - enters zone, close < lower=98 → bounce attempt
+        { close: 99, high: 99, low: 96 },    // 2 - next: high=99 inside zone → NOT < zone.lower=98
+        { close: 94 },                       // 3 - stabilise outside zone
+      ])
+      const result = applyInteractions(z, candles)
+      // Candle 1 bounce: NOT confirmed (failedReaction), candle 2 has close inside zone → no further bounce
+      expect(result.successfulReactions).toBe(0)
+      expect(result.failedReactions).toBeGreaterThanOrEqual(1)
+    })
+
+    it('confirms bounce when next candle high is strictly below zone.lower (high=97)', () => {
+      const z = zone({ firstDetectedIndex: 0, type: 'resistance' })
+      const candles = makeCandles([
+        { close: 100 },
+        { close: 97, high: 101, low: 95 }, // enters zone, closes below lower
+        { close: 96, high: 97, low: 95 },  // next: high=97 < zone.lower=98 → confirmed
+      ])
+      const result = applyInteractions(z, candles)
+      expect(result.successfulReactions).toBe(1)
+    })
+
+  })
+
+  describe('support zone', () => {
+    it('does NOT confirm bounce when next candle low is inside zone (low=101)', () => {
+      // Bug: old code checked next.low > zone.lower (98) → 101 > 98 is true → confirmed
+      // Fix: new code checks next.low > zone.upper (102) → 101 > 102 is false → not confirmed
+      // Zone: lower=98, upper=102
+      const z = zone({ firstDetectedIndex: 0, type: 'support' })
+      const candles = makeCandles([
+        { close: 100 },
+        { close: 103, high: 104, low: 99 },   // enters zone, close > upper=102 → bounce attempt
+        { close: 101, high: 103, low: 101 },  // next: low=101 inside zone → NOT > zone.upper=102
+        { close: 106 },                        // stabilise above zone
+      ])
+      const result = applyInteractions(z, candles)
+      expect(result.successfulReactions).toBe(0)
+      expect(result.failedReactions).toBeGreaterThanOrEqual(1)
+    })
+
+    it('confirms bounce when next candle low is strictly above zone.upper (low=103)', () => {
+      const z = zone({ firstDetectedIndex: 0, type: 'support' })
+      const candles = makeCandles([
+        { close: 100 },
+        { close: 103, high: 104, low: 99 },   // enters zone, closes above upper
+        { close: 104, high: 105, low: 103 },  // next: low=103 > zone.upper=102 → confirmed
+      ])
+      const result = applyInteractions(z, candles)
+      expect(result.successfulReactions).toBe(1)
+    })
+
+  })
+})
+
 describe('applyInteractions — edge cases', () => {
   it('ignores candles at or before firstDetectedIndex', () => {
     const z = zone({ firstDetectedIndex: 5 })

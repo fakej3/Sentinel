@@ -83,7 +83,10 @@ describe('checkConsistency', () => {
   it('flags hasConsistentHHHL true when higherHighs is below minimum', () => {
     // HH=1 < min=2 → hasConsistentHHHL should be false
     const result = makeValidResult({
-      marketStructure: makeStructure({ structure: { higherHighs: 1, higherLows: 2, lowerHighs: 0, lowerLows: 0, equalHighs: 0, equalLows: 0 } }),
+      marketStructure: makeStructure({
+        structure: { higherHighs: 1, higherLows: 2, lowerHighs: 0, lowerLows: 0, equalHighs: 0, equalLows: 0 },
+        recentStructure: { higherHighs: 1, higherLows: 2, lowerHighs: 0, lowerLows: 0, equalHighs: 0, equalLows: 0 },
+      }),
       fullTrend: makeFullTrend({
         conditions: makeTrendConditions({ hasConsistentHHHL: true }),
       }),
@@ -94,7 +97,10 @@ describe('checkConsistency', () => {
 
   it('flags hasConsistentLHLL false when lowerHighs and lowerLows both meet minimum', () => {
     const result = makeValidResult({
-      marketStructure: makeStructure({ structure: { higherHighs: 0, higherLows: 0, lowerHighs: 2, lowerLows: 2, equalHighs: 0, equalLows: 0 } }),
+      marketStructure: makeStructure({
+        structure: { higherHighs: 0, higherLows: 0, lowerHighs: 2, lowerLows: 2, equalHighs: 0, equalLows: 0 },
+        recentStructure: { higherHighs: 0, higherLows: 0, lowerHighs: 2, lowerLows: 2, equalHighs: 0, equalLows: 0 },
+      }),
       fullTrend: makeFullTrend({
         bearishConditionsMet: 2,
         bullishConditionsMet: 2,
@@ -156,7 +162,7 @@ describe('checkConsistency', () => {
   it('flags macdBullish true when MACD line is below signal line', () => {
     // macdLine=3, signalLine=5 → macdBullish should be false
     const result = makeValidResult({
-      indicators: makeIndicators({ macd: { macdLine: 3, signalLine: 5, histogram: -2, bias: 'bearish' } }),
+      indicators: makeIndicators({ macd: { macdLine: 3, signalLine: 5, histogram: -2, previousHistogram: null, bias: 'bearish' } }),
       indicatorSummary: {
         rsi: { value: 65, classification: 'healthy_bullish' },
         macd: { histogram: -2, bias: 'bearish' },

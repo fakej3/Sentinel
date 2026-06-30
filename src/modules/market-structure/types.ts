@@ -100,7 +100,16 @@ export interface MarketStructureResult {
    * incorporates indicators, volume, and support/resistance.
    */
   confidence: number
+  /** Full lifetime HH/HL/LH/LL counts across all detected swings. */
   structure: StructureCounts
+  /**
+   * HH/HL/LH/LL counts restricted to the same recent window used by
+   * determineTrend() — the last (minSwingsForTrend × 2) labeled swings.
+   * Used by Module 6 for hasConsistentHHHL / hasConsistentLHLL so that
+   * trend conditions are evaluated on the same evidence as the structural
+   * trend direction. ENGINE_RULES.md §1 (CRIT-01).
+   */
+  recentStructure: StructureCounts
   bos: {
     detected: boolean
     events: StructureEvent[]

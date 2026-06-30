@@ -11,6 +11,104 @@ Work in progress. No released version yet.
 
 ---
 
+## [0.10.1] — 2026-06-30
+
+### Stabilization Sprint — Critical Bug Fixes (CRIT-01 through CRIT-04)
+
+Pre-Module-8 stabilization sprint. Four bugs in the analysis engine and support/resistance
+module that caused incorrect condition evaluation and misleading evidence. All existing
+tests continue to pass; regression tests added for each fix.
+
+#### Fixed
+
+- **CRIT-01 — `hasConsistentHHHL`/`hasConsistentLHLL` used cumulative lifetime counts**
+  (`src/modules/market-structure/trend.ts`, `src/modules/market-structure/index.ts`,
+  `src/modules/analysis/compute/full-trend.ts`, `src/modules/validation/validate/consistency.ts`):
+  Added `countRecentStructure()` that mirrors `determineTrend()`'s windowed slice (last
+  `minSwingsForTrend × 2 = 8` labeled swings). `MarketStructureResult` now exposes both
+  `structure` (full lifetime counts) and `recentStructure` (windowed). Module 6
+  `synthesizeFullTrend` and Module 7 `checkConsistency` both consume `recentStructure`
+  for HHHL/LHLL. Previously, `full-trend.ts` read `structure` (cumulative), which could
+  report HHHL patterns from hundreds of candles ago even when recent price action was flat.
+
+- **CRIT-02 — RSI overlap zone (45–55) undetected and undocumented**
+  (`src/modules/validation/validate/contradictions.ts`, `src/modules/analysis/compute/evidence.ts`):
+  `rsiBullishMin = 45` and `rsiBearishMax = 55` intentionally overlap; RSI 45–55 satisfies
+  both thresholds simultaneously. `checkContradictions` now emits a `warning`-severity issue
+  when both `rsiSupportsBullish` and `rsiSupportsBearish` are true. `collectEvidence` now
+  emits `'RSI in neutral overlap zone'` (medium impact) explaining the dual contribution.
+  The thresholds are unchanged — the overlap is intentional design, now surfaced explicitly.
+
+- **CRIT-03 — MACD condition used only `macdLine > signalLine` (single condition)**
+  (`src/modules/indicators/compute/macd.ts`, `src/modules/analysis/compute/full-trend.ts`,
+  `src/modules/validation/validate/consistency.ts`):
+  Implemented the three-condition MACD rule from ENGINE_RULES.md §4: `macdBullish` requires
+  `macdLine > signalLine AND histogram > 0 AND histogram > previousHistogram`. Computed
+  `previousHistogram` in `computeMacd` using the penultimate signal EMA value; returns `null`
+  when `signalSeries.length < 2` (exactly 34 closes — conservative fallback). `macdBearish`
+  requires the symmetric three conditions. Previously, a barely-positive MACD with a flat or
+  declining histogram was incorrectly counted as a bullish condition.
+
+- **CRIT-04 — S/R bounce confirmation used wrong boundary**
+  (`src/modules/support-resistance/interactions.ts`):
+  Resistance bounce confirmation: changed `candles[i+1].high < z.upper` →
+  `candles[i+1].high < z.lower`. Support bounce confirmation: changed `candles[i+1].low > z.lower` →
+  `candles[i+1].low > z.upper`. Previously, a "confirming" next candle whose high/low was inside
+  the zone (between lower and upper) was counted as confirming a bounce — an incorrectly relaxed
+  threshold that generated false successful reactions.
+
+#### Changed
+
+- **`src/modules/market-structure/types.ts`** — Added `recentStructure: StructureCounts` to
+  `MarketStructureResult` with JSDoc describing the windowed scope.
+
+- **`src/modules/indicators/types.ts`** — Added `previousHistogram: number | null` to `MACDResult`.
+
+- **`src/modules/analysis/types.ts`** — Updated JSDoc for `hasConsistentHHHL`, `hasConsistentLHLL`,
+  `macdBullish`, `macdBearish` to document sources and full rule.
+
+- **`src/modules/analysis/compute/evidence.ts`** — Updated HH/HL/LH/LL evidence descriptions
+  to reference `recentStructure` counts; unified RSI evidence block to handle overlap case.
+
+- **`docs/ENGINE_RULES.md`** — §4 MACD table updated to full three-condition rule.
+  §14.1 table: conditions 3 and 5 updated for `recentStructure` and three-condition MACD.
+  §15.4 consistency check: `hasConsistentHHHL`/`LHLL` source updated to `recentStructure`;
+  `macdBullish`/`macdBearish` updated to full three-condition derived form.
+  §15.5 contradiction check: added RSI overlap warning row.
+
+- **`docs/KNOWN_LIMITATIONS.md`** — Added LIM-030 (MACD `previousHistogram` null at 34
+  closes) and LIM-031 (RSI 45–55 overlap zone — intentional design with Module 7 warning).
+
+#### Tests Added (24 regression tests)
+
+| CRIT | File | Tests |
+|------|------|-------|
+| CRIT-01 | `market-structure/__tests__/index.test.ts` | 3 — recentStructure in empty result; counts never exceed structure; total ≤ window |
+| CRIT-01 | `analysis/__tests__/full-trend.test.ts` | 4 — recentStructure vs structure isolation tests |
+| CRIT-02 | `validation/__tests__/contradictions.test.ts` | 2 — RSI overlap warning emitted; not emitted when only one condition true |
+| CRIT-03 | `indicators/__tests__/macd.test.ts` | 4 — previousHistogram null at 34 closes; non-null at 35; zero when flat; finite in moving series |
+| CRIT-03 | `analysis/__tests__/full-trend.test.ts` | 8 — macdBullish/macdBearish three-condition combinations |
+| CRIT-04 | `support-resistance/__tests__/interactions.test.ts` | 4 — boundary tests for both zone types (not confirmed inside zone; confirmed strictly outside) |
+
+### Modules Affected
+
+- MODULE 2 — Technical Indicator Engine: `MACDResult.previousHistogram` added.
+- MODULE 3 — Market Structure Engine: `MarketStructureResult.recentStructure` added.
+- MODULE 4 — Support & Resistance Engine: bounce confirmation boundary corrected.
+- MODULE 6 — Analysis Engine: three-condition MACD; `recentStructure` consumption; RSI overlap evidence.
+- MODULE 7 — Validation Engine: RSI overlap warning; updated MACD and structure consistency checks.
+
+### Test count: 613 tests passing (589 prior + 24 regression)
+
+### Known Side Effects
+
+- Any caller reading `macdBullish` may observe it switching from `true` to `false` on borderline
+  MACD signals where histogram was not increasing. This is the correct behavior.
+- `recentStructure` is additive to `MarketStructureResult` — no breaking change to existing callers
+  reading `structure`.
+
+---
+
 ## [0.10.0] — 2026-06-30
 
 ### MODULE 7 — Validation Engine

@@ -385,3 +385,44 @@ describe('computeMarketStructure', () => {
     expect(() => computeMarketStructure(cs)).not.toThrow()
   })
 })
+
+// ── CRIT-01 regression: recentStructure ───────────────────────────────────────
+describe('computeMarketStructure — recentStructure (CRIT-01)', () => {
+  it('returns recentStructure in empty result when candles are insufficient', () => {
+    const result = computeMarketStructure([])
+    expect(result.recentStructure).toBeDefined()
+    expect(result.recentStructure.higherHighs).toBe(0)
+    expect(result.recentStructure.higherLows).toBe(0)
+    expect(result.recentStructure.lowerHighs).toBe(0)
+    expect(result.recentStructure.lowerLows).toBe(0)
+    expect(result.recentStructure.equalHighs).toBe(0)
+    expect(result.recentStructure.equalLows).toBe(0)
+  })
+
+  it('recentStructure counts never exceed structure counts for any metric', () => {
+    // Build a series long enough to produce many labeled swings
+    const cs = Array.from({ length: 60 }, (_, i) =>
+      c(i % 2 === 0 ? 100 : 110, {}, i),
+    )
+    const result = computeMarketStructure(cs)
+    const r = result.recentStructure
+    const s = result.structure
+    expect(r.higherHighs).toBeLessThanOrEqual(s.higherHighs)
+    expect(r.higherLows).toBeLessThanOrEqual(s.higherLows)
+    expect(r.lowerHighs).toBeLessThanOrEqual(s.lowerHighs)
+    expect(r.lowerLows).toBeLessThanOrEqual(s.lowerLows)
+    expect(r.equalHighs).toBeLessThanOrEqual(s.equalHighs)
+    expect(r.equalLows).toBeLessThanOrEqual(s.equalLows)
+  })
+
+  it('recentStructure sum of labeled swings does not exceed (minSwingsForTrend * 2)', () => {
+    // With minSwingsForTrend=4, the window is 8 labeled swings
+    const cs = Array.from({ length: 100 }, (_, i) =>
+      c(i % 2 === 0 ? 100 : 200, {}, i),
+    )
+    const result = computeMarketStructure(cs)
+    const r = result.recentStructure
+    const windowTotal = r.higherHighs + r.higherLows + r.lowerHighs + r.lowerLows + r.equalHighs + r.equalLows
+    expect(windowTotal).toBeLessThanOrEqual(DEFAULT_CONFIG.minSwingsForTrend * 2)
+  })
+})

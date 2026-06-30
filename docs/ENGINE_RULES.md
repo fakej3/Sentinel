@@ -136,8 +136,8 @@ Calculation: EMA(12) − EMA(26); Signal = EMA(9) of MACD.
 
 | Signal | Condition |
 |--------|-----------|
-| Bullish | MACD line > Signal line AND histogram is positive and increasing |
-| Bearish | MACD line < Signal line AND histogram is negative and decreasing |
+| Bullish | `macdLine > signalLine` AND `histogram > 0` AND `histogram > previousHistogram` — all three required; `macdBullish = false` when `previousHistogram` is null (see LIM-030) |
+| Bearish | `macdLine < signalLine` AND `histogram < 0` AND `histogram < previousHistogram` — all three required; `macdBearish = false` when `previousHistogram` is null |
 | Bullish Crossover | MACD line crosses above Signal line (current candle) |
 | Bearish Crossover | MACD line crosses below Signal line (current candle) |
 | Neutral | MACD and Signal are within 0.1% of each other |
@@ -707,9 +707,9 @@ in the system. `MarketStructureResult.trend` (Module 3) is structural bias only.
 |---|-----------|--------------|
 | 1 | Price above all EMAs | `indicators.ema20/50/100/200` all non-null and price > each |
 | 2 | EMAs in bullish order | `ema20 > ema50 > ema100 > ema200` |
-| 3 | Consistent HH+HL | `structure.higherHighs ≥ 2` AND `structure.higherLows ≥ 2` |
-| 4 | RSI supports bullish | `rsi ≥ 45` (configurable: `rsiBullishMin`) |
-| 5 | MACD bullish | `macd.macdLine > macd.signalLine` |
+| 3 | Consistent HH+HL | `recentStructure.higherHighs ≥ 2` AND `recentStructure.higherLows ≥ 2` (windowed recent swings — see §2 and CRIT-01) |
+| 4 | RSI supports bullish | `rsi ≥ 45` (configurable: `rsiBullishMin`; overlaps with bearish threshold at 45–55 — see LIM-031) |
+| 5 | MACD bullish | `macd.macdLine > macd.signalLine` AND `macd.histogram > 0` AND `macd.histogram > macd.previousHistogram` (null previousHistogram → false) |
 
 **5/5 met → `strong bullish`. 3–4/5 AND bullish > bearish → `moderate bullish`.**
 
@@ -719,9 +719,9 @@ in the system. `MarketStructureResult.trend` (Module 3) is structural bias only.
 |---|-----------|--------------|
 | 1 | Price below all EMAs | all EMAs non-null and price < each |
 | 2 | EMAs in bearish order | `ema20 < ema50 < ema100 < ema200` |
-| 3 | Consistent LH+LL | `structure.lowerHighs ≥ 2` AND `structure.lowerLows ≥ 2` |
-| 4 | RSI supports bearish | `rsi ≤ 55` (configurable: `rsiBearishMax`) |
-| 5 | MACD bearish | `macd.macdLine < macd.signalLine` |
+| 3 | Consistent LH+LL | `recentStructure.lowerHighs ≥ 2` AND `recentStructure.lowerLows ≥ 2` (windowed recent swings — see §2 and CRIT-01) |
+| 4 | RSI supports bearish | `rsi ≤ 55` (configurable: `rsiBearishMax`; overlaps with bullish threshold at 45–55 — see LIM-031) |
+| 5 | MACD bearish | `macd.macdLine < macd.signalLine` AND `macd.histogram < 0` AND `macd.histogram < macd.previousHistogram` (null previousHistogram → false) |
 
 **5/5 met → `strong bearish`. 3–4/5 AND bearish > bullish → `moderate bearish`.**
 
@@ -941,13 +941,13 @@ All findings are `category: 'consistency'`.
 | `priceBelowEMA200` | `indicators.ema200` | `price < ema200` (false when null) |
 | `emaInBullishOrder` | all 4 EMAs | `ema20 > ema50 > ema100 > ema200` (false when any null) |
 | `emaInBearishOrder` | all 4 EMAs | `ema20 < ema50 < ema100 < ema200` (false when any null) |
-| `hasConsistentHHHL` | `marketStructure.structure` | `higherHighs >= 2 && higherLows >= 2` |
-| `hasConsistentLHLL` | `marketStructure.structure` | `lowerHighs >= 2 && lowerLows >= 2` |
+| `hasConsistentHHHL` | `marketStructure.recentStructure` | `higherHighs >= 2 && higherLows >= 2` (windowed — same window as `determineTrend()`) |
+| `hasConsistentLHLL` | `marketStructure.recentStructure` | `lowerHighs >= 2 && lowerLows >= 2` (windowed — same window as `determineTrend()`) |
 | `rsiSupportsBullish` | `indicators.rsi` | `rsi >= rsiBullishMin` (false when null) |
 | `rsiSupportsBearish` | `indicators.rsi` | `rsi <= rsiBearishMax` (false when null) |
 | `rsiInNeutralRange` | `indicators.rsi` | `rsi >= rsiNeutralLow && rsi <= rsiNeutralHigh` (false when null) |
-| `macdBullish` | `indicators.macd` | `macdLine > signalLine` (false when null) |
-| `macdBearish` | `indicators.macd` | `macdLine < signalLine` (false when null) |
+| `macdBullish` | `indicators.macd` | `macdLine > signalLine` AND `histogram > 0` AND `histogram > previousHistogram` (false when macd null or previousHistogram null) |
+| `macdBearish` | `indicators.macd` | `macdLine < signalLine` AND `histogram < 0` AND `histogram < previousHistogram` (false when macd null or previousHistogram null) |
 | `adxBelowWeakThreshold` | `indicators.adx` | `adx < adxWeakThreshold` (false when null) |
 | `noConsistentStructure` | other conditions | `!hasConsistentHHHL && !hasConsistentLHLL` |
 | `priceBetweenEMAsWithoutClearOrder` | other conditions | `!priceAboveAllEMAs && !priceBelowAllEMAs && !emaInBullishOrder && !emaInBearishOrder` |
@@ -974,6 +974,7 @@ Verifies logical consistency within the derived fields. All findings are `catego
 | `neutralConditionsMet` tally | critical | Must equal count of true values in [adxBelowWeakThreshold, rsiInNeutralRange, noConsistentStructure, priceBetweenEMAsWithoutClearOrder] |
 | Trend label | critical | Must match `deriveTrendLabel(bullish, bearish, neutral)` priority order (§1) |
 | Evidence sort order | warning | Evidence items must be sorted high → medium → low impact; first violation reported only |
+| RSI overlap | warning | `rsiSupportsBullish && rsiSupportsBearish` both true — RSI is in the 45–55 overlap zone; both thresholds intentionally overlap (see LIM-031); emits a warning, not a critical error |
 
 ---
 

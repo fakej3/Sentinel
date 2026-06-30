@@ -264,4 +264,46 @@ describe('checkContradictions', () => {
     })
     expect(checkContradictions(result).filter(i => i.field === 'fullTrend.trend')).toHaveLength(0)
   })
+
+  // ── CRIT-02 regression: RSI overlap warning ───────────────────────────────
+
+  it('emits a warning when both rsiSupportsBullish and rsiSupportsBearish are true (overlap zone)', () => {
+    // RSI=50: satisfies both rsiBullishMin=45 (50>=45) and rsiBearishMax=55 (50<=55)
+    const result = makeValidResult({
+      fullTrend: makeFullTrend({
+        bullishConditionsMet: 2,
+        bearishConditionsMet: 1,
+        neutralConditionsMet: 0,
+        trend: 'weak bullish',
+        conditions: makeTrendConditions({
+          priceAboveAllEMAs: false,
+          emaInBullishOrder: false,
+          hasConsistentHHHL: false,
+          rsiSupportsBullish: true,   // RSI in overlap zone
+          macdBullish: true,
+          priceBelowAllEMAs: false,
+          emaInBearishOrder: false,
+          hasConsistentLHLL: false,
+          rsiSupportsBearish: true,   // also true — overlap
+          macdBearish: false,
+          noConsistentStructure: true,
+          priceBetweenEMAsWithoutClearOrder: true,
+        }),
+      }),
+    })
+    const issues = checkContradictions(result)
+    const rsiWarning = issues.find(
+      i => i.severity === 'warning' &&
+           i.field === 'fullTrend.conditions' &&
+           i.message.includes('rsiSupportsBullish and rsiSupportsBearish'),
+    )
+    expect(rsiWarning).toBeDefined()
+    expect(rsiWarning?.category).toBe('contradiction')
+  })
+
+  it('does not emit RSI overlap warning when only rsiSupportsBullish is true', () => {
+    const result = makeValidResult() // rsi=65, rsiBullishMin=45, rsiBearishMax=55 → only bullish
+    const issues = checkContradictions(result)
+    expect(issues.some(i => i.message.includes('rsiSupportsBullish and rsiSupportsBearish'))).toBe(false)
+  })
 })

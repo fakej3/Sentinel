@@ -9,7 +9,7 @@ export function synthesizeFullTrend(
   cfg: AnalysisConfig,
 ): FullTrendResult {
   const { ema20, ema50, ema100, ema200, rsi, macd } = indicators
-  const { structure } = marketStructure
+  const { recentStructure } = marketStructure
 
   // ── Bullish conditions ─────────────────────────────────────────────────────
   const priceAboveEMA20 = ema20 !== null && price > ema20
@@ -23,10 +23,15 @@ export function synthesizeFullTrend(
     ema20 !== null && ema50 !== null && ema100 !== null && ema200 !== null &&
     ema20 > ema50 && ema50 > ema100 && ema100 > ema200
   const hasConsistentHHHL =
-    structure.higherHighs >= cfg.minBullishSwingsForTrend &&
-    structure.higherLows >= cfg.minBullishSwingsForTrend
+    recentStructure.higherHighs >= cfg.minBullishSwingsForTrend &&
+    recentStructure.higherLows >= cfg.minBullishSwingsForTrend
   const rsiSupportsBullish = rsi !== null && rsi >= cfg.rsiBullishMin
-  const macdBullish = macd !== null && macd.macdLine > macd.signalLine
+  const macdBullish =
+    macd !== null &&
+    macd.macdLine > macd.signalLine &&
+    macd.histogram > 0 &&
+    macd.previousHistogram !== null &&
+    macd.histogram > macd.previousHistogram
 
   // ── Bearish conditions ─────────────────────────────────────────────────────
   const priceBelowEMA20 = ema20 !== null && price < ema20
@@ -40,10 +45,15 @@ export function synthesizeFullTrend(
     ema20 !== null && ema50 !== null && ema100 !== null && ema200 !== null &&
     ema20 < ema50 && ema50 < ema100 && ema100 < ema200
   const hasConsistentLHLL =
-    structure.lowerHighs >= cfg.minBearishSwingsForTrend &&
-    structure.lowerLows >= cfg.minBearishSwingsForTrend
+    recentStructure.lowerHighs >= cfg.minBearishSwingsForTrend &&
+    recentStructure.lowerLows >= cfg.minBearishSwingsForTrend
   const rsiSupportsBearish = rsi !== null && rsi <= cfg.rsiBearishMax
-  const macdBearish = macd !== null && macd.macdLine < macd.signalLine
+  const macdBearish =
+    macd !== null &&
+    macd.macdLine < macd.signalLine &&
+    macd.histogram < 0 &&
+    macd.previousHistogram !== null &&
+    macd.histogram < macd.previousHistogram
 
   // ── Neutral conditions ─────────────────────────────────────────────────────
   const adxBelowWeakThreshold =

@@ -87,15 +87,15 @@ export function collectEvidence(
   // ── Market structure evidence ──────────────────────────────────────────────
   if (conditions.hasConsistentHHHL) {
     items.push(item('Higher High confirmed', 'high',
-      `${marketStructure.structure.higherHighs} Higher Highs detected`, 'market_structure'))
+      `${marketStructure.recentStructure.higherHighs} Higher Highs detected (recent window)`, 'market_structure'))
     items.push(item('Higher Low confirmed', 'high',
-      `${marketStructure.structure.higherLows} Higher Lows detected`, 'market_structure'))
+      `${marketStructure.recentStructure.higherLows} Higher Lows detected (recent window)`, 'market_structure'))
   }
   if (conditions.hasConsistentLHLL) {
     items.push(item('Lower High confirmed', 'high',
-      `${marketStructure.structure.lowerHighs} Lower Highs detected`, 'market_structure'))
+      `${marketStructure.recentStructure.lowerHighs} Lower Highs detected (recent window)`, 'market_structure'))
     items.push(item('Lower Low confirmed', 'high',
-      `${marketStructure.structure.lowerLows} Lower Lows detected`, 'market_structure'))
+      `${marketStructure.recentStructure.lowerLows} Lower Lows detected (recent window)`, 'market_structure'))
   }
   if (marketStructure.bos.last?.direction === 'bullish') {
     items.push(item('Bullish BOS', 'high',
@@ -135,13 +135,21 @@ export function collectEvidence(
   }
 
   // ── RSI evidence ──────────────────────────────────────────────────────────
-  if (conditions.rsiSupportsBullish && indicatorSummary.rsi.value !== null) {
-    items.push(item('RSI supports bullish', 'medium',
-      `RSI ${indicatorSummary.rsi.value.toFixed(1)} ≥ ${cfg.rsiBullishMin} — momentum supports bullish bias`, 'indicators'))
-  }
-  if (!conditions.rsiSupportsBullish && !conditions.rsiSupportsBearish && indicatorSummary.rsi.value !== null) {
-    items.push(item('RSI neutral', 'low',
-      `RSI ${indicatorSummary.rsi.value.toFixed(1)} — neutral momentum`, 'indicators'))
+  if (indicatorSummary.rsi.value !== null) {
+    if (conditions.rsiSupportsBullish && conditions.rsiSupportsBearish) {
+      items.push(item('RSI in neutral overlap zone', 'medium',
+        `RSI ${indicatorSummary.rsi.value.toFixed(1)} satisfies both bullish (≥${cfg.rsiBullishMin}) and bearish (≤${cfg.rsiBearishMax}) thresholds — momentum is neutral and contributes one point to each direction`,
+        'indicators'))
+    } else if (conditions.rsiSupportsBullish) {
+      items.push(item('RSI supports bullish', 'medium',
+        `RSI ${indicatorSummary.rsi.value.toFixed(1)} ≥ ${cfg.rsiBullishMin} — momentum supports bullish bias`, 'indicators'))
+    } else if (conditions.rsiSupportsBearish) {
+      items.push(item('RSI supports bearish', 'medium',
+        `RSI ${indicatorSummary.rsi.value.toFixed(1)} ≤ ${cfg.rsiBearishMax} — momentum supports bearish bias`, 'indicators'))
+    } else {
+      items.push(item('RSI neutral', 'low',
+        `RSI ${indicatorSummary.rsi.value.toFixed(1)} — neutral momentum`, 'indicators'))
+    }
   }
   if (indicatorSummary.rsi.classification === 'overbought') {
     items.push(item('Overbought RSI (>70)', 'medium',

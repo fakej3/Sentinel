@@ -22,5 +22,10 @@ export function computeMacd(closes: number[]): MACDResult | null {
   const histogram = lastMacd - lastSignal
   const bias: MACDResult['bias'] = histogram > 0 ? 'bullish' : histogram < 0 ? 'bearish' : 'neutral'
 
-  return { macdLine: lastMacd, signalLine: lastSignal, histogram, bias }
+  // previousHistogram: null only at minimum candle count (exactly 34 closes → signalSeries.length === 1)
+  const previousHistogram: number | null = signalSeries.length >= 2
+    ? (macdLine[macdLine.length - 2] - signalSeries[signalSeries.length - 2])
+    : null
+
+  return { macdLine: lastMacd, signalLine: lastSignal, histogram, previousHistogram, bias }
 }

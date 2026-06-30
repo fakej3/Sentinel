@@ -16,7 +16,7 @@ export function makeIndicators(overrides: Partial<IndicatorResult> = {}): Indica
     sma50: null,
     sma200: null,
     rsi: 65,
-    macd: { macdLine: 5, signalLine: 3, histogram: 2, bias: 'bullish' },
+    macd: { macdLine: 5, signalLine: 3, histogram: 2, previousHistogram: 1, bias: 'bullish' },
     atr: 2,
     atrPercent: 2.0,
     adx: { adx: 30, diPlus: 25, diMinus: 15 },
@@ -39,6 +39,14 @@ export function makeStructure(overrides: Partial<MarketStructureResult> = {}): M
     strength: 'strong',
     confidence: 7,
     structure: {
+      higherHighs: 2,
+      higherLows: 2,
+      lowerHighs: 0,
+      lowerLows: 0,
+      equalHighs: 0,
+      equalLows: 0,
+    },
+    recentStructure: {
       higherHighs: 2,
       higherLows: 2,
       lowerHighs: 0,

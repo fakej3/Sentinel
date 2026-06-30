@@ -52,11 +52,13 @@ export function emptyIndicators(overrides: Partial<IndicatorResult> = {}): Indic
 }
 
 export function emptyStructure(): MarketStructureResult {
+  const emptyCounts = { higherHighs: 0, higherLows: 0, lowerHighs: 0, lowerLows: 0, equalHighs: 0, equalLows: 0 }
   return {
     trend: 'ranging',
     strength: 'weak',
     confidence: 0,
-    structure: { higherHighs: 0, higherLows: 0, lowerHighs: 0, lowerLows: 0, equalHighs: 0, equalLows: 0 },
+    structure: { ...emptyCounts },
+    recentStructure: { ...emptyCounts },
     bos: { detected: false, events: [], last: null },
     choch: { detected: false, events: [], last: null },
     pullback: { detected: false, depth: null },
