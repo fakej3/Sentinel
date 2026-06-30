@@ -85,9 +85,20 @@ export interface PullbackResult {
 }
 
 export interface MarketStructureResult {
+  /**
+   * Structural bias derived solely from swing patterns (HH/HL/LH/LL).
+   * This is NOT the full trend defined in ENGINE_RULES.md §1, which also
+   * requires EMA alignment, RSI, and MACD. Full trend synthesis is performed
+   * by a future Module 6/7 layer that combines outputs from all engines.
+   */
   trend: TrendDirection
   strength: TrendStrength
-  /** 0–100 reflecting how many and how consistently structural factors align */
+  /**
+   * 0–10 evidence alignment score (ENGINE_RULES.md §11).
+   * Measures how many and how consistently structural factors align.
+   * This is structural confidence only — the full Module 8 score also
+   * incorporates indicators, volume, and support/resistance.
+   */
   confidence: number
   structure: StructureCounts
   bos: {

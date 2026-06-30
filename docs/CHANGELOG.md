@@ -11,6 +11,41 @@ Work in progress. No released version yet.
 
 ---
 
+## [0.5.0] — 2026-06-30
+
+### Foundation Stabilization — Post-Audit v0.1 (Critical + High Issues)
+
+#### Fixed
+
+- **C-2 — Confidence scale** (`confidence.ts`, `types.ts`, `index.ts`): `computeConfidence` now returns 0–10 (divides raw points by 10) to match ENGINE_RULES.md §11 and ARCHITECTURE.md. Previously returned 0–100.
+- **C-3 — EMPTY_RESULT mutation** (`index.ts`): Replaced shared `EMPTY_RESULT` constant + shallow spread `{ ...EMPTY_RESULT }` with a `makeEmptyResult()` factory function. Each call returns independent nested objects; callers cannot accidentally share state.
+- **H-2 — Breakout volume MA self-reference** (`breakout.ts`): Volume MA for breakout confirmation is now computed from `candles.slice(0, -1)` (prior candles only). Previously included the breakout candle itself, inflating the MA and suppressing confirmed signals on high-volume breakouts.
+
+#### Added
+
+- **C-1 — CORS architecture decision** (`docs/ARCHITECTURE.md`): Documented canonical approach (thin server-side proxy), development workaround (Vite `server.proxy`), and production constraint. Closes the open "No backend required" contradiction.
+- **7 breakout tests** (`src/modules/market-structure/__tests__/breakout.test.ts`): strong/weak/borderline/self-reference confirmation, bearish breakout, failed breakout, no-consolidation guard.
+- **1 mutation regression test** (`index.test.ts`): asserts two `computeMarketStructure([])` calls return independent `bos.events`, `evidence`, and `swings` arrays.
+
+#### Changed
+
+- **H-1 — Trend/structural bias distinction** (`types.ts`, `ENGINE_RULES.md`): Added JSDoc to `MarketStructureResult.trend` clarifying it is swing-pattern structural bias only (not full trend per ENGINE_RULES.md §1). ENGINE_RULES.md §1 updated with a note distinguishing Module 3 structural bias from the full synthesis performed by Module 6.
+- **H-3 — ARCHITECTURE.md schema** (`docs/ARCHITECTURE.md`): Shared Data Structures JSON updated to match actual `MarketStructureResult` shape (`structure` object with counts, `bos`/`choch` objects, `confidence` as 0–10 float, `evidence` array, etc.).
+- **H-4 — VALIDATION_RULES.md field paths** (`docs/VALIDATION_RULES.md`): Stage 2c updated to reference actual field paths (`marketStructure.structure.higherHighs > 0`, `marketStructure.bos.detected`, etc.). Stage 2d: removed invalid `"neutral"` string (not in `TrendDirection` type); replaced with `"ranging"`.
+- **App.tsx `candleLimit`** (`src/App.tsx`): Changed from 5 to 200 so Module 2 and 3 indicators have enough candles to compute.
+- **Type re-exports** (`src/modules/market-structure/index.ts`): All public types from `types.ts` are now re-exported from the module entry point.
+- **`DEFAULT_CONFIG` export** (`src/modules/market-structure/index.ts`): `DEFAULT_CONFIG` is now re-exported from the module entry point.
+- **Doc footers** (`ENGINE_RULES.md`, `VALIDATION_RULES.md`): Updated stale "Last updated: project initialization" footers.
+
+### Modules Affected
+- MODULE 3 — Market Structure Engine: bug fixes (confidence scale, EMPTY_RESULT, volume MA).
+- docs: ARCHITECTURE.md, ENGINE_RULES.md, VALIDATION_RULES.md.
+
+### Known Side Effects
+- Any code reading `result.confidence` as 0–100 must be updated to expect 0–10.
+
+---
+
 ## [0.4.0] — 2026-06-29
 
 ### Added

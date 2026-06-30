@@ -10,7 +10,12 @@ Every rule must have documented reasoning.
 
 ### Definition
 
-Trend is determined by the combination of EMA alignment, market structure, and momentum. No single factor alone defines the trend.
+Full trend is determined by the combination of EMA alignment, market structure, and momentum. No single factor alone defines the trend.
+
+**Structural bias** (output of Module 3 `MarketStructureResult.trend`) is a
+swing-pattern classification only — it does not incorporate EMA alignment, RSI,
+or MACD. The full trend determination described below is performed by the
+Evidence Engine (Module 6) which synthesises outputs from all analysis modules.
 
 ### Bullish Trend — All of the following must be true:
 
@@ -354,5 +359,4 @@ S2 = `Pivot − (High − Low)`
 
 ---
 
-*Last updated: project initialization*
-*Next update: when first engine module is implemented*
+*Last updated: Foundation Stabilization (post-audit v0.1)*

@@ -179,15 +179,28 @@ All inter-module data is passed as structured typed objects. The canonical struc
   },
   "marketStructure": {
     "trend": "bullish",
-    "higherHighs": true,
-    "higherLows": true,
-    "lowerHighs": false,
-    "lowerLows": false,
-    "bos": true,
-    "choch": false,
-    "consolidation": false,
-    "breakout": false,
-    "pullback": false
+    "strength": "strong",
+    "confidence": 8.0,
+    "structure": {
+      "higherHighs": 3,
+      "higherLows": 3,
+      "lowerHighs": 0,
+      "lowerLows": 0,
+      "equalHighs": 0,
+      "equalLows": 0
+    },
+    "bos": {
+      "detected": true,
+      "events": [{ "type": "BOS", "index": 12, "timestamp": 1700000000000, "level": 107000, "direction": "bullish" }],
+      "last": { "type": "BOS", "index": 12, "timestamp": 1700000000000, "level": 107000, "direction": "bullish" }
+    },
+    "choch": { "detected": false, "events": [], "last": null },
+    "consolidation": { "detected": false, "rangeHigh": null, "rangeLow": null, "rangePercent": null, "barsInRange": 0 },
+    "breakout": { "confirmed": false, "failed": false, "level": null, "direction": null },
+    "pullback": { "detected": false, "depth": null },
+    "swings": [],
+    "events": [],
+    "evidence": ["3 Higher Highs — bullish structure", "Break of Structure at 107000 (bullish)"]
   },
   "levels": {
     "support": [104800, 102400],
@@ -218,6 +231,47 @@ All inter-module data is passed as structured typed objects. The canonical struc
 
 ---
 
+## CORS and API Access
+
+Direct browser calls to the Binance REST API are blocked by CORS policy on
+`api.binance.com`. The canonical solution for this project is a **thin server-side
+proxy** that forwards requests from the browser to Binance and relays the response.
+
+### Required proxy behaviour
+
+| Concern | Rule |
+|---------|------|
+| Forwarding | Pass all query parameters to Binance unchanged |
+| Headers | Strip `Origin` / `Referer`; do NOT forward user cookies or auth headers |
+| Caching | Cache candle responses in memory for 30 s to avoid rate-limit hits |
+| Rate limits | Respect Binance weight limits (1200 weight/min on spot) |
+| Error relay | Forward Binance HTTP status codes to the client |
+
+The proxy is **out of scope for Modules 1–8** (pure computation). It will be
+introduced when the PWA shell (Module 9+) is built. During development, use
+`vite.config.ts` `server.proxy` to rewrite `/api/binance/**` to `api.binance.com`.
+
+### Development workaround
+
+Add the following to `vite.config.ts` during local development:
+
+```ts
+server: {
+  proxy: {
+    '/api/binance': {
+      target: 'https://api.binance.com',
+      changeOrigin: true,
+      rewrite: path => path.replace(/^\/api\/binance/, ''),
+    },
+  },
+},
+```
+
+This must **never** be shipped to production. The production app requires the
+server-side proxy described above.
+
+---
+
 ## Platform Requirements
 
 - Progressive Web App (PWA)
@@ -225,7 +279,7 @@ All inter-module data is passed as structured typed objects. The canonical struc
 - Installable on Android, iOS, Windows, macOS
 - Fully responsive (mobile, tablet, desktop)
 - Works offline for previously loaded data (cached)
-- No backend required for core analysis (client-side computation)
+- Requires a thin server-side proxy for Binance API access (see CORS section above)
 
 ---
 

@@ -142,12 +142,23 @@ describe('computeMarketStructure', () => {
     expect(result).toHaveProperty('evidence')
   })
 
-  it('confidence is always between 0 and 100', () => {
+  it('confidence is always between 0 and 10', () => {
     expect(computeMarketStructure([]).confidence).toBe(0)
     expect(computeMarketStructure(buildBullishTrend(5)).confidence).toBeGreaterThanOrEqual(0)
-    expect(computeMarketStructure(buildBullishTrend(5)).confidence).toBeLessThanOrEqual(100)
+    expect(computeMarketStructure(buildBullishTrend(5)).confidence).toBeLessThanOrEqual(10)
     expect(computeMarketStructure(buildBearishTrend(5)).confidence).toBeGreaterThanOrEqual(0)
-    expect(computeMarketStructure(buildBearishTrend(5)).confidence).toBeLessThanOrEqual(100)
+    expect(computeMarketStructure(buildBearishTrend(5)).confidence).toBeLessThanOrEqual(10)
+  })
+
+  it('two calls to empty result return independent nested objects', () => {
+    const r1 = computeMarketStructure([])
+    const r2 = computeMarketStructure([])
+    r1.bos.events.push({ type: 'BOS', index: 0, timestamp: 0, level: 100, direction: 'bullish' })
+    expect(r2.bos.events).toHaveLength(0)
+    r1.evidence.push('extra')
+    expect(r2.evidence).toHaveLength(1)
+    r1.swings.push({ index: 0, timestamp: 0, price: 100, type: 'high', label: 'HH' })
+    expect(r2.swings).toHaveLength(0)
   })
 
   it('evidence array is non-empty for valid candle data', () => {

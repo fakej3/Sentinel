@@ -18,7 +18,7 @@ export default function App() {
     setData(null)
     try {
       const result = await fetchMarketData(symbol, timeframe, {
-        candleLimit: 5,
+        candleLimit: 200,
         includeFunding: false,
         includeOpenInterest: false,
       })

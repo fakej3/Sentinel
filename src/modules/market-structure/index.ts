@@ -1,6 +1,23 @@
 import type { Candle } from '../binance'
 import type { MarketStructureConfig, MarketStructureResult } from './types'
 import { DEFAULT_CONFIG } from './config'
+
+export { DEFAULT_CONFIG }
+export type {
+  MarketStructureConfig,
+  MarketStructureResult,
+  SwingPoint,
+  SwingLabel,
+  SwingType,
+  TrendDirection,
+  TrendStrength,
+  StructureEvent,
+  StructureEventType,
+  StructureCounts,
+  ConsolidationResult,
+  BreakoutResult,
+  PullbackResult,
+} from './types'
 import { detectRawSwings, filterDominantSwings } from './swings'
 import { labelSwings } from './labels'
 import { countStructure, determineTrend } from './trend'
@@ -11,32 +28,35 @@ import { detectPullback } from './pullback'
 import { computeConfidence } from './confidence'
 import { buildEvidence } from './evidence'
 
-const EMPTY_RESULT: MarketStructureResult = {
-  trend: 'ranging',
-  strength: 'weak',
-  confidence: 0,
-  structure: {
-    higherHighs: 0,
-    higherLows: 0,
-    lowerHighs: 0,
-    lowerLows: 0,
-    equalHighs: 0,
-    equalLows: 0,
-  },
-  bos: { detected: false, events: [], last: null },
-  choch: { detected: false, events: [], last: null },
-  pullback: { detected: false, depth: null },
-  consolidation: {
-    detected: false,
-    rangeHigh: null,
-    rangeLow: null,
-    rangePercent: null,
-    barsInRange: 0,
-  },
-  breakout: { confirmed: false, failed: false, level: null, direction: null },
-  swings: [],
-  events: [],
-  evidence: ['Insufficient data for market structure analysis'],
+/** Returns a fresh empty result with independent nested objects — never share. */
+function makeEmptyResult(): MarketStructureResult {
+  return {
+    trend: 'ranging',
+    strength: 'weak',
+    confidence: 0,
+    structure: {
+      higherHighs: 0,
+      higherLows: 0,
+      lowerHighs: 0,
+      lowerLows: 0,
+      equalHighs: 0,
+      equalLows: 0,
+    },
+    bos: { detected: false, events: [], last: null },
+    choch: { detected: false, events: [], last: null },
+    pullback: { detected: false, depth: null },
+    consolidation: {
+      detected: false,
+      rangeHigh: null,
+      rangeLow: null,
+      rangePercent: null,
+      barsInRange: 0,
+    },
+    breakout: { confirmed: false, failed: false, level: null, direction: null },
+    swings: [],
+    events: [],
+    evidence: ['Insufficient data for market structure analysis'],
+  }
 }
 
 /**
@@ -53,7 +73,7 @@ const EMPTY_RESULT: MarketStructureResult = {
  *   7. detectConsolidation   — check for tight range in recent swings
  *   8. detectBreakout        — check if current price broke out of the range
  *   9. detectPullback        — check for pullback after last BOS
- *  10. computeConfidence     — 0–100 evidence alignment score
+ *  10. computeConfidence     — 0–10 evidence alignment score (ENGINE_RULES.md §11)
  *  11. buildEvidence         — human-readable explanation strings
  *
  * Given the same candle array and config, the function always returns the
@@ -70,7 +90,7 @@ export function computeMarketStructure(
 
   const minCandles = cfg.swingLookback * 2 + 1
   if (candles.length < minCandles) {
-    return { ...EMPTY_RESULT }
+    return makeEmptyResult()
   }
 
   // Pipeline

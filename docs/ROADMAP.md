@@ -67,16 +67,16 @@
   - [x] `consolidation.ts` — detectConsolidation: last N swings, rejects HH/LL, tight range threshold
   - [x] `breakout.ts` — detectBreakout: close outside consolidation range + volume filter; failed breakout detection
   - [x] `pullback.ts` — detectPullback: after BOS, price between BOS level and anchor swing; depth ratio
-  - [x] `confidence.ts` — computeConfidence: evidence-weighted 0-100 score; bullish/bearish/ranging paths
+  - [x] `confidence.ts` — computeConfidence: evidence-weighted 0-10 score; bullish/bearish/ranging paths
   - [x] `evidence.ts` — buildEvidence: human-readable string[] explaining every conclusion
-  - [x] `index.ts` — computeMarketStructure (public API); merges partial config; returns EMPTY_RESULT for insufficient data
-  - [x] 88 unit tests passing across 6 test files
+  - [x] `index.ts` — computeMarketStructure (public API); merges partial config; factory-function empty result; type + DEFAULT_CONFIG re-exports
+  - [x] 95 unit tests passing across 7 test files (88 original + 7 stabilization)
 
 ---
 
 ## Current Task
 
-Module 4 — Support & Resistance Engine (next)
+Foundation Stabilization complete. Module 4 — Support & Resistance Engine (next).
 
 ---
 
@@ -136,7 +136,8 @@ Module 4 — Support & Resistance Engine (next)
 
 ## Known Issues
 
-None yet.
+- StochRSI returns 0 when price range is flat (degenerate uptrend reads as "oversold"). Tracked as Medium — no fix in this phase.
+- CORS: direct browser calls to Binance API are blocked. Development proxy workaround documented in ARCHITECTURE.md; production proxy deferred to Module 9+ PWA phase.
 
 ---
 

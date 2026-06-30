@@ -29,7 +29,7 @@ Before the JSON payload is passed to the AI Writing Engine, validate that:
 | No null indicator values | Every indicator used in evidence must have a computed value |
 | Price is a positive number | current price > 0 |
 | Timestamp is recent | Within 5 minutes of current time (to prevent stale data) |
-| Confidence score is in range | 0.0 ≤ confidence ≤ 10.0 |
+| Confidence score is in range | 0.0 ≤ confidence ≤ 10.0 (per ENGINE_RULES.md §11) |
 | Evidence list is non-empty | At least 1 evidence item must be present |
 | No contradiction in trend | If trend = "bullish", bullish evidence must outweigh bearish |
 
@@ -88,15 +88,15 @@ If an indicator state claim fails validation → **reject the sentence. Queue fo
 
 | AI Statement | Validation Check |
 |---|---|
-| "Higher Highs" | marketStructure.higherHighs must be true |
-| "Higher Lows" | marketStructure.higherLows must be true |
-| "Lower Highs" | marketStructure.lowerHighs must be true |
-| "Lower Lows" | marketStructure.lowerLows must be true |
-| "Break of Structure" | marketStructure.bos must be true |
-| "Change of Character" | marketStructure.choch must be true |
-| "Market is consolidating" | marketStructure.consolidation must be true |
-| "Breakout" | marketStructure.breakout must be true |
-| "Pullback" | marketStructure.pullback must be true |
+| "Higher Highs" | marketStructure.structure.higherHighs must be > 0 |
+| "Higher Lows" | marketStructure.structure.higherLows must be > 0 |
+| "Lower Highs" | marketStructure.structure.lowerHighs must be > 0 |
+| "Lower Lows" | marketStructure.structure.lowerLows must be > 0 |
+| "Break of Structure" | marketStructure.bos.detected must be true |
+| "Change of Character" | marketStructure.choch.detected must be true |
+| "Market is consolidating" | marketStructure.consolidation.detected must be true |
+| "Breakout" | marketStructure.breakout.confirmed must be true |
+| "Pullback" | marketStructure.pullback.detected must be true |
 
 #### 2d. Trend Claims
 
@@ -104,7 +104,7 @@ If an indicator state claim fails validation → **reject the sentence. Queue fo
 |---|---|
 | "Bullish trend" | marketStructure.trend must equal "bullish" |
 | "Bearish trend" | marketStructure.trend must equal "bearish" |
-| "Neutral" / "Ranging" | marketStructure.trend must equal "neutral" or "ranging" |
+| "Ranging" / "Sideways" | marketStructure.trend must equal "ranging" |
 | "Strong uptrend" | trend = "bullish" AND confidence ≥ 7.0 |
 | "Weak bullish bias" | trend = "bullish" AND confidence < 5.0 |
 
@@ -210,5 +210,4 @@ This log must be stored alongside each completed analysis in the History Databas
 
 ---
 
-*Last updated: project initialization*
-*Next update: when Module 7 (Validation Engine) implementation begins*
+*Last updated: Foundation Stabilization (post-audit v0.1)*

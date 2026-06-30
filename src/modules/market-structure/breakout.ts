@@ -44,10 +44,14 @@ export function detectBreakout(
   const lastCandle = candles[candles.length - 1]
   const lastClose = lastCandle.close
 
-  // Compute 20-period volume MA at the last candle
-  const volWindow = Math.min(20, candles.length)
-  const volSlice = candles.slice(-volWindow)
-  const volMa = volSlice.reduce((sum, c) => sum + c.volume, 0) / volSlice.length
+  // Compute 20-period volume MA from the candles BEFORE the breakout candle.
+  // Excluding the breakout candle itself prevents self-referential inflation.
+  const priorCandles = candles.slice(0, -1)
+  const volWindow = Math.min(20, priorCandles.length)
+  const volSlice = priorCandles.slice(-volWindow)
+  const volMa = volSlice.length > 0
+    ? volSlice.reduce((sum, c) => sum + c.volume, 0) / volSlice.length
+    : 0
   const relVol = volMa > 0 ? lastCandle.volume / volMa : 0
 
   const breakoutDirection: 'bullish' | 'bearish' | null =
