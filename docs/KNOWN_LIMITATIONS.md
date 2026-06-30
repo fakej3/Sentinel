@@ -636,6 +636,133 @@ Add `climaxLookback` to `VolumeAnalysisConfig` if users report sensitivity issue
 
 ---
 
+## Analysis Engine (Module 6)
+
+---
+
+### LIM-023 — RSI Divergence Not Detectable (No RSI Series from Module 2)
+
+**Description:**
+Detecting RSI divergence requires comparing RSI values at two swing points of the
+same type. This requires a candle-indexed RSI series. Module 2 exposes only the
+current scalar `indicators.rsi` value.
+
+**Why it exists:**
+RSI series storage was not included in `IndicatorResult` during Module 2 design.
+The series is computed internally but discarded.
+
+**Current impact:**
+ENGINE_RULES.md §3 RSI divergence factors cannot be included in Module 6 evidence.
+ENGINE_RULES.md §11 lists these as scoring factors (+15 bullish, −20 bearish) —
+these weights are present in the factor table but will never be triggered until
+this limitation is resolved.
+
+**Risk level:** Medium
+
+**Planned resolution:**
+Add `rsiSeries: number[]` (or `rsiAtSwings: number[]`) to `IndicatorResult`.
+This is a non-breaking addition to Module 2.
+
+**Target:** v1.x.x
+
+---
+
+### LIM-024 — MACD Crossover on Current Candle Not Detectable
+
+**Description:**
+Detecting a current-candle MACD crossover requires comparing `histogram[n-1]` and
+`histogram[n]`. Module 2 exposes only the current histogram value.
+
+**Why it exists:**
+Previous-bar storage was not included in `IndicatorResult` during Module 2 design.
+
+**Current impact:**
+Module 6 uses `histogram > 0 / < 0` as a proxy for MACD bias direction. This is
+less precise than a crossover signal — a histogram that has been positive for 20
+bars is treated identically to one that just crossed above zero.
+
+**Risk level:** Low
+
+**Planned resolution:**
+Add `indicators.macd.crossover: 'bullish' | 'bearish' | 'none'` to `MACDResult`.
+One-line addition to `computeMacd`.
+
+**Target:** v1.x.x
+
+---
+
+### LIM-025 — ATR Percentile vs Historical Range Not Available
+
+**Description:**
+ENGINE_RULES.md §6 defines volatility classification by ATR percentile (vs 30-day
+average). Module 2 exposes `atrPercent` (ATR as % of current price) but no
+percentile ranking versus its own history.
+
+**Why it exists:**
+Percentile computation requires storing a rolling ATR history, which was not
+included in Module 2 scope.
+
+**Current impact:**
+Module 6 cannot classify whether current ATR is elevated, normal, or compressed
+relative to recent history. Bollinger bandwidth serves as a partial proxy.
+
+**Risk level:** Low
+
+**Planned resolution:**
+Add `atrPercentile: number | null` (0–100, computed over a configurable window)
+to `IndicatorResult`.
+
+**Target:** TBD
+
+---
+
+### LIM-026 — StochRSI K/D Crossover Not Detectable
+
+**Description:**
+StochRSI crossover detection requires comparing K and D values across two
+consecutive candles. Module 2 exposes only current-bar K and D.
+
+**Why it exists:**
+Previous-bar storage not included in `StochRSIResult` during Module 2 design.
+
+**Current impact:**
+Module 6 detects overbought/oversold zones but cannot detect the K-crosses-D
+signal. ENGINE_RULES.md §10 crossover rules (Bullish/Bearish Crossover signals)
+are not emitted in evidence.
+
+**Risk level:** Low
+
+**Planned resolution:**
+Add `stochRsi.crossover: 'bullish' | 'bearish' | 'none'` to `StochRSIResult`.
+
+**Target:** TBD
+
+---
+
+### LIM-027 — Volume Trend Acceleration Not Available
+
+**Description:**
+Module 6 cannot distinguish an accelerating volume trend from a steady one.
+Module 5 exposes `volumeTrend.direction` (OLS slope direction) and `confidence`
+(R²), but not a second derivative or two-window comparison.
+
+**Why it exists:**
+Volume trend acceleration was out of Module 5's initial scope.
+
+**Current impact:**
+`increasing` volume trend could mean slowly increasing or rapidly spiking.
+Both produce the same evidence item.
+
+**Risk level:** Low
+
+**Planned resolution:**
+Add `volumeTrend.acceleration: 'accelerating' | 'decelerating' | 'steady'` to
+`VolumeAnalysisResult` using a two-window OLS comparison.
+
+**Target:** TBD
+
+---
+
 ### LIM-022 — Accumulation/Distribution Score Uses Fixed Signal Weights
 
 **Description:**
@@ -690,4 +817,4 @@ audit trail purposes.
 
 ---
 
-*Last updated: Module 5 — Volume Analysis Engine (v0.8.0)*
+*Last updated: Module 6 — Analysis Engine (v0.9.0)*

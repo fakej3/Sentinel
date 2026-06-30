@@ -425,7 +425,7 @@ Real-market reference datasets are planned but not yet created. When introduced:
 The full test suite must pass on every commit to a feature branch and on every
 pull request to `main`.
 
-Current suite: **390 tests across 40 test files** (as of v0.8.0).
+Current suite: **505 tests across 48 test files** (as of v0.9.0).
 
 CI command: `npm test` (`vitest run`).
 
@@ -434,4 +434,4 @@ converted to pending issues in `KNOWN_LIMITATIONS.md`.
 
 ---
 
-*Last updated: Module 5 — Volume Analysis Engine (v0.8.0)*
+*Last updated: Module 6 — Analysis Engine (v0.9.0)*

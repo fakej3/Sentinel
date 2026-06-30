@@ -202,16 +202,17 @@ If ADX < 20, trend-based conclusions should not be made with high confidence.
 
 ### Classification
 
-Volume is always compared against its 20-period moving average.
+Volume is always compared against its 20-period moving average (prior bars only).
 
-| Relative Volume | Classification |
-|-----------------|----------------|
-| < 0.7× | Very Low Volume |
-| 0.7–0.9× | Below Average |
-| 0.9–1.1× | Average |
-| 1.1–1.5× | Above Average |
-| 1.5–2.0× | Strong Volume |
-| > 2.0× | Volume Spike |
+| Relative Volume | Classification | Code enum |
+|-----------------|----------------|-----------|
+| < 0.5× | Very Low | `very_low` |
+| 0.5–0.7× | Low | `low` |
+| 0.7–1.5× | Normal | `normal` |
+| 1.5–2.5× | High | `high` |
+| ≥ 2.5× | Very High | `very_high` |
+
+These thresholds match Module 5 `DEFAULT_CONFIG` (`relativeVolumeVeryLow: 0.5`, `relativeVolumeLow: 0.7`, `relativeVolumeHigh: 1.5`, `relativeVolumeVeryHigh: 2.5`).
 
 ### Volume Trend
 
@@ -682,4 +683,182 @@ Uses `indicators.vwap` (single rolling VWAP from Module 2).
 | `exhaustionBodyRatio` | 0.3 | ≤30% body/range = small body |
 | `vwapProximityPercent` | 0.5 | ±0.5% of VWAP = respecting |
 
-*Last updated: Module 5 — Volume Analysis Engine (v0.8.0)*
+---
+
+## 14. Analysis Engine — Module 6 Rules
+
+Module 6 (`computeAnalysis`) is the **synthesis layer**. It reads the outputs of
+Modules 1–5 and produces `MarketAnalysisResult` — the authoritative cross-module
+analysis payload consumed by Modules 7–9.
+
+Module 6 performs no indicator computation, no candle processing, and no zone
+detection. It only interprets, synthesises, and collects evidence.
+
+---
+
+### 14.1 Full Trend Synthesis
+
+The full trend (`FullTrendResult.trend`) is the **only authoritative trend label**
+in the system. `MarketStructureResult.trend` (Module 3) is structural bias only.
+
+**5 Bullish Conditions** (ENGINE_RULES.md §1):
+
+| # | Condition | Field checked |
+|---|-----------|--------------|
+| 1 | Price above all EMAs | `indicators.ema20/50/100/200` all non-null and price > each |
+| 2 | EMAs in bullish order | `ema20 > ema50 > ema100 > ema200` |
+| 3 | Consistent HH+HL | `structure.higherHighs ≥ 2` AND `structure.higherLows ≥ 2` |
+| 4 | RSI supports bullish | `rsi ≥ 45` (configurable: `rsiBullishMin`) |
+| 5 | MACD bullish | `macd.macdLine > macd.signalLine` |
+
+**5/5 met → `strong bullish`. 3–4/5 AND bullish > bearish → `moderate bullish`.**
+
+**5 Bearish Conditions** (ENGINE_RULES.md §1):
+
+| # | Condition | Field checked |
+|---|-----------|--------------|
+| 1 | Price below all EMAs | all EMAs non-null and price < each |
+| 2 | EMAs in bearish order | `ema20 < ema50 < ema100 < ema200` |
+| 3 | Consistent LH+LL | `structure.lowerHighs ≥ 2` AND `structure.lowerLows ≥ 2` |
+| 4 | RSI supports bearish | `rsi ≤ 55` (configurable: `rsiBearishMax`) |
+| 5 | MACD bearish | `macd.macdLine < macd.signalLine` |
+
+**5/5 met → `strong bearish`. 3–4/5 AND bearish > bullish → `moderate bearish`.**
+
+**4 Neutral Conditions** (ENGINE_RULES.md §1):
+
+| # | Condition |
+|---|-----------|
+| 1 | ADX < 20 (configurable: `adxWeakThreshold`) |
+| 2 | RSI in [40, 60] (configurable: `rsiNeutralLow`/`rsiNeutralHigh`) |
+| 3 | No consistent HH-HL or LH-LL structure |
+| 4 | Price between EMAs without clear stack order |
+
+**3+/4 neutral met → `ranging`.**
+
+Remaining cases: `weak bullish` (1–2 bullish conditions, bullish > bearish),
+`weak bearish` (1–2 bearish conditions, bearish > bullish), `ranging` (default).
+
+---
+
+### 14.2 EMA Context
+
+- `emaAlignment = 'bullish_stack'`: EMA20 > EMA50 > EMA100 > EMA200 (all 4 available)
+- `emaAlignment = 'bearish_stack'`: EMA20 < EMA50 < EMA100 < EMA200 (all 4 available)
+- `emaAlignment = 'mixed'`: some EMAs available but not in either stack
+- `emaAlignment = 'unavailable'`: no EMAs computed
+
+**EMA Confluence Zone** (ENGINE_RULES.md §5):
+Two or more EMAs within `emaConfluencePercent` (default 0.5%) of each other form
+a confluence zone. Treated as a single stronger dynamic level.
+
+---
+
+### 14.3 S/R Context
+
+- `approachingSupport`: nearest support center is within `supportProximityPercent` (default 2%) of current price
+- `approachingResistance`: nearest resistance center is within `resistanceProximityPercent` (default 2%) of current price
+- `strongestActiveSupport`: active support zone with the highest `strength` score
+- `strongestActiveResistance`: active resistance zone with the highest `strength` score
+
+---
+
+### 14.4 Evidence Items
+
+Each `EvidenceItem` has:
+- `factor`: canonical name from the table below (Module 8 uses this to look up point weights)
+- `impact`: `'high'` | `'medium'` | `'low'`
+- `description`: human-readable explanation of why this item is present
+- `source`: which upstream module produced the underlying data
+
+Items are sorted by impact (high → medium → low) in `MarketAnalysisResult.evidence`.
+
+**Canonical Factor Names (ENGINE_RULES.md §11 scoring weights apply to these):**
+
+| Factor | Impact | Source |
+|--------|--------|--------|
+| Price above EMA200 | high | indicators |
+| Price below EMA200 | high | indicators |
+| Price above EMA100 | medium | indicators |
+| Price below EMA100 | medium | indicators |
+| Price above EMA50 | medium | indicators |
+| Price below EMA50 | medium | indicators |
+| Price above EMA20 | low | indicators |
+| Price below EMA20 | low | indicators |
+| EMA bullish alignment | high | indicators |
+| EMA bearish alignment | high | indicators |
+| EMA confluence zone | medium | indicators |
+| Higher High confirmed | high | market_structure |
+| Higher Low confirmed | high | market_structure |
+| Lower High confirmed | high | market_structure |
+| Lower Low confirmed | high | market_structure |
+| Bullish BOS | high | market_structure |
+| Bearish BOS | high | market_structure |
+| Bullish CHoCH | high | market_structure |
+| Bearish CHoCH | high | market_structure |
+| Market in consolidation | medium | market_structure |
+| Breakout confirmed | high | market_structure |
+| Failed breakout | medium | market_structure |
+| Active pullback | medium | market_structure |
+| RSI supports bullish | medium | indicators |
+| RSI neutral | low | indicators |
+| Overbought RSI (>70) | medium | indicators |
+| Oversold RSI (<30) | medium | indicators |
+| RSI in 30–45 range | medium | indicators |
+| RSI in 55–70 range | medium | indicators |
+| MACD bullish bias | medium | indicators |
+| MACD bearish bias | medium | indicators |
+| ADX above 25 | medium | indicators |
+| ADX trend weak | low | indicators |
+| Bollinger squeeze | medium | indicators |
+| Bollinger expansion | medium | indicators |
+| Price at Bollinger upper | medium | indicators |
+| Price at Bollinger lower | medium | indicators |
+| StochRSI overbought | low | indicators |
+| StochRSI oversold | low | indicators |
+| Price at active support | high | support_resistance |
+| Price at active resistance | high | support_resistance |
+| Strong support below | medium | support_resistance |
+| Strong resistance above | medium | support_resistance |
+| Active support zone | low | support_resistance |
+| Strong resistance overhead | low | support_resistance |
+| Strong volume confirmation | high | volume |
+| Below average volume on move | medium | volume |
+| Volume climax buying | high | volume |
+| Volume climax selling | high | volume |
+| Volume exhaustion | medium | volume |
+| Accumulation detected | high | volume |
+| Distribution detected | high | volume |
+| Bullish OBV trend | medium | volume |
+| OBV diverging from price | medium | volume |
+| Price above VWAP | low | volume |
+| Price below VWAP | low | volume |
+| High relative volume | medium | volume |
+| Low relative volume | medium | volume |
+
+**Factors deferred to future modules** (not yet detectable — see LIM-023 through LIM-026):
+`RSI bullish divergence`, `RSI bearish divergence`, `MACD bullish crossover (current)`,
+`MACD bearish crossover (current)`, `ATR elevated vs historical`, `StochRSI bullish crossover`,
+`StochRSI bearish crossover`.
+
+---
+
+### 14.5 Default Configuration
+
+| Parameter | Default | ENGINE_RULES ref |
+|-----------|---------|-----------------|
+| `emaConfluencePercent` | 0.5 | §5 |
+| `stochRsiOverboughtThreshold` | 80 | §10 |
+| `stochRsiOversoldThreshold` | 20 | §10 |
+| `adxWeakThreshold` | 20 | §7 |
+| `adxStrongThreshold` | 25 | §7 |
+| `rsiNeutralLow` | 40 | §1 |
+| `rsiNeutralHigh` | 60 | §1 |
+| `rsiBullishMin` | 45 | §1 |
+| `rsiBearishMax` | 55 | §1 |
+| `supportProximityPercent` | 2.0 | §12 |
+| `resistanceProximityPercent` | 2.0 | §12 |
+| `minBullishSwingsForTrend` | 2 | §1 |
+| `minBearishSwingsForTrend` | 2 | §1 |
+
+*Last updated: Module 6 — Analysis Engine (v0.9.0)*

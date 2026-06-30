@@ -34,8 +34,8 @@ MODULE 5 — Volume Analysis Engine
   Relative volume, trend, spikes, buy/sell pressure
         │
         ▼
-MODULE 6 — Evidence Engine
-  Collects all conclusions with supporting evidence
+MODULE 6 — Analysis Engine
+  Full trend synthesis, EMA/indicator/S&R/volume context, evidence collection
         │
         ▼
 MODULE 7 — Validation Engine
@@ -98,10 +98,18 @@ Binance Square Ready Post
 - Rules documented in `ENGINE_RULES.md §13`.
 - No AI, no ML, no probability guessing. Fully deterministic and configurable.
 
-### MODULE 6 — Evidence Engine
-- Aggregates outputs from Modules 2–5.
-- Packages every conclusion with an explicit evidence list.
-- No conclusion is forwarded without supporting evidence.
+### MODULE 6 — Analysis Engine
+- **Synthesis layer**: first module to see all 5 upstream outputs simultaneously.
+- Determines the **full trend** (`FullTrendResult`) by evaluating 5 bullish + 5 bearish + 4 neutral conditions per ENGINE_RULES.md §1. This is authoritative; `MarketStructureResult.trend` (Module 3) is structural bias only.
+- Computes `EMAContextResult`: stack alignment (bullish/bearish/mixed), confluence zones.
+- Computes `IndicatorSummaryResult`: RSI tier, MACD bias, ADX strength, Bollinger state, StochRSI zone.
+- Derives `SRContextResult`: distance to nearest zones, approaching flags, strongest active zones.
+- Projects `VolumeContextResult` from Module 5 output.
+- Collects `EvidenceItem[]`: ~57 canonical evidence items sorted by impact. Factor names match ENGINE_RULES.md §14.4 — Module 8 uses them for point-weight lookup.
+- Outputs `MarketAnalysisResult` containing all derived fields plus pass-through raw results (Modules 2–5) for Module 7 validation.
+- Public API: `computeAnalysis(marketData, indicators, marketStructure, supportResistance, volumeAnalysis, config?)`
+- Rules documented in `ENGINE_RULES.md §14`. ADRs: 016–019.
+- 115 tests passing across 8 test files.
 
 ### MODULE 7 — Validation Engine
 - Acts as a gatekeeper before AI writing.

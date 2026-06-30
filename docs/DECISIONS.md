@@ -770,4 +770,142 @@ canonical implementation belongs there and must be shared.
 
 ---
 
-*Last updated: Module 4 Stabilization (post-audit v0.2)*
+---
+
+## ADR-016 — FullTrendResult Uses a 7-Value Union String
+
+**Date:** 2026-06-30
+**Status:** Accepted
+
+### Decision
+
+`FullTrendLabel` is defined as a single 7-value string union:
+`'strong bullish' | 'moderate bullish' | 'weak bullish' | 'ranging' | 'weak bearish' | 'moderate bearish' | 'strong bearish'`
+
+rather than separate `direction` and `strength` fields.
+
+### Reason
+
+A single-field representation eliminates impossible combinations (e.g., `direction: 'bullish', strength: 'none'`). Consumers switch on the label in a single match expression without needing to join two fields. The label is self-documenting and directly maps to human-readable descriptions.
+
+### Alternatives Considered
+
+- **`{ direction: 'bullish' | 'bearish' | 'neutral', strength: 'strong' | 'moderate' | 'weak' | 'none' }`:** Cleaner type decomposition but requires every consumer to join both fields before acting. Rejected.
+
+### Tradeoffs
+
+- Gain: single field; no impossible combinations; self-documenting.
+- Loss: adding a new state (e.g., `'exhausted bullish'`) requires extending the union and updating all switch statements.
+
+### Consequences
+
+- Module 8 switches on `fullTrend.trend` directly.
+- Module 9 maps the label to a prose phrase directly.
+- `TrendConditions` provides the raw booleans for consumers that need finer detail.
+
+**Review date:** When Module 8 is complete.
+
+---
+
+## ADR-017 — EvidenceItem Contains No Points Field
+
+**Date:** 2026-06-30
+**Status:** Accepted
+
+### Decision
+
+`EvidenceItem` has four fields: `factor`, `impact`, `description`, `source`. It does not contain a `points` field. Module 8 (Confidence Engine) maintains its own `factor → number` lookup table.
+
+### Reason
+
+Points are Module 8's scoring concern. Embedding them in Module 6's output couples Module 6's design to Module 8's weighting logic. Once Module 12 (History Database) stores analysis results, retroactive weight adjustments would be impossible if weights are baked into stored `EvidenceItem` records.
+
+### Alternatives Considered
+
+- **`EvidenceItem.points: number`:** Makes Module 8 a simple sum. Rejected because it couples two layers and prevents future weight reconfiguration.
+
+### Tradeoffs
+
+- Gain: Module 6 and Module 8 are independently evolvable.
+- Loss: Module 8 must maintain a complete `factor → number` map. If a new factor is added to Module 6 without updating Module 8's table, the new factor is silently ignored in scoring.
+
+### Consequences
+
+- Module 8's factor table must be kept in sync with ENGINE_RULES.md §14.4's canonical factor list.
+- Code reviews for Module 6 evidence additions must explicitly check for a corresponding Module 8 table update.
+
+**Review date:** When Module 8 is implemented.
+
+---
+
+## ADR-018 — computeAnalysis Receives MarketData, Not Candle[]
+
+**Date:** 2026-06-30
+**Status:** Accepted
+
+### Decision
+
+`computeAnalysis` accepts `MarketData` as its first parameter (not `Candle[]`).
+Module 6's internal logic reads only `marketData.ticker` (for price/24h stats) and
+`marketData.fetchedAt` (for `analysedAt` timestamp). It does not process the raw
+`marketData.candles` array.
+
+### Reason
+
+Module 6 is a synthesis layer. All candle-derived signals belong in Modules 1–5. Passing `MarketData` (rather than `Candle[]`) correctly signals that Module 6's interest is in metadata, not OHLC data. If Module 6 ever needs a new candle-derived signal, the fix is to add it to the appropriate upstream module.
+
+### Alternatives Considered
+
+- **`computeAnalysis(candles, indicators, ...)`:** Would allow direct candle lookups. Rejected because it would erode Module 6's synthesis-only responsibility.
+
+### Tradeoffs
+
+- Gain: clean separation between data access and synthesis.
+- Loss: any new derived signal from raw candles requires an upstream module change.
+
+### Consequences
+
+- `MarketData.candles` is passed through to `MarketAnalysisResult` for Module 7 validation use only.
+- Module 6 tests use `marketData()` factory (not a raw candle array) as the first input.
+
+**Review date:** When Module 7 is designed.
+
+---
+
+## ADR-019 — Pass-Through Raw Results in MarketAnalysisResult
+
+**Date:** 2026-06-30
+**Status:** Accepted
+
+### Decision
+
+`MarketAnalysisResult` includes pass-through fields `indicators`, `marketStructure`,
+`supportResistance`, and `volumeAnalysis` — the full raw outputs of Modules 2–5.
+
+### Reason
+
+Module 7 (Validation Engine) must cross-check Module 6's synthesized conclusions against raw upstream data. Without pass-through, Module 7's function signature must receive 5 upstream results separately, duplicating the already-complex call site. Embedding them collapses the downstream pipeline to a single object.
+
+Additionally, Module 9 (AI Writing Engine) may need specific values (e.g., exact EMA values for prose generation) that are not in Module 6's derived fields. Pass-through avoids designing Module 6 as a complete projection of all possible downstream needs.
+
+### Alternatives Considered
+
+- **Minimal result (no pass-through):** Smaller object, cleaner interface. Rejected because Module 7 cannot validate without the raw data, and the call-site complexity is worse.
+- **Module 7 receives all 5 upstream results separately:** Works but requires callers to maintain two parallel sets of references.
+
+### Tradeoffs
+
+- Gain: `MarketAnalysisResult` is a self-contained analysis payload; downstream modules need only one argument.
+- Loss: `MarketAnalysisResult` is large. Once Module 12 (History Database) stores analysis results, the pass-through fields add significant storage overhead. Module 12 may choose to store synthesized fields only.
+
+### Consequences
+
+- Pass-through fields use the exact same object references (not deep copies).
+- Module 7 reads `result.indicators.rsi` etc. directly rather than receiving them as separate parameters.
+- Module 12 design must consider whether to store all fields or only the synthesized subset.
+
+**Review date:** When Module 7 is designed; revisit when Module 12 is designed.
+
+---
+
+*Last updated: Module 6 — Analysis Engine (v0.9.0)*

@@ -2,7 +2,7 @@
 
 ## Overall Progress
 
-`38%` — Modules 1–5 complete + Engineering Standards established. Foundation stable.
+`46%` — Modules 1–6 complete + Engineering Standards established. Foundation stable.
 
 ---
 
@@ -15,7 +15,7 @@
 | 3 | Market Structure Engine | **Complete** | Swing detection, HH/HL/LH/LL labeling, BOS, CHOCH, consolidation, breakout, pullback — 88 tests passing |
 | 4 | Support & Resistance Engine | **Complete** | Price zones from swing points, ATR-based width, greedy merge, interaction detection, zone state machine, strength scoring — 93 tests passing |
 | 5 | Volume Analysis Engine | **Complete** | Relative volume, trend (OLS), buy/sell pressure, climax, exhaustion, acc/dist, OBV, VWAP — 72 tests passing |
-| 6 | Evidence Engine | Not Started | Every conclusion must carry supporting evidence |
+| 6 | Analysis Engine | **Complete** | Full trend synthesis (5-condition), EMA context, indicator interpretation, S/R context, volume context, evidence collection — 115 tests passing |
 | 7 | Validation Engine | Not Started | Rejects hallucinations, fake numbers, unsupported claims |
 | 8 | Confidence Engine | Not Started | Evidence-weighted scoring system (0–10) |
 | 9 | AI Writing Engine | Not Started | Writes from validated JSON only; no data invention |
@@ -101,11 +101,28 @@
 - [x] `index.ts` — computeVolumeAnalysis (public API); merges partial config; all type re-exports
 - [x] 72 unit tests passing across 10 test files
 
+### Module 6 — Analysis Engine ✅
+
+- [x] `types.ts` — FullTrendLabel, TrendConditions, FullTrendResult; EMALabel, EMAAlignmentState, EMAConfluenceZone, EMAContextResult; RSIInterpretation, MACDInterpretation, ADXInterpretation, BollingerInterpretation, StochRSIInterpretation, IndicatorSummaryResult; SRContextResult; ClimaxSignalType, VolumeContextResult; EvidenceImpact, ModuleSource, EvidenceItem; PriceSummary; AnalysisConfig; MarketAnalysisResult
+- [x] `config.ts` — DEFAULT_ANALYSIS_CONFIG (13 parameters, all documented in ENGINE_RULES.md §14.5)
+- [x] `compute/price.ts` — extractPriceSummary; reads MarketData.ticker; projects atrPercent from indicators
+- [x] `compute/full-trend.ts` — synthesizeFullTrend; 5 bullish / 5 bearish / 4 neutral condition evaluation; 7-value FullTrendLabel assignment per ENGINE_RULES.md §1; exposes TrendConditions for Module 7
+- [x] `compute/ema-context.ts` — computeEMAContext; bullish/bearish/mixed/unavailable stack detection; confluence zone detection (sorted grouping within emaConfluencePercent)
+- [x] `compute/indicators.ts` — interpretIndicators; RSI 5-tier classification; MACD bias; ADX 5-tier strength + dominant direction; Bollinger bandwidth state + price vs bands; StochRSI overbought/oversold zone
+- [x] `compute/sr-context.ts` — deriveSRContext; distance computation (% from price); approaching flags; strongest active zone by strength score
+- [x] `compute/volume-context.ts` — buildVolumeContext; projects all relevant Module 5 fields; resolves climaxSignal enum
+- [x] `compute/evidence.ts` — collectEvidence; ~57 canonical evidence items; sorted high → medium → low; all factor names match ENGINE_RULES.md §14.4
+- [x] `index.ts` — computeAnalysis (public API); sequential 8-step pipeline; all types re-exported; DEFAULT_ANALYSIS_CONFIG re-exported
+- [x] 115 unit tests passing across 8 test files (price×5, full-trend×14, ema-context×12, indicators×27, sr-context×11, volume-context×13, evidence×15, index×18)
+- [x] ADR-016 through ADR-019 added to DECISIONS.md
+- [x] LIM-023 through LIM-027 added to KNOWN_LIMITATIONS.md
+- [x] ENGINE_RULES.md §14 (Analysis Engine) added; §8 volume thresholds corrected
+
 ---
 
 ## Current Task
 
-Module 6 — Evidence Engine (not yet started).
+Module 7 — Validation Engine (not yet started).
 
 ---
 

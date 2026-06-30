@@ -11,6 +11,60 @@ Work in progress. No released version yet.
 
 ---
 
+## [0.9.0] — 2026-06-30
+
+### MODULE 6 — Analysis Engine
+
+#### Added
+
+- **`src/modules/analysis/types.ts`** — `PriceSummary`; `FullTrendLabel` (7-value union), `TrendConditions` (9 bullish + 9 bearish + 4 neutral booleans), `FullTrendResult`; `EMALabel`, `EMAAlignmentState`, `EMAConfluenceZone`, `EMAContextResult`; `RSIClassification`, `RSIInterpretation`, `MACDInterpretation`, `ADXTrendStrength`, `ADXInterpretation`, `BollingerBandwidthState`, `PriceVsBands`, `BollingerInterpretation`, `StochRSIInterpretation`, `IndicatorSummaryResult`; `SRContextResult`; `ClimaxSignalType`, `VolumeContextResult`; `EvidenceImpact`, `ModuleSource`, `EvidenceItem`; `AnalysisConfig`; `MarketAnalysisResult`.
+
+- **`src/modules/analysis/config.ts`** — `DEFAULT_ANALYSIS_CONFIG` (13 parameters, all documented in ENGINE_RULES.md §14.5).
+
+- **`src/modules/analysis/compute/price.ts`** — `extractPriceSummary`: reads `MarketData.ticker` for price/24h stats; projects `atrPercent` from `IndicatorResult`.
+
+- **`src/modules/analysis/compute/full-trend.ts`** — `synthesizeFullTrend`: evaluates all 5 bullish, 5 bearish, and 4 neutral conditions per ENGINE_RULES.md §1; assigns 7-value `FullTrendLabel`; exposes raw `TrendConditions` for Module 7 validation.
+
+- **`src/modules/analysis/compute/ema-context.ts`** — `computeEMAContext`: detects bullish/bearish/mixed/unavailable EMA stack alignment; identifies EMA confluence zones using sorted-group algorithm within `emaConfluencePercent` tolerance.
+
+- **`src/modules/analysis/compute/indicators.ts`** — `interpretIndicators`: RSI 5-tier classification (oversold/weak_bearish/neutral/healthy_bullish/overbought); MACD bias from macdLine vs signalLine; ADX 5-tier strength + dominant direction from DI+/DI−; Bollinger bandwidth state + price vs bands; StochRSI overbought/oversold zone.
+
+- **`src/modules/analysis/compute/sr-context.ts`** — `deriveSRContext`: distance from price to nearest support/resistance (as % of price); approaching flags (within configurable proximity %); strongest active zone by strength score.
+
+- **`src/modules/analysis/compute/volume-context.ts`** — `buildVolumeContext`: projects all relevant Module 5 fields into `VolumeContextResult`; resolves `ClimaxSignalType` enum from buyingClimax/sellingClimax/exhaustion flags.
+
+- **`src/modules/analysis/compute/evidence.ts`** — `collectEvidence`: ~57 canonical evidence items; factor names match ENGINE_RULES.md §14.4 exactly; items sorted high → medium → low impact.
+
+- **`src/modules/analysis/index.ts`** — `computeAnalysis(marketData, indicators, marketStructure, supportResistance, volumeAnalysis, config?)` public API. Sequential 8-step pipeline. Re-exports all public types and `DEFAULT_ANALYSIS_CONFIG`.
+
+- **`src/modules/analysis/__tests__/helpers.ts`** — `candle()`, `marketData()`, `indicators()`, `macd()`, `adx()`, `bollinger()`, `stochRsi()`, `bullishIndicators()`, `bearishIndicators()`, `emptyStructure()`, `bullishStructure()`, `bearishStructure()`, `priceZone()`, `emptySupportResistance()`, `emptyVolumeAnalysis()`.
+
+- **115 unit tests** across 8 test files: price × 5, full-trend × 14, ema-context × 12, indicators × 27, sr-context × 11, volume-context × 13, evidence × 15, index × 18.
+
+#### Changed
+
+- **`docs/ENGINE_RULES.md`** — §8 volume classification thresholds corrected (1.5/2.5 not 2.0/3.0, to match Module 5 code). Added §14 Analysis Engine Rules: full trend synthesis (§14.1), EMA context (§14.2), S/R context (§14.3), evidence items canonical table (§14.4), default configuration (§14.5). Heading renamed from "Evidence Engine" to "Analysis Engine".
+
+- **`docs/DECISIONS.md`** — Added ADR-016 (FullTrendLabel 7-value union), ADR-017 (EvidenceItem has no points field), ADR-018 (computeAnalysis receives MarketData not Candle[]), ADR-019 (pass-through raw results in MarketAnalysisResult).
+
+- **`docs/KNOWN_LIMITATIONS.md`** — Added Module 6 section with LIM-023 (RSI divergence not detectable), LIM-024 (MACD crossover not detectable), LIM-025 (ATR percentile unavailable), LIM-026 (StochRSI crossover not detectable), LIM-027 (volume trend acceleration unavailable).
+
+- **`docs/ROADMAP.md`** — Progress 38% → 46%. Module 6 status: Not Started → Complete. Added Module 6 completed file list. Updated current task to Module 7.
+
+- **`docs/TESTING_STRATEGY.md`** — Updated test count: 390/40 → 505/48.
+
+### Modules Affected
+
+- MODULE 6 — Analysis Engine: **complete**. 115 tests passing.
+
+### Test count: 505 tests passing (390 prior + 115 new)
+
+### Known Side Effects
+
+- None. Module 6 reads from but does not modify Modules 1–5.
+
+---
+
 ## [0.8.0] — 2026-06-30
 
 ### MODULE 5 — Volume Analysis Engine
