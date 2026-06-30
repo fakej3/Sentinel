@@ -552,4 +552,122 @@ which found mismatches between `ARCHITECTURE.md`'s JSON schema and the actual
 
 ---
 
-*Last updated: Milestone 0.4 — Engineering Standards*
+## ADR-013 — Support & Resistance as Price Zones, Not Price Lines
+
+**Date:** 2026-06-30
+**Status:** Accepted
+
+### Decision
+
+All support and resistance levels in Sentinel are represented as **Price Zones** —
+bounded rectangular regions of the price axis defined by a center price, an ATR-derived
+width, and a lifecycle state. A single representative price (`zone.center`) may be used
+by consumers that need a scalar, but the zone boundary is the primary object.
+
+Zone width is always computed as `2 × ATR × atrMultiplier` (configurable). It is never
+a fixed percentage or a hardcoded value.
+
+Nearby zones of the same type are merged into a single zone to prevent redundant
+overlapping signals representing the same market area.
+
+### Reason
+
+Markets do not reverse at exact prices to the tick. A support "level" at 104,800 means
+that somewhere in the range 104,500–105,100 buyers are likely to be active. Representing
+this as a single line produces brittle comparisons: price at 104,810 is "at support"
+but price at 104,790 is "below support" — a distinction that does not reflect how
+markets actually work.
+
+The zone model:
+
+1. **More accurately represents market behavior.** S/R is an area, not a line.
+2. **Adapts to volatility.** ATR-based width means zones are wider during volatile periods
+   (when exact prices matter less) and tighter during calm markets (when precision
+   increases). A fixed-percentage width would be too wide during consolidation and too
+   tight during a volatile breakout.
+3. **Eliminates redundant micro-zones.** Multiple swing points within a fraction of ATR
+   of each other represent the same demand/supply area. Merging them produces a single,
+   well-characterized zone rather than a cluster of barely-distinct lines.
+4. **Supports future complexity without redesign.** Order Blocks, Fair Value Gaps,
+   Fibonacci levels, and Volume Profile nodes all represent price areas. They can all
+   be modeled as `PriceZone` instances with a different `origin` value, without changing
+   the consuming code in Modules 6–9.
+5. **Carries its own evidence.** Each zone has a `touchCount`, `successfulReactions`,
+   `failedReactions`, `state`, and `evidence[]`. The AI writer can reference these
+   fields directly: "This resistance zone at 109,200 has been tested 3 times, with 2
+   successful rejections." No extra computation required.
+
+### Alternatives Considered
+
+**Static price lines (±0.3% tolerance):**
+The original `ENGINE_RULES.md §12` defined S/R as price levels with a fixed ±0.3%
+tolerance. This was simple to implement but:
+- 0.3% is too tight for volatile assets (BTC ATR on 4h is often 1–2%).
+- 0.3% is too loose for stable assets trading in tight ranges.
+- No notion of lifecycle (active, broken, flipped) — a broken level looks identical
+  to an active one.
+- No merge logic — every swing creates its own independent level.
+
+This approach was **rejected** in favour of ATR-based zones.
+
+**Classical Pivot Points (R1, R2, S1, S2):**
+The original §12 also included classical pivot levels. These are purely mathematical
+(derived from the previous session's High, Low, Close) and have no relationship to
+where price actually reacted in the current structure. They were well-known in
+traditional equity markets but are less reliable in 24/7 crypto markets with no
+session reset.
+
+Classical pivots may be **added in the future** as a separate zone origin type
+(`'classical-pivot'`), but they are not the primary S/R mechanism.
+
+**EMA-based dynamic S/R:**
+Using EMA20/EMA50/EMA200 as dynamic S/R proxies is already covered in Module 2's
+output. These are not zones — they are moving lines. The S/R Engine does not need
+to duplicate this concept; EMA levels are referenced directly from Module 2's
+`IndicatorResult`.
+
+### Tradeoffs
+
+| Gain | Cost |
+|------|------|
+| More accurate representation of market behavior | More complex than a simple array of prices |
+| Adapts to volatility via ATR | Requires ATR to be computed (Module 2 dependency in practice) |
+| Zone merging eliminates noise | Merge logic adds one extra algorithmic pass |
+| Lifecycle tracking (state machine) | State transitions must be carefully maintained |
+| Ready for future S/R concepts without redesign | `PriceZone` type will grow as features are added |
+
+### Future Benefits
+
+Every planned future S/R concept maps naturally to `PriceZone`:
+
+| Concept | `origin` value | Additional fields |
+|---------|----------------|-------------------|
+| Swing-based S/R (Module 4) | `'swing-high'` / `'swing-low'` | — (baseline) |
+| Merged zones | `'merged'` | — |
+| Order Blocks | `'order-block'` | `orderBlockType: 'bullish' \| 'bearish'` |
+| Fair Value Gaps | `'fair-value-gap'` | `gapSize: number` |
+| Fibonacci levels | `'fibonacci'` | `fibLevel: '0.5' \| '0.618' \| '0.786'` |
+| Volume Profile nodes | `'volume-node'` | `volumeAtNode: number` |
+| Anchored VWAP | `'anchored-vwap'` | `vwapAnchorIndex: number` |
+
+No redesign of Module 4's output type or the Module 6–9 consuming code is required
+when any of these are added.
+
+### Consequences
+
+- `ENGINE_RULES.md §12` has been rewritten to define zone creation, width, merging,
+  interaction detection, state transitions, strength scoring, and proximity classification.
+- `ARCHITECTURE.md` has been updated with the canonical `PriceZone`, `SupportResistanceConfig`,
+  and `SupportResistanceResult` type definitions and state transition diagram.
+- The shared data structure JSON in `ARCHITECTURE.md` now shows `"supportResistance"` with
+  zone objects instead of `"levels"` with flat price arrays.
+- When Module 4 is implemented, it will produce `SupportResistanceResult` as described.
+- The Validation Engine (Module 7) must validate S/R claims against `zone.center` and
+  zone boundaries, not against scalar level arrays.
+
+**Review date:** When Module 4 implementation is complete and the output has been tested
+against real historical data.
+
+---
+
+*Last updated: Milestone 0.4 — Engineering Standards + Price Zone Architecture*

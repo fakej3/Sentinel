@@ -77,7 +77,7 @@
 
 ## Current Task
 
-Module 4 — Support & Resistance Engine.
+Module 4 — Support & Resistance Engine (architecture defined; implementation next).
 
 ---
 

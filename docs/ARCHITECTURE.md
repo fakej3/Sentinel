@@ -79,8 +79,12 @@ Binance Square Ready Post
 - Outputs structured labels (e.g. `"trend": "bullish"`, `"structure": "HH-HL"`).
 
 ### MODULE 4 — Support & Resistance Engine
-- Calculates key price levels from historical candles and indicators.
-- Does not guess. Every level is derived from a documented algorithm.
+- Detects price zones (not lines) from swing points in the candle series.
+- Every zone has a center, width derived from ATR, touch count, reaction history, and lifecycle state.
+- Nearby zones are merged to avoid redundant overlapping signals.
+- Zone strength and confidence are computed from touch quality, reaction count, and age.
+- Rules documented in `ENGINE_RULES.md §12`.
+- See also: "Price Zone Architecture" section below.
 
 ### MODULE 5 — Volume Analysis Engine
 - Classifies volume against historical averages.
@@ -202,11 +206,57 @@ All inter-module data is passed as structured typed objects. The canonical struc
     "events": [],
     "evidence": ["3 Higher Highs — bullish structure", "Break of Structure at 107000 (bullish)"]
   },
-  "levels": {
-    "support": [104800, 102400],
-    "resistance": [109200, 112000],
-    "dynamicSupport": 105200,
-    "dynamicResistance": null
+  "supportResistance": {
+    "zones": [
+      {
+        "id": "sr-001",
+        "type": "resistance",
+        "origin": "swing-high",
+        "state": "active",
+        "center": 109200,
+        "upper": 109820,
+        "lower": 108580,
+        "width": 1240,
+        "touchCount": 3,
+        "successfulReactions": 2,
+        "failedReactions": 0,
+        "broken": false,
+        "retested": false,
+        "firstDetectedIndex": 45,
+        "lastInteractionIndex": 87,
+        "age": 42,
+        "strength": 7.0,
+        "confidence": 6.5,
+        "evidence": ["3 touches at resistance zone 108580–109820", "2 successful rejections"]
+      },
+      {
+        "id": "sr-002",
+        "type": "support",
+        "origin": "swing-low",
+        "state": "strengthened",
+        "center": 104800,
+        "upper": 105420,
+        "lower": 104180,
+        "width": 1240,
+        "touchCount": 4,
+        "successfulReactions": 3,
+        "failedReactions": 1,
+        "broken": false,
+        "retested": false,
+        "firstDetectedIndex": 30,
+        "lastInteractionIndex": 95,
+        "age": 65,
+        "strength": 8.0,
+        "confidence": 7.5,
+        "evidence": ["4 touches at support zone 104180–105420", "3 successful bounces"]
+      }
+    ],
+    "activeSupport": ["sr-002"],
+    "activeResistance": ["sr-001"],
+    "nearestSupport": "sr-002",
+    "nearestResistance": "sr-001",
+    "currentZone": null,
+    "evidence": ["Strong resistance zone at 109200 (3 touches)", "Strengthened support zone at 104800 (4 touches)"]
   },
   "volume": {
     "current": 9200,
@@ -228,6 +278,238 @@ All inter-module data is passed as structured typed objects. The canonical struc
   "validated": true
 }
 ```
+
+---
+
+## Price Zone Architecture
+
+### Why Zones, Not Lines
+
+Real markets do not reverse at an exact price to the tick. They reverse within a
+region where buying or selling interest accumulates — an area of demand or supply
+that persists across multiple candles. Representing support and resistance as single
+price lines ignores this reality and produces brittle comparisons (`price === 109200`)
+that miss legitimate reactions a few ticks away.
+
+Sentinel models all support and resistance as **Price Zones**: bounded rectangular
+regions of the price axis with a center, a top boundary, and a bottom boundary.
+A zone is confirmed when price has entered and reacted from it multiple times.
+
+If a downstream consumer (writing engine, validation engine, UI) needs a single
+representative price, it uses `zone.center`. No information is lost.
+
+---
+
+### PriceZone Type
+
+```typescript
+type ZoneState  = 'active' | 'tested' | 'strengthened' | 'weakening' | 'broken' | 'flipped' | 'archived'
+type ZoneOrigin = 'swing-high' | 'swing-low' | 'merged'
+
+interface PriceZone {
+  /** Unique identifier, e.g. "sr-001" */
+  id: string
+
+  type: 'support' | 'resistance'
+
+  /** How this zone was created */
+  origin: ZoneOrigin
+
+  /** Current lifecycle state */
+  state: ZoneState
+
+  /** Midpoint between upper and lower */
+  center: number
+
+  /** Top of the zone (upper boundary) */
+  upper: number
+
+  /** Bottom of the zone (lower boundary) */
+  lower: number
+
+  /** upper − lower (derived) */
+  width: number
+
+  /** Total number of times price entered the zone */
+  touchCount: number
+
+  /** Times price entered the zone and reversed back out (bounced) */
+  successfulReactions: number
+
+  /** Times price entered the zone and continued through it (broke) */
+  failedReactions: number
+
+  /** True when price has closed through the zone without reversing */
+  broken: boolean
+
+  /** True when price returned to the zone from the opposite side after breaking */
+  retested: boolean
+
+  /** Candle index when this zone was first detected */
+  firstDetectedIndex: number
+
+  /** Candle index of the most recent touch, bounce, or break */
+  lastInteractionIndex: number
+
+  /** Candles elapsed since firstDetectedIndex */
+  age: number
+
+  /**
+   * 0–10 evidence-weighted strength score.
+   * Factors: touch count, successful reactions, failed reactions, age.
+   * See ENGINE_RULES.md §12 for the scoring algorithm.
+   */
+  strength: number
+
+  /**
+   * 0–10 evidence alignment score.
+   * Reflects how consistently the zone's history supports its current classification.
+   */
+  confidence: number
+
+  /** Human-readable strings explaining this zone's properties */
+  evidence: string[]
+}
+```
+
+---
+
+### SupportResistanceConfig Type
+
+```typescript
+interface SupportResistanceConfig {
+  /**
+   * Zone half-width = ATR × atrMultiplier.
+   * Full zone width = 2 × ATR × atrMultiplier.
+   * ENGINE_RULES.md default: 0.25
+   */
+  atrMultiplier: number
+
+  /**
+   * Two zones merge when their price ranges overlap OR when the gap between
+   * them is less than ATR × mergeTolerance.
+   * ENGINE_RULES.md default: 0.5
+   */
+  mergeTolerance: number
+
+  /**
+   * Minimum number of touches for a zone to be considered valid.
+   * Zones with fewer touches are candidates but are not included in the output.
+   * ENGINE_RULES.md default: 2
+   */
+  minTouchCount: number
+
+  /**
+   * Candles since firstDetectedIndex after which a zone is archived.
+   * ENGINE_RULES.md default: 200
+   */
+  maxZoneAge: number
+
+  /**
+   * Number of candles to scan backward from the current candle when
+   * searching for zone-forming swing points.
+   * ENGINE_RULES.md default: 100
+   */
+  lookback: number
+
+  /**
+   * Zone strength begins decaying after this many candles of no interaction.
+   * ENGINE_RULES.md default: 50
+   */
+  strengthDecayAge: number
+}
+```
+
+---
+
+### SupportResistanceResult Type
+
+```typescript
+interface SupportResistanceResult {
+  /** All detected zones, active and archived, sorted by center descending */
+  zones: PriceZone[]
+
+  /** Zones that are not broken and type === 'support', sorted nearest first */
+  activeSupport: PriceZone[]
+
+  /** Zones that are not broken and type === 'resistance', sorted nearest first */
+  activeResistance: PriceZone[]
+
+  /** Nearest active support zone below current price (null if none) */
+  nearestSupport: PriceZone | null
+
+  /** Nearest active resistance zone above current price (null if none) */
+  nearestResistance: PriceZone | null
+
+  /** Zone whose range contains the current price (null if price is between zones) */
+  currentZone: PriceZone | null
+
+  /** Human-readable summary of key zones */
+  evidence: string[]
+}
+```
+
+---
+
+### Zone Lifecycle State Transitions
+
+```
+Created from swing point
+         │
+         ▼
+      ┌───────┐
+      │ active│  (zone exists; price has not yet entered it)
+      └───┬───┘
+          │ price enters zone
+          │ and bounces (1 reaction)
+          ▼
+      ┌────────┐
+      │ tested │  (zone absorbed one test; status uncertain)
+      └───┬────┘
+          │ further bounces     │ price fails to bounce
+          ▼                     ▼
+  ┌─────────────┐         ┌──────────┐
+  │strengthened │         │weakening │  (failed reactions accumulate)
+  └──────┬──────┘         └────┬─────┘
+         │                     │ price closes through
+         │                     ▼
+         │              ┌────────────┐
+         │              │   broken   │  (zone boundary breached)
+         │              └─────┬──────┘
+         │                    │ price returns from opposite side
+         │                    ▼
+         │              ┌────────────┐
+         │              │  flipped   │  (support↔resistance role reversed)
+         │              └────────────┘
+         │
+         └──────── age > maxZoneAge ──────▶  ┌──────────┐
+                                              │ archived │
+                                              └──────────┘
+```
+
+Any zone may transition to `archived` when `age > maxZoneAge`, regardless
+of its current state. Archived zones are retained in `result.zones` but
+excluded from `activeSupport` and `activeResistance`.
+
+---
+
+### Future Compatibility
+
+The `PriceZone` type is designed to absorb future S/R concepts without breaking
+the existing contract:
+
+| Future Feature | Integration Point |
+|----------------|-------------------|
+| Order Blocks | `origin: 'order-block'` — new `ZoneOrigin` variant |
+| Fair Value Gaps | `origin: 'fair-value-gap'` — new `ZoneOrigin` variant |
+| Fibonacci Levels | Zones created from Fibonacci retracements use `origin: 'fibonacci'` |
+| Volume Profile | `zone.volumeWeight` field added; strength scoring updated to use it |
+| Anchored VWAP | Zones near VWAP receive a `nearVwap: boolean` flag |
+| Multi-Timeframe | `timeframe` field added; MTF confluence detected by zone overlap |
+| Liquidity Sweeps | `liquiditySweepDetected: boolean` tracks wick-through-zone events |
+
+The `SupportResistanceResult` contract and `PriceZone` core fields will not
+change when these features are added. New fields are additive only.
 
 ---
 

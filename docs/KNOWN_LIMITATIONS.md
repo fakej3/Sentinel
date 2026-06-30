@@ -105,6 +105,67 @@ to suppress the StochRSI evidence line when the range is degenerate.
 
 ---
 
+## Support & Resistance Engine (Module 4 — Architecture Defined, Not Yet Implemented)
+
+---
+
+### LIM-015 — Zone Width Requires ATR from Module 2
+
+**Description:**
+Zone boundaries are computed as `center ± ATR × atrMultiplier`. The ATR value
+must come from Module 2's `computeIndicators` output. Module 4 therefore has a
+runtime dependency on Module 2: it cannot compute zone widths without an ATR value.
+
+If Module 4 is called without an ATR (e.g. in isolation during testing), a
+fallback of `center × 0.003` (0.3% of the center price) is used as a minimum
+width. This fallback is less accurate than the ATR-based width.
+
+**Why it exists:**
+ATR is the correct measure of current volatility and is the best basis for zone
+width. Computing a second ATR inside Module 4 would duplicate Module 2's work.
+Accepting Module 2's output as an optional parameter is the cleanest design.
+
+**Current impact:**
+None (Module 4 not yet implemented). When implemented, the public API signature
+will be `computeSupportResistance(candles, swings, atr?, config?)`.
+
+**Risk level:** Low
+
+**Planned resolution:**
+Pass ATR as an optional parameter. Document the fallback clearly in `types.ts`.
+
+**Target:** Module 4 implementation.
+
+---
+
+### LIM-016 — Classical Pivot Points Not Modeled as Zones
+
+**Description:**
+Classical pivot points (Pivot, R1, R2, S1, S2) from the previous session's
+High/Low/Close are not included in the zone architecture. They were documented
+in the original `ENGINE_RULES.md §12` but were superseded by the zone-based design.
+
+**Why it exists:**
+Classical pivots are mathematical constructs with no connection to where price
+actually reacted. They are useful as secondary reference points in traditional
+equity markets but are less reliable in 24/7 crypto markets that have no session
+boundary. They would require a new `ZoneOrigin` type (`'classical-pivot'`) and
+session-boundary logic.
+
+**Current impact:**
+None during Module 4 development.
+
+**Risk level:** Low
+
+**Planned resolution:**
+Add classical pivots as an optional zone origin type when the full evidence engine
+is assembled and we can measure whether pivot levels have predictive value in the
+tested symbols.
+
+**Target:** Post-v1.0.0.
+
+---
+
 ## Market Structure Engine (Module 3)
 
 ---

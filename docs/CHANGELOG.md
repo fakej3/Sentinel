@@ -11,6 +11,37 @@ Work in progress. No released version yet.
 
 ---
 
+## [0.6.1] — 2026-06-30
+
+### Architectural Improvement — Support & Resistance as Price Zones
+
+#### Changed
+
+- **`docs/ARCHITECTURE.md`** — Updated Module 4 description to reflect the zone-based design. Replaced `"levels"` object (flat scalar arrays) in the shared data structure JSON with `"supportResistance"` (zone objects with full `PriceZone` shape). Added "Price Zone Architecture" section containing: rationale for zones vs lines; canonical `PriceZone`, `SupportResistanceConfig`, and `SupportResistanceResult` TypeScript type definitions; zone lifecycle state transition diagram; and future compatibility table mapping planned features (Order Blocks, FVGs, Fibonacci, Volume Profile, etc.) to `PriceZone` fields.
+
+- **`docs/ENGINE_RULES.md` §12** — Rewrote "Support & Resistance Detection Rules" as "Support & Resistance Zone Rules". New content: §12.1 Zone Creation (swing-high → resistance, swing-low → support; `minTouchCount` gate); §12.2 Zone Width (ATR × `atrMultiplier`; degenerate fallback; never hardcode); §12.3 Zone Merging (greedy nearest-first; merge condition; merged zone property rules; do not merge opposite types); §12.4 Zone Interaction Detection (touch, successful reaction, failed reaction, retest definitions with close-based rules); §12.5 Zone State Machine (7 states: active, tested, strengthened, weakening, broken, flipped, archived; state transition table); §12.6 Zone Strength Scoring (raw points formula: base + touches + reactions − failures + retest bonus − age decay; normalize to 0–10; 4-tier classification); §12.7 Zone Proximity Classification (inside/overhead/near/distant; nearest support/resistance definitions).
+
+- **`docs/DECISIONS.md`** — Added ADR-013: Support & Resistance as Price Zones. Documents the decision, the reasoning (5 points), alternatives considered (static lines, classical pivots, EMA-based), tradeoffs table, and future benefits table showing how all planned S/R concepts map to `PriceZone` with a new `origin` value.
+
+- **`docs/VALIDATION_RULES.md` §2e** — Updated "Support and Resistance Claims" validation rules to reference `supportResistance.zones[]` and `PriceZone` fields (`zone.center`, `zone.strength`, `zone.broken`, `zone.state`, `zone.touchCount`) instead of the former scalar `levels.support[]` and `levels.resistance[]` arrays.
+
+- **`docs/KNOWN_LIMITATIONS.md`** — Added two new entries: LIM-015 (zone width requires ATR from Module 2; fallback documented) and LIM-016 (classical pivot points not modeled as zones; deferred to post-v1.0.0).
+
+#### Added
+
+- No new source files (architecture definition only; Module 4 implementation not yet started).
+
+### Modules Affected
+
+- MODULE 4 — Support & Resistance Engine: architecture defined. Implementation pending.
+- docs: ARCHITECTURE.md, ENGINE_RULES.md, DECISIONS.md, VALIDATION_RULES.md, KNOWN_LIMITATIONS.md.
+
+### Known Side Effects
+
+- None. No existing module contracts were changed. `MarketStructureResult`, `IndicatorResult`, and `MarketData` types are unaffected.
+
+---
+
 ## [0.6.0] — 2026-06-30
 
 ### Milestone 0.4 — Engineering Standards

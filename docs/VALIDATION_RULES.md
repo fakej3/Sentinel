@@ -110,14 +110,25 @@ If an indicator state claim fails validation → **reject the sentence. Queue fo
 
 #### 2e. Support and Resistance Claims
 
+Support and resistance is modeled as **Price Zones** in `supportResistance.zones[]`.
+Every S/R claim must be validated against a specific zone in this array.
+
 | AI Statement | Validation Check |
 |---|---|
-| Any specific support price mentioned | Must appear in levels.support (±0.5%) |
-| Any specific resistance price mentioned | Must appear in levels.resistance (±0.5%) |
-| "Strong support" | The level must have ≥ 3 historical touches |
-| "Strong resistance" | The level must have ≥ 3 historical touches |
+| Any specific support price mentioned | Must be within ±0.5% of `zone.center` for an active support zone |
+| Any specific resistance price mentioned | Must be within ±0.5% of `zone.center` for an active resistance zone |
+| "Strong support" / "Strong resistance" | `zone.strength ≥ 5.0` |
+| "Moderate support" / "Moderate resistance" | `zone.strength ≥ 3.0 AND < 5.0` |
+| "Support has held" | `zone.successfulReactions ≥ 1` |
+| "Support has been broken" | `zone.broken === true AND zone.type === 'support'` |
+| "Resistance has been broken" | `zone.broken === true AND zone.type === 'resistance'` |
+| "Support turned resistance" | `zone.state === 'flipped' AND zone.type === 'resistance'` |
+| "Resistance turned support" | `zone.state === 'flipped' AND zone.type === 'support'` |
+| "Price is at/near support" | `currentPrice` within `ATR × 1.0` of a `zone.lower` boundary |
+| "Price is at/near resistance" | `currentPrice` within `ATR × 1.0` of a `zone.upper` boundary |
+| "Tested X times" | `zone.touchCount` must equal the stated number |
 
-**The AI must never invent support or resistance levels that do not exist in the computed levels array.**
+**The AI must never invent support or resistance levels that do not correspond to a zone in `supportResistance.zones[]`.**
 
 #### 2f. Confidence Claims
 
