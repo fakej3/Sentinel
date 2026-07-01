@@ -11,6 +11,42 @@ Work in progress. No released version yet.
 
 ---
 
+## [0.12.0] — 2026-07-01
+
+### Module 13 — CLI
+
+Production-ready command-line interface wrapping Module 10. Zero analysis logic — a pure transport layer around `analyzeMarket()`.
+
+#### Added
+
+- **`src/cli/types.ts`**: `CliAnalyzeFn` (dependency-injected pipeline function), `IoImpl` (stdout/stderr/writeFile abstraction for test isolation), `CliFlags` (all parsed option values), `ParseResult` (discriminated union: help | version | analyze | error).
+
+- **`src/cli/config.ts`**: Re-exports `PIPELINE_VERSION`, `VALID_TIMEFRAMES`, and `MAX_CANDLE_LIMIT` from their canonical sources. Defines `VALID_TEMPLATES` as a `Set<string>` of all 6 writer template names.
+
+- **`src/cli/args.ts`**: `parseArgs(argv)` — full argument parser. `HELP_TEXT` — formatted usage string. `VERSION_TEXT` — `sentinel v<version>`. Validates SYMBOL, INTERVAL, `--candles` (1–1000 integer boundary), `--template` (6 valid values). Returns discriminated `ParseResult`.
+
+- **`src/cli/format.ts`**: `formatOutput(result, flags)` — selects between JSON, ANSI-colorized, or plain text output for stdout. `formatFileContent(result, json)` — plain/JSON content for file writes (never colorized). `colorize(text)` — applies ANSI codes to markdown-style headings and separators.
+
+- **`src/cli/index.ts`**: `createCli(analyzeFn?, io?)` — DI factory returning an `(argv) => Promise<number>` function. `pipelineErrorMessage(err)` — exhaustive switch over all 5 `PipelineErrorCode` values. `defaultIo` — production implementation using `process.stdout`, `process.stderr`, and `fs/promises.writeFile`.
+
+- **`src/cli/__tests__/args.test.ts`**: 36 tests covering `--version`, `-v`, `--help`, `-h`, no command, unknown command, missing SYMBOL, missing INTERVAL, invalid INTERVAL, symbol uppercasing, valid analyze, `--candles` (valid, boundary 1, boundary 1000, below 1, above 1000, non-integer, missing value), `--template` (all 6 valid names, invalid name, missing value), boolean flags (`--json`, `--pretty`, `--no-color`), default flag values, `--output` (valid, missing value), combined flags, `HELP_TEXT` content, `VERSION_TEXT` format.
+
+- **`src/cli/__tests__/cli.test.ts`**: 30 tests covering `--help`, `-h`, `--version`, `-v`, exit code 2 for unknown command / missing SYMBOL / invalid INTERVAL / invalid `--candles` / invalid `--template`, help text in stderr, `analyzeFn` call with correct symbol/interval/candleLimit/template config, symbol uppercasing, exit code 0 on success, fullReport to stdout, JSON mode (valid JSON, `generatedAnalysis` property), pretty mode (ANSI present), `--no-color` suppression, `--output` (file written, stdout empty, JSON+file, exit 0), `PipelineError` handling (exit 1, all 5 error messages), generic error handling, determinism.
+
+#### Architecture
+
+- **Pure transport**: `src/cli/` imports nothing from analysis modules except `PipelineError`, `PipelineOptions`, `PipelineResult`, `Timeframe`, `PIPELINE_VERSION`, `VALID_TIMEFRAMES`, and `MAX_CANDLE_LIMIT`. No indicators, no market logic.
+- **DI preserved**: `createCli(analyzeFn?, io?)` factory enables full test isolation without process I/O.
+- **No `process.exit()` inside the module**: The factory returns a numeric exit code. The real entry point calls `process.exit(code)` externally.
+- **File output is never colorized**: ANSI codes are only applied to stdout (`--pretty`), never to file content.
+
+#### Stats
+
+- **Tests:** 1039 (↑66 from 973) across 60 files — all pass.
+- **TypeScript errors:** 0.
+
+---
+
 ## [0.11.2] — 2026-07-01
 
 ### Module 12 — API Layer

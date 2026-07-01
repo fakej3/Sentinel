@@ -58,6 +58,10 @@ MODULE 12 — API Layer
   REST API transport wrapping analyzeMarket() — no analysis logic
         │
         ▼
+MODULE 13 — CLI
+  Command-line interface wrapping analyzeMarket() — no analysis logic
+        │
+        ▼
 Binance Square Ready Post
 ```
 
@@ -201,10 +205,18 @@ Binance Square Ready Post
 - Source: `src/api/`. Files: `types.ts`, `config.ts`, `routes.ts`, `server.ts`, `middleware/validation.ts`, `middleware/error-handler.ts`.
 - 41 tests passing (1 test file).
 
-### MODULE 13 — Performance Tracker
-- Evaluates historical analyses against actual price movement.
-- Evaluation windows: 24h, 3d, 7d.
-- Tracks: trend accuracy, S/R accuracy, breakout accuracy, false breakout rate.
+### MODULE 13 — CLI
+- **Transport layer only** — zero analysis logic, zero indicator calculations, zero pipeline duplication.
+- Wraps `analyzeMarket()` (Module 10) in a production-ready command-line interface.
+- Entry point: `createCli(analyzeFn?, io?)` factory — fully dependency-injected for testing.
+- Commands: `sentinel analyze <SYMBOL> <INTERVAL>`
+- Options: `--candles <n>`, `--json`, `--pretty`, `--output <file>`, `--template <name>`, `--no-color`, `--version / -v`, `--help / -h`
+- Exit codes: 0 = success, 1 = operational failure (pipeline error), 2 = invalid arguments.
+- `PipelineError` codes mapped to friendly messages: `fetch_failure`, `insufficient_candles`, `configuration_error`, `internal_module_failure`, `validation_failure`.
+- Output modes: default (writer engine fullReport), `--json` (complete `PipelineResult`), `--pretty` (ANSI-colorized report), `--output` (write to file instead of stdout).
+- Argument parsing in `src/cli/args.ts` validates symbol, interval, candle count, and template independently.
+- Source: `src/cli/`. Files: `types.ts`, `config.ts`, `args.ts`, `format.ts`, `index.ts`.
+- 66 tests passing (2 test files: `args.test.ts`, `cli.test.ts`).
 
 ---
 

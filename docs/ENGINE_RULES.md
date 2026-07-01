@@ -1248,4 +1248,94 @@ export function createApp(analyzeFn?: AnalyzeFn): express.Application
 
 When omitted, the real `analyzeMarket` from Module 10 is used. Tests inject a mock.
 
-*Last updated: Module 12 — API Layer (v0.11.1)*
+---
+
+## §19 CLI Rules
+
+### 19.1 No Business Logic in the CLI
+
+The CLI contains zero analysis logic. It is a thin transport layer that:
+1. Parses command-line arguments
+2. Calls `analyzeMarket()` with those arguments
+3. Formats and outputs the result
+
+Any logic that calculates, infers, or transforms market data belongs in Modules 1–10 — not in the CLI.
+
+### 19.2 Command Structure
+
+The single supported command is `analyze`:
+
+```
+sentinel analyze <SYMBOL> <INTERVAL> [options]
+```
+
+`SYMBOL` and `INTERVAL` are required positional arguments. All options are optional.
+
+### 19.3 Argument Validation
+
+All argument parsing is performed in `src/cli/args.ts` by `parseArgs(argv)`:
+- `SYMBOL` must be a non-empty string; it is uppercased before use.
+- `INTERVAL` must be a member of `VALID_TIMEFRAMES`.
+- `--candles` must be an integer between 1 and `MAX_CANDLE_LIMIT` (1000).
+- `--template` must be one of: `full`, `executive`, `summary`, `bullet`, `headline`, `social`.
+- `--version` / `-v` and `--help` / `-h` are handled before any other argument.
+
+### 19.4 Exit Codes
+
+| Code | Meaning |
+|------|---------|
+| 0 | Success |
+| 1 | Operational failure (pipeline error, file write error, unexpected exception) |
+| 2 | Invalid arguments (parse failure) |
+
+The CLI returns an exit code as a number — it does not call `process.exit()` internally.
+
+### 19.5 Output Modes
+
+| Mode | Condition | Content |
+|------|-----------|---------|
+| Default | No flags | `result.generatedAnalysis.fullReport` (plain text) |
+| JSON | `--json` | `JSON.stringify(result, null, 2)` |
+| Pretty | `--pretty` (no `--no-color`) | ANSI-colorized fullReport |
+| File | `--output <path>` | Plain text or JSON written to disk; no stdout |
+
+`--pretty --no-color` produces plain text (color is suppressed).
+`--json --output <file>` writes JSON to the file.
+
+### 19.6 Error Mapping
+
+`PipelineError` codes are mapped to human-readable messages written to stderr:
+
+| Code | CLI message prefix |
+|------|--------------------|
+| `configuration_error` | `Configuration error:` |
+| `fetch_failure` | `Could not fetch data:` |
+| `insufficient_candles` | `Insufficient data:` |
+| `internal_module_failure` | `Internal error in module '<name>':` |
+| `validation_failure` | `Validation failed:` |
+
+Non-`PipelineError` exceptions are output as `Error: <message>`.
+
+### 19.7 Dependency Injection
+
+`createCli` accepts optional `analyzeFn` and `io` for full test isolation:
+
+```typescript
+type CliAnalyzeFn = (options: PipelineOptions) => Promise<PipelineResult>
+
+interface IoImpl {
+  stdout(text: string): void
+  stderr(text: string): void
+  writeFile(path: string, content: string): Promise<void>
+}
+
+export function createCli(analyzeFn?: CliAnalyzeFn, io?: IoImpl): (argv: string[]) => Promise<number>
+```
+
+Tests inject mock `analyzeFn` and `io` implementations; no network, filesystem, or process I/O is used in tests.
+
+### 19.8 No `process.exit()` Inside the CLI
+
+The `createCli` factory returns a function that returns a numeric exit code. The real entry point (outside the module) is responsible for calling `process.exit(code)`. This separation keeps the CLI fully testable without process teardown.
+
+*Last updated: Module 13 — CLI (v0.12.0)*

@@ -22,7 +22,8 @@
 | 10 | Analysis Pipeline Orchestrator | **Complete** | Single public entry point; orchestrates Modules 1–9; dependency-injectable fetch; typed errors; per-stage timings — 33 tests passing |
 | 11 | Historical Replay & Benchmark Engine | **Complete** | Deterministic regression framework; dot-notation comparison; markdown reports — 62 tests passing |
 | 12 | API Layer | **Complete** | Express REST API wrapping Module 10; 3 endpoints; PipelineError mapping; timing header — 41 tests passing |
-| 13 | History Database | Not Started | Persists analyses, indicators, content, images |
+| 13 | CLI | **Complete** | Command-line interface wrapping Module 10; argument parsing; 6 output modes; PipelineError mapping; DI factory — 66 tests passing |
+| 14 | History Database | Not Started | Persists analyses, indicators, content, images |
 | 14 | Performance Tracker | Not Started | Evaluates historical analyses at 24h / 3d / 7d |
 
 ---
@@ -203,9 +204,25 @@
 
 ---
 
+### Module 13 — CLI ✅
+
+- [x] `src/cli/types.ts` — CliAnalyzeFn, IoImpl, CliFlags, ParseResult discriminated union
+- [x] `src/cli/config.ts` — re-exports PIPELINE_VERSION, VALID_TIMEFRAMES, MAX_CANDLE_LIMIT; defines VALID_TEMPLATES Set
+- [x] `src/cli/args.ts` — parseArgs(argv): full argument parsing, HELP_TEXT, VERSION_TEXT
+- [x] `src/cli/format.ts` — formatOutput (stdout), formatFileContent (file), colorize (ANSI)
+- [x] `src/cli/index.ts` — createCli(analyzeFn?, io?): DI factory, pipelineErrorMessage, defaultIo
+- [x] `src/cli/__tests__/args.test.ts` — 36 tests: version, help, missing command, unknown command, missing positionals, invalid interval, symbol uppercasing, candle boundary/invalid, template valid/invalid, boolean flags, output flag, combined flags, HELP_TEXT, VERSION_TEXT
+- [x] `src/cli/__tests__/cli.test.ts` — 30 tests: help, version, invalid args, exit codes, analyze passthrough, symbol normalization, candle limit, template config, JSON mode, pretty mode, no-color, output file, file+JSON, pipeline errors (all 5 codes), generic errors, determinism
+- [x] ARCHITECTURE.md Module 13 entry added, pipeline diagram updated
+- [x] ENGINE_RULES.md §19 CLI Rules section added
+- [x] ROADMAP.md progress updated
+- [x] CHANGELOG.md entry for v0.12.0
+
+---
+
 ## Current Task
 
-Module 13 — History Database (not yet started).
+Module 14 — History Database (not yet started).
 
 ---
 
@@ -240,10 +257,11 @@ Module 13 — History Database (not yet started).
 - [x] MODULE 10: Analysis Pipeline Orchestrator
 - [x] MODULE 11: Historical Replay & Benchmark Engine
 - [x] MODULE 12: API Layer
+- [x] MODULE 13: CLI
 
 ### Storage & Tracking
-- [ ] MODULE 13: History Database
-- [ ] MODULE 14: Performance Tracker
+- [ ] MODULE 14: History Database
+- [ ] MODULE 15: Performance Tracker
 
 ### UI
 - [ ] Dashboard layout (navigation, coin selector, timeframe selector)
