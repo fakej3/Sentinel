@@ -131,11 +131,11 @@ export interface EMAContextResult {
 // ─── Indicator Summary ────────────────────────────────────────────────────────
 
 export type RSIClassification =
-  | 'oversold'        // < 30
-  | 'weak_bearish'    // 30–45
-  | 'neutral'         // 45–55
-  | 'healthy_bullish' // 55–70
-  | 'overbought'      // > 70
+  | 'oversold'        // RSI < 30
+  | 'weak_bearish'    // 30 ≤ RSI < 45
+  | 'neutral'         // 45 ≤ RSI ≤ 55
+  | 'healthy_bullish' // 55 < RSI ≤ 70
+  | 'overbought'      // RSI > 70
   | 'unavailable'
 
 export interface RSIInterpretation {
@@ -243,6 +243,12 @@ export interface VolumeContextResult {
 export type EvidenceImpact = 'high' | 'medium' | 'low'
 
 /**
+ * Directional bias carried by each evidence item.
+ * Module 9 reads this field — never infer direction by parsing description text.
+ */
+export type EvidenceDirection = 'bullish' | 'bearish' | 'neutral'
+
+/**
  * Which upstream module produced the data underlying this evidence item.
  * Must match one of the pass-through fields in MarketAnalysisResult.
  */
@@ -267,6 +273,11 @@ export interface EvidenceItem {
   /** Human-readable description of the evidence */
   description: string
   source: ModuleSource
+  /**
+   * Directional bias of this evidence item.
+   * Module 9 reads this field directly — never parse description text for direction.
+   */
+  direction: EvidenceDirection
 }
 
 // ─── Config ───────────────────────────────────────────────────────────────────
@@ -337,6 +348,16 @@ export interface AnalysisConfig {
    * ENGINE_RULES.md §1: default 2
    */
   minBearishSwingsForTrend: number
+  /**
+   * Bollinger bandwidth as % of price below which the band state is 'squeeze'.
+   * ENGINE_RULES.md §9: default 4
+   */
+  bollingerTightThreshold: number
+  /**
+   * Bollinger bandwidth as % of price above which the band state is 'expansion'.
+   * ENGINE_RULES.md §9: default 8
+   */
+  bollingerWideThreshold: number
 }
 
 // ─── Result ───────────────────────────────────────────────────────────────────

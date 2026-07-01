@@ -11,6 +11,74 @@ Work in progress. No released version yet.
 
 ---
 
+## [0.10.2] — 2026-07-01
+
+### Stabilization Sprint 2 — Robustness, Configurability, and Documentation (HIGH-01 through MED-01)
+
+Pre-Module-8 sprint focused on correctness hazards, configuration flexibility, and
+documentation clarity. No behavioral changes with default config. All 613 previous
+tests pass; 10 regression tests added.
+
+#### Fixed
+
+- **HIGH-01 — BOS/CHOCH `last` pointer checked with reference equality**
+  (`src/modules/validation/validate/structural.ts`):
+  `bos.last !== expectedLast` and `choch.last !== expectedLast` used JavaScript
+  reference equality, which always fails after a JSON serialize/deserialize round-trip
+  (Module 12 use case). Replaced with `eventsAreEqual()` helper that compares all five
+  `StructureEvent` fields structurally: `type`, `index`, `timestamp`, `level`,
+  `direction`. Null/undefined cases handled via early reference check.
+  Regression tests added: original reference, shallow copy `{ ...event }`, and
+  `JSON.parse(JSON.stringify(result))` — all must pass.
+
+#### Changed
+
+- **HIGH-02 — RSI classification boundary comments were ambiguous**
+  (`src/modules/analysis/types.ts`):
+  Comments used dash notation (`30–45`) which implied both endpoints were inclusive and
+  made the boundary at 45 (which appears in two ranges) visually ambiguous. Replaced
+  with precise inequality notation: `RSI < 30`, `30 ≤ RSI < 45`, `45 ≤ RSI ≤ 55`,
+  `55 < RSI ≤ 70`, `RSI > 70`. Implementation unchanged.
+
+- **HIGH-03 — Bollinger Band squeeze/expansion thresholds were hardcoded**
+  (`src/modules/analysis/types.ts`, `src/modules/analysis/config.ts`,
+  `src/modules/analysis/compute/indicators.ts`):
+  `classifyBandwidth` used hardcoded `4` (squeeze) and `8` (expansion) percent values.
+  Moved into `AnalysisConfig` as `bollingerTightThreshold: number` (default 4) and
+  `bollingerWideThreshold: number` (default 8). Default behavior is unchanged.
+  Regression tests added verifying squeeze, expansion, and normal classification using
+  both default and custom thresholds.
+
+- **MED-02 — `EvidenceItem` had no explicit direction field**
+  (`src/modules/analysis/types.ts`, `src/modules/analysis/compute/evidence.ts`,
+  `src/modules/validation/__tests__/helpers.ts`,
+  `src/modules/validation/__tests__/contradictions.test.ts`,
+  `src/modules/analysis/__tests__/evidence.test.ts`):
+  Added `EvidenceDirection = 'bullish' | 'bearish' | 'neutral'` type and required
+  `direction: EvidenceDirection` field to `EvidenceItem`. Updated `item()` factory
+  with a 5th `direction` parameter; annotated all ~60 evidence item calls with correct
+  directional values. Module 9 must read `direction` directly — never infer direction
+  by parsing description text.
+
+#### Documentation
+
+- **MED-05 — `structure` vs `recentStructure` distinction underdocumented**
+  (`src/modules/market-structure/types.ts`):
+  Expanded JSDoc on both `MarketStructureResult` fields to explain exactly when each
+  should be used. `structure` = full lifetime counts (audit/historical use only).
+  `recentStructure` = rolling window matching `determineTrend()`'s slice (USE for
+  trend condition evaluation). Incorrect use of `structure` for trend conditions
+  silently produces wrong labels.
+
+- **MED-01 — Intentional validator duplication undocumented**
+  (`docs/DECISIONS.md` — ADR-021):
+  Module 7 independently re-derives trend labels instead of importing Module 6 logic.
+  Added ADR-021 explaining that this duplication is load-bearing: sharing the exact
+  implementation would allow both modules to carry the same bug, causing the validator
+  to silently agree with incorrect output.
+
+---
+
 ## [0.10.1] — 2026-06-30
 
 ### Stabilization Sprint — Critical Bug Fixes (CRIT-01 through CRIT-04)

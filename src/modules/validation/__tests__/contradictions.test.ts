@@ -203,9 +203,9 @@ describe('checkContradictions', () => {
   it('flags evidence sort violation when a medium item precedes a high item', () => {
     const result = makeValidResult({
       evidence: makeEvidence([
-        { factor: 'MACD bullish bias', impact: 'medium', description: 'ok', source: 'indicators' },
-        { factor: 'Price above EMA200', impact: 'high', description: 'ok', source: 'indicators' }, // wrong: high after medium
-        { factor: 'RSI neutral', impact: 'low', description: 'ok', source: 'indicators' },
+        { factor: 'MACD bullish bias', impact: 'medium', description: 'ok', source: 'indicators', direction: 'bullish' },
+        { factor: 'Price above EMA200', impact: 'high', description: 'ok', source: 'indicators', direction: 'bullish' }, // wrong: high after medium
+        { factor: 'RSI neutral', impact: 'low', description: 'ok', source: 'indicators', direction: 'neutral' },
       ]),
     })
     const issues = checkContradictions(result)
@@ -215,9 +215,9 @@ describe('checkContradictions', () => {
   it('flags evidence sort violation when a low item precedes a medium item', () => {
     const result = makeValidResult({
       evidence: makeEvidence([
-        { factor: 'Price above EMA200', impact: 'high', description: 'ok', source: 'indicators' },
-        { factor: 'RSI neutral', impact: 'low', description: 'ok', source: 'indicators' },
-        { factor: 'MACD bullish bias', impact: 'medium', description: 'ok', source: 'indicators' }, // wrong: medium after low
+        { factor: 'Price above EMA200', impact: 'high', description: 'ok', source: 'indicators', direction: 'bullish' },
+        { factor: 'RSI neutral', impact: 'low', description: 'ok', source: 'indicators', direction: 'neutral' },
+        { factor: 'MACD bullish bias', impact: 'medium', description: 'ok', source: 'indicators', direction: 'bullish' }, // wrong: medium after low
       ]),
     })
     const issues = checkContradictions(result)
@@ -227,10 +227,10 @@ describe('checkContradictions', () => {
   it('does not flag evidence when sorted correctly: high, high, medium, low', () => {
     const result = makeValidResult({
       evidence: makeEvidence([
-        { factor: 'Price above EMA200', impact: 'high', description: 'ok', source: 'indicators' },
-        { factor: 'Higher High confirmed', impact: 'high', description: 'ok', source: 'market_structure' },
-        { factor: 'MACD bullish bias', impact: 'medium', description: 'ok', source: 'indicators' },
-        { factor: 'RSI neutral', impact: 'low', description: 'ok', source: 'indicators' },
+        { factor: 'Price above EMA200', impact: 'high', description: 'ok', source: 'indicators', direction: 'bullish' },
+        { factor: 'Higher High confirmed', impact: 'high', description: 'ok', source: 'market_structure', direction: 'bullish' },
+        { factor: 'MACD bullish bias', impact: 'medium', description: 'ok', source: 'indicators', direction: 'bullish' },
+        { factor: 'RSI neutral', impact: 'low', description: 'ok', source: 'indicators', direction: 'neutral' },
       ]),
     })
     const issues = checkContradictions(result)

@@ -961,4 +961,62 @@ issue source self-documenting.
 
 ---
 
-*Last updated: Module 7 — Validation Engine (v0.10.0)*
+## ADR-021 — Intentional Duplication of Trend-Label Derivation in Module 7
+
+**Date:** 2026-07-01
+**Status:** Accepted
+
+### Decision
+
+Module 7 (`checkContradictions`) re-derives the full-trend label independently from
+Module 6's `synthesizeFullTrend` implementation rather than importing and calling it
+directly. The duplication is intentional and must not be removed.
+
+### Reason
+
+The purpose of Module 7 is to detect algorithm drift — cases where Module 6's output
+no longer matches its specification. If Module 7 imports and calls the exact same
+function as Module 6, both systems will contain the same bug simultaneously. The
+validator would then agree with an incorrect result and silently report no issues.
+
+Independent re-derivation means a bug in Module 6's implementation produces outputs
+that disagree with Module 7's independent calculation. The disagreement surfaces as
+a `ValidationIssue`, which is exactly the signal we want.
+
+### Alternatives Considered
+
+- **Import `synthesizeFullTrend` from Module 6:** Zero duplication, but the
+  validator loses its ability to detect algorithm drift. Rejected — this would
+  defeat the purpose of having a validator.
+
+- **Abstract the derivation into a shared helper:** Same problem as above. Any
+  shared implementation allows both modules to carry the same bug. Rejected.
+
+- **Property-based testing only:** Test the module independently with generated
+  inputs rather than using a validator. Useful but not equivalent — it validates
+  against the spec, not against live runtime output. Complementary, not a replacement.
+
+### Tradeoffs
+
+- Gain: Module 7 can detect divergence between specification and implementation —
+  the most valuable class of correctness bug.
+- Loss: Any change to the trend-label algorithm in Module 6 requires a parallel
+  update to Module 7's re-derivation. Failure to update Module 7 causes false
+  positives. This is acceptable: the update is mechanical and the CI test suite
+  catches it immediately.
+
+### Consequences
+
+- `checkContradictions` in `src/modules/validation/validate/contradictions.ts`
+  contains an independent implementation of the trend-label mapping. Code review
+  must verify that changes to `synthesizeFullTrend` are mirrored in `checkContradictions`.
+- Engineers encountering the duplication should consult this record before refactoring.
+  The duplication is load-bearing — it is not a mistake or an oversight.
+
+**Review date:** When Module 8 or 9 design creates a need for a third consumer of
+the trend-label mapping; at that point, evaluate whether a shared *specification*
+(not shared implementation) would be more appropriate.
+
+---
+
+*Last updated: Stabilization Sprint 2 (v0.10.2)*

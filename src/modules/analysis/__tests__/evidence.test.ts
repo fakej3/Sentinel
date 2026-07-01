@@ -142,6 +142,23 @@ describe('collectEvidence', () => {
       expect(['high', 'medium', 'low']).toContain(it.impact)
       expect(typeof it.description).toBe('string')
       expect(['indicators', 'market_structure', 'support_resistance', 'volume']).toContain(it.source)
+      expect(['bullish', 'bearish', 'neutral']).toContain(it.direction)
+    }
+  })
+
+  // ── MED-02 regression: every evidence item carries an explicit direction ──
+
+  it('all items have a direction field (regression: MED-02)', () => {
+    const bearishInd = bearishIndicators()
+    const bearishStr = bearishStructure()
+    const allItems = [
+      ...getEvidence(100, bullishIndicators(), bullishStructure()),
+      ...getEvidence(100, bearishInd, bearishStr),
+      ...getEvidence(100),
+    ]
+    for (const it of allItems) {
+      expect(it.direction, `item "${it.factor}" is missing direction`).toBeDefined()
+      expect(['bullish', 'bearish', 'neutral']).toContain(it.direction)
     }
   })
 

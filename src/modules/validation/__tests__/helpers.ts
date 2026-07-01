@@ -183,9 +183,9 @@ export function makeFullTrend(overrides: Partial<FullTrendResult> = {}): FullTre
 
 export function makeEvidence(items: EvidenceItem[] = []): EvidenceItem[] {
   const base: EvidenceItem[] = [
-    { factor: 'Price above EMA200', impact: 'high', description: 'Price is above EMA200', source: 'indicators' },
-    { factor: 'Higher High confirmed', impact: 'high', description: 'HH detected', source: 'market_structure' },
-    { factor: 'MACD bullish bias', impact: 'medium', description: 'MACD is bullish', source: 'indicators' },
+    { factor: 'Price above EMA200', impact: 'high', description: 'Price is above EMA200', source: 'indicators', direction: 'bullish' },
+    { factor: 'Higher High confirmed', impact: 'high', description: 'HH detected', source: 'market_structure', direction: 'bullish' },
+    { factor: 'MACD bullish bias', impact: 'medium', description: 'MACD is bullish', source: 'indicators', direction: 'bullish' },
   ]
   return items.length > 0 ? items : base
 }

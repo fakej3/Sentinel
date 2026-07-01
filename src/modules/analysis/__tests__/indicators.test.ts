@@ -155,4 +155,40 @@ describe('interpretIndicators', () => {
     const r2 = interpretIndicators(100, ind, cfg)
     expect(r1).toEqual(r2)
   })
+
+  // ── HIGH-03 regression: Bollinger thresholds are configurable ─────────────
+
+  describe('Bollinger bandwidth classification uses config thresholds', () => {
+    it('classifies squeeze using bollingerTightThreshold (bandwidth% < threshold)', () => {
+      // price=100, upper=102, lower=99 → bandwidth=3 → bwPercent=3% < default tight=4 → squeeze
+      const result = interpretIndicators(100, indicators({ bollingerBands: bollinger(102, 100, 99) }), cfg)
+      expect(result.bollinger.bandwidthState).toBe('squeeze')
+    })
+
+    it('classifies expansion using bollingerWideThreshold (bandwidth% > threshold)', () => {
+      // price=100, upper=104.5, lower=95.5 → bandwidth=9 → bwPercent=9% > default wide=8 → expansion
+      const result = interpretIndicators(100, indicators({ bollingerBands: bollinger(104.5, 100, 95.5) }), cfg)
+      expect(result.bollinger.bandwidthState).toBe('expansion')
+    })
+
+    it('classifies normal when bandwidth% is between tight and wide thresholds', () => {
+      // price=100, upper=103, lower=97 → bandwidth=6 → bwPercent=6%, between 4 and 8 → normal
+      const result = interpretIndicators(100, indicators({ bollingerBands: bollinger(103, 100, 97) }), cfg)
+      expect(result.bollinger.bandwidthState).toBe('normal')
+    })
+
+    it('respects a custom tight threshold', () => {
+      const customCfg = { ...cfg, bollingerTightThreshold: 10 }
+      // price=100, upper=104, lower=96 → bandwidth=8 → bwPercent=8%, normally normal but custom tight=10 → squeeze (8 < 10)
+      const result = interpretIndicators(100, indicators({ bollingerBands: bollinger(104, 100, 96) }), customCfg)
+      expect(result.bollinger.bandwidthState).toBe('squeeze')
+    })
+
+    it('respects a custom wide threshold', () => {
+      const customCfg = { ...cfg, bollingerWideThreshold: 5 }
+      // price=100, upper=103, lower=97 → bandwidth=6 → bwPercent=6%, normally normal but custom wide=5 → expansion (6 > 5)
+      const result = interpretIndicators(100, indicators({ bollingerBands: bollinger(103, 100, 97) }), customCfg)
+      expect(result.bollinger.bandwidthState).toBe('expansion')
+    })
+  })
 })

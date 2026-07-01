@@ -18,4 +18,6 @@ export const DEFAULT_ANALYSIS_CONFIG: AnalysisConfig = {
   resistanceProximityPercent: 2.0,
   minBullishSwingsForTrend: 2,
   minBearishSwingsForTrend: 2,
+  bollingerTightThreshold: 4,
+  bollingerWideThreshold: 8,
 }

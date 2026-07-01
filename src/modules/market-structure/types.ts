@@ -100,14 +100,20 @@ export interface MarketStructureResult {
    * incorporates indicators, volume, and support/resistance.
    */
   confidence: number
-  /** Full lifetime HH/HL/LH/LL counts across all detected swings. */
+  /**
+   * Full lifetime HH/HL/LH/LL counts across all detected swings.
+   * USE FOR: historical swing statistics, cumulative counts, audit trails.
+   * DO NOT USE for trend condition evaluation — recentStructure covers the same
+   * rolling window that determineTrend() inspects, so using this field instead
+   * would silently produce wrong trend labels in early or mean-reverting markets.
+   */
   structure: StructureCounts
   /**
    * HH/HL/LH/LL counts restricted to the same recent window used by
    * determineTrend() — the last (minSwingsForTrend × 2) labeled swings.
-   * Used by Module 6 for hasConsistentHHHL / hasConsistentLHLL so that
-   * trend conditions are evaluated on the same evidence as the structural
-   * trend direction. ENGINE_RULES.md §1 (CRIT-01).
+   * USE FOR: hasConsistentHHHL and hasConsistentLHLL trend conditions.
+   * Both Module 6 (synthesis) and Module 7 (validation) consume recentStructure
+   * for trend condition evaluation. ENGINE_RULES.md §1 (CRIT-01).
    */
   recentStructure: StructureCounts
   bos: {

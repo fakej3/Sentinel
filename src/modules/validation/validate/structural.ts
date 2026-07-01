@@ -1,6 +1,17 @@
 import type { MarketAnalysisResult } from '../../analysis/types'
 import type { PriceZone } from '../../support-resistance/types'
 import type { ValidationIssue, ValidationConfig } from '../types'
+import type { StructureEvent } from '../../market-structure/types'
+
+/** Structural equality for StructureEvent — safe across JSON round-trips and null checks */
+function eventsAreEqual(a: StructureEvent | null | undefined, b: StructureEvent | null | undefined): boolean {
+  if (a == null || b == null) return a === b
+  return a.type === b.type &&
+    a.index === b.index &&
+    a.timestamp === b.timestamp &&
+    a.level === b.level &&
+    a.direction === b.direction
+}
 
 function critical(field: string, message: string, expected?: string, actual?: string): ValidationIssue {
   return { severity: 'critical', category: 'structural', field, message, expected, actual }
@@ -118,7 +129,7 @@ export function checkStructural(
   if (marketStructure.bos.detected) {
     const bosEvents = marketStructure.bos.events
     const expectedLast = bosEvents[bosEvents.length - 1]
-    if (marketStructure.bos.last !== expectedLast) {
+    if (!eventsAreEqual(marketStructure.bos.last, expectedLast)) {
       issues.push(critical(
         'marketStructure.bos.last',
         `bos.last does not match the final element of bos.events`,
@@ -149,7 +160,7 @@ export function checkStructural(
   if (marketStructure.choch.detected) {
     const chochEvents = marketStructure.choch.events
     const expectedLast = chochEvents[chochEvents.length - 1]
-    if (marketStructure.choch.last !== expectedLast) {
+    if (!eventsAreEqual(marketStructure.choch.last, expectedLast)) {
       issues.push(critical(
         'marketStructure.choch.last',
         `choch.last does not match the final element of choch.events`,

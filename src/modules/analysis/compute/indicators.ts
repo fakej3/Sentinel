@@ -26,12 +26,9 @@ function classifyADXStrength(adx: number): ADXTrendStrength {
 }
 
 function classifyBandwidth(bandwidth: number, price: number, cfg: AnalysisConfig): BollingerBandwidthState {
-  // Bandwidth as % of price
   const bwPercent = (bandwidth / price) * 100
-  // squeeze < 4%, expansion > 8% — common rule-of-thumb values
-  // (ENGINE_RULES.md §9 does not specify exact thresholds; use sensible defaults)
-  if (bwPercent < 4) return 'squeeze'
-  if (bwPercent > 8) return 'expansion'
+  if (bwPercent < cfg.bollingerTightThreshold) return 'squeeze'
+  if (bwPercent > cfg.bollingerWideThreshold) return 'expansion'
   return 'normal'
 }
 

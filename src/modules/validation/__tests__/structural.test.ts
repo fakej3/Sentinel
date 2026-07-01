@@ -213,4 +213,57 @@ describe('checkStructural', () => {
     })
     expect(checkStructural(result, DEFAULT_VALIDATION_CONFIG)).toHaveLength(0)
   })
+
+  // ── HIGH-01 regression: structural equality survives object copies and JSON round-trips ──
+
+  it('does not flag bos.last when it is a shallow copy of the final event (structural equality)', () => {
+    const e1 = makeBOSEvent(10)
+    const e1copy = { ...e1 } // different object reference, identical fields
+    const result = makeValidResult({
+      marketStructure: makeStructure({
+        bos: { detected: true, events: [e1], last: e1copy },
+        events: [e1],
+      }),
+    })
+    expect(checkStructural(result, DEFAULT_VALIDATION_CONFIG)).toHaveLength(0)
+  })
+
+  it('does not flag choch.last when it is a shallow copy of the final event (structural equality)', () => {
+    const e1 = makeCHOCHEvent(15)
+    const e1copy = { ...e1 }
+    const result = makeValidResult({
+      marketStructure: makeStructure({
+        choch: { detected: true, events: [e1], last: e1copy },
+        events: [e1],
+      }),
+    })
+    expect(checkStructural(result, DEFAULT_VALIDATION_CONFIG)).toHaveLength(0)
+  })
+
+  it('does not flag bos.last after a JSON round-trip (deserialization breaks reference equality)', () => {
+    const e1 = makeBOSEvent(10)
+    const resultBefore = makeValidResult({
+      marketStructure: makeStructure({
+        bos: { detected: true, events: [e1], last: e1 },
+        events: [e1],
+      }),
+    })
+    // Simulate Module 12 serialize → deserialize
+    const resultAfter = JSON.parse(JSON.stringify(resultBefore)) as typeof resultBefore
+    // After JSON round-trip, bos.last and bos.events[0] are different object references
+    // but structurally identical — the validator must not flag this
+    expect(checkStructural(resultAfter, DEFAULT_VALIDATION_CONFIG)).toHaveLength(0)
+  })
+
+  it('does not flag choch.last after a JSON round-trip', () => {
+    const e1 = makeCHOCHEvent(20)
+    const resultBefore = makeValidResult({
+      marketStructure: makeStructure({
+        choch: { detected: true, events: [e1], last: e1 },
+        events: [e1],
+      }),
+    })
+    const resultAfter = JSON.parse(JSON.stringify(resultBefore)) as typeof resultBefore
+    expect(checkStructural(resultAfter, DEFAULT_VALIDATION_CONFIG)).toHaveLength(0)
+  })
 })
