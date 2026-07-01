@@ -2,7 +2,7 @@
 
 ## Overall Progress
 
-`85%` — Modules 1–11 complete + Engineering Standards established. Foundation stable.
+`92%` — Modules 1–12 complete + Engineering Standards established. Foundation stable.
 
 ---
 
@@ -21,8 +21,9 @@
 | 9 | AI Writing Engine | **Complete** | Template engine; 6 output formats; critical validation gate; banned phrases enforced — 131 tests passing |
 | 10 | Analysis Pipeline Orchestrator | **Complete** | Single public entry point; orchestrates Modules 1–9; dependency-injectable fetch; typed errors; per-stage timings — 33 tests passing |
 | 11 | Historical Replay & Benchmark Engine | **Complete** | Deterministic regression framework; dot-notation comparison; markdown reports — 62 tests passing |
-| 12 | History Database | Not Started | Persists analyses, indicators, content, images |
-| 13 | Performance Tracker | Not Started | Evaluates historical analyses at 24h / 3d / 7d |
+| 12 | API Layer | **Complete** | Express REST API wrapping Module 10; 3 endpoints; PipelineError mapping; timing header — 41 tests passing |
+| 13 | History Database | Not Started | Persists analyses, indicators, content, images |
+| 14 | Performance Tracker | Not Started | Evaluates historical analyses at 24h / 3d / 7d |
 
 ---
 
@@ -188,11 +189,23 @@
 - [x] ARCHITECTURE.md Module 11 entry updated with full implementation details
 - [x] ROADMAP.md progress updated to 85%
 
+### Module 12 — API Layer ✅
+
+- [x] `types.ts` — AnalyzeFn, AnalyzeRequest, ApiErrorBody
+- [x] `config.ts` — re-exports PIPELINE_VERSION, VALID_TIMEFRAMES, MAX_CANDLE_LIMIT from canonical sources
+- [x] `middleware/validation.ts` — validateAnalyzeInput: symbol non-empty string, interval in VALID_TIMEFRAMES, candleLimit positive integer ≤ 1000, config object
+- [x] `middleware/error-handler.ts` — errorHandler: PipelineError → HTTP status map, SyntaxError body-parser detection, unknown error fallback; consistent `{ error: { code, message, module? } }` shape
+- [x] `routes.ts` — createRouter(analyzeFn): GET /health, GET /version, POST /analyze with validateAnalyzeInput and async error boundary
+- [x] `server.ts` — createApp(analyzeFn?): Express app factory with json middleware, timing middleware (X-Response-Time header), router, error handler; defaults to real analyzeMarket
+- [x] `__tests__/api.test.ts` — 41 tests: health endpoint, version endpoint, analyze success, symbol normalization, DI passthrough, timing header, Content-Type, determinism, all valid intervals, validation (12 cases), PipelineError mapping (all 5 codes), unexpected errors, malformed JSON, unknown routes
+- [x] ARCHITECTURE.md Module 12 entry added, pipeline diagram updated
+- [x] ROADMAP.md progress updated to 92%
+
 ---
 
 ## Current Task
 
-Module 12 — History Database (not yet started).
+Module 13 — History Database (not yet started).
 
 ---
 
@@ -226,10 +239,11 @@ Module 12 — History Database (not yet started).
 - [x] MODULE 9: AI Writing Engine
 - [x] MODULE 10: Analysis Pipeline Orchestrator
 - [x] MODULE 11: Historical Replay & Benchmark Engine
+- [x] MODULE 12: API Layer
 
 ### Storage & Tracking
-- [ ] MODULE 12: History Database
-- [ ] MODULE 13: Performance Tracker
+- [ ] MODULE 13: History Database
+- [ ] MODULE 14: Performance Tracker
 
 ### UI
 - [ ] Dashboard layout (navigation, coin selector, timeframe selector)

@@ -11,6 +11,53 @@ Work in progress. No released version yet.
 
 ---
 
+## [0.11.2] — 2026-07-01
+
+### Module 12 — API Layer
+
+Production-ready Express REST API wrapping Module 10. Zero analysis logic — a pure transport layer around `analyzeMarket()`.
+
+#### Added
+
+- **`src/api/types.ts`**: `AnalyzeFn` (dependency-injected pipeline function), `AnalyzeRequest` (POST /analyze body shape), `ApiErrorBody` (consistent error response shape).
+
+- **`src/api/config.ts`**: Re-exports `PIPELINE_VERSION`, `VALID_TIMEFRAMES`, and `MAX_CANDLE_LIMIT` from their canonical Module 10/1 sources. No values duplicated.
+
+- **`src/api/middleware/validation.ts`**: `validateAnalyzeInput` — Express middleware validating `symbol` (non-empty string), `interval` (VALID_TIMEFRAMES), `candleLimit` (positive integer ≤ 1000, optional), `config` (object, optional). Returns `{ error: { code: "invalid_request", message } }` on failure.
+
+- **`src/api/middleware/error-handler.ts`**: `errorHandler` — centralized Express error handler. Maps `PipelineError` codes to HTTP statuses (`configuration_error` → 400, `fetch_failure` → 404, `insufficient_candles` → 422, `validation_failure` → 422, `internal_module_failure` → 500). Detects body-parser `SyntaxError` → 400 `invalid_json`. Unknown errors → 500 `internal_error`. All responses use `{ error: { code, message, module? } }`.
+
+- **`src/api/routes.ts`**: `createRouter(analyzeFn)` — Express Router with:
+  - `GET /health` → `{ status: "ok", version: PIPELINE_VERSION }`
+  - `GET /version` → `{ version: PIPELINE_VERSION }`
+  - `POST /analyze` → validates input, calls `analyzeFn({ symbol: symbol.toUpperCase(), interval, candleLimit, config })`, returns `PipelineResult` unchanged.
+
+- **`src/api/server.ts`**: `createApp(analyzeFn?)` — Express application factory. Registers `express.json()`, timing middleware (`X-Response-Time` header via `res.json` override), router, and error handler. Defaults to real `analyzeMarket` when `analyzeFn` is omitted.
+
+- **`src/api/__tests__/api.test.ts`**: 41 tests covering:
+  - `GET /health` (status, body shape, version, X-Response-Time)
+  - `GET /version` (status, body shape, version)
+  - `POST /analyze` success (200, result passthrough, symbol uppercasing, candleLimit/config forwarding, X-Response-Time, Content-Type, determinism, all 15 valid intervals)
+  - Validation: missing symbol, empty symbol, non-string symbol, missing interval, invalid interval, zero/negative/non-integer/over-limit candleLimit, array/string config; error shape
+  - PipelineError mapping: all 5 codes to correct HTTP status; module field presence
+  - Unexpected errors: generic Error, non-Error thrown value
+  - Malformed JSON: 400 + `invalid_json` code
+  - Unknown routes: 404
+
+#### Architecture
+
+- **Pure transport**: `src/api/` imports nothing from analysis modules except `PipelineError`, `PipelineOptions`, `PipelineResult`, `PIPELINE_VERSION`, and `VALID_TIMEFRAMES`. No indicators, no market logic.
+- **DI preserved**: `createApp(analyzeFn?)` factory enables full test isolation without module mocking.
+- **Symbol normalization**: the route handler uppercases the symbol before forwarding, consistent with Module 1 behavior.
+- **Timing middleware** overrides `res.json` to set `X-Response-Time` before the response body is flushed — works for both success and error paths.
+
+#### Stats
+
+- **Tests:** 973 (↑41 from 932) across 58 files — all pass.
+- **TypeScript errors:** 0.
+
+---
+
 ## [0.11.1] — 2026-07-01
 
 ### Module 11 — Historical Replay & Benchmark Engine

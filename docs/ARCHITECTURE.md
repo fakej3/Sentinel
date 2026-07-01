@@ -50,8 +50,12 @@ MODULE 9 — AI Writing Engine
   Receives validated JSON only — writes, never invents
         │
         ▼
-MODULE 10 — Content Generator
-  Produces multiple output styles from the same analysis
+MODULE 10 — Analysis Pipeline Orchestrator
+  Single public entry point — orchestrates Modules 1–9
+        │
+        ▼
+MODULE 12 — API Layer
+  REST API transport wrapping analyzeMarket() — no analysis logic
         │
         ▼
 Binance Square Ready Post
@@ -181,9 +185,21 @@ Binance Square Ready Post
 - Source: `src/modules/benchmark/`. Files: `types.ts`, `config.ts`, `compare.ts`, `metrics.ts`, `replay.ts`, `report.ts`, `index.ts`.
 - 62 tests passing (1 test file). Dataset fixtures in `test-fixtures/`. Documentation in `docs/BENCHMARKING.md`.
 
-### MODULE 12 — History Database
-- Persists every completed analysis.
-- Stores: coin, timeframe, timestamp, indicators, confidence, content, image.
+### MODULE 12 — API Layer
+- **Transport layer only** — zero analysis logic, zero indicator calculations, zero pipeline duplication.
+- Wraps `analyzeMarket()` (Module 10) in a production-ready Express REST API.
+- Three endpoints:
+  - `GET /health` → `{ status: "ok", version: "0.11.0" }`
+  - `GET /version` → `{ version: "0.11.0" }`
+  - `POST /analyze` → accepts `{ symbol, interval, candleLimit?, config? }`, calls `analyzeMarket()`, returns the complete `PipelineResult` unchanged.
+- Input validation middleware: `symbol` non-empty string, `interval` in `VALID_TIMEFRAMES`, `candleLimit` positive integer ≤ 1000, `config` object if provided.
+- Centralized error handler maps `PipelineError` codes to HTTP status codes: `configuration_error` → 400, `fetch_failure` → 404, `insufficient_candles` → 422, `validation_failure` → 422, `internal_module_failure` → 500. Malformed JSON → 400. Unknown errors → 500.
+- Timing middleware adds `X-Response-Time` header to every response.
+- Consistent error response shape: `{ error: { code, message, module? } }`.
+- Dependency injection preserved: `createApp(analyzeFn?)` accepts an optional `AnalyzeFn` for testing without network calls.
+- Public API: `createApp(analyzeFn?: AnalyzeFn): express.Application`.
+- Source: `src/api/`. Files: `types.ts`, `config.ts`, `routes.ts`, `server.ts`, `middleware/validation.ts`, `middleware/error-handler.ts`.
+- 41 tests passing (1 test file).
 
 ### MODULE 13 — Performance Tracker
 - Evaluates historical analyses against actual price movement.

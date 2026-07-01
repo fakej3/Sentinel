@@ -1163,4 +1163,89 @@ All errors are instances of `PipelineError` (extends `Error`) with `code`, `modu
 
 `metadata.timings` contains wall-clock milliseconds for each stage and a `total` covering the full `analyzeMarket` call including input validation.
 
-*Last updated: Module 10 — Analysis Pipeline Orchestrator (v0.11.0)*
+---
+
+## §18 API Layer Rules
+
+Module 12 (`src/api/`) is a pure transport layer. It exposes Module 10's `analyzeMarket()` over HTTP and contains zero analysis logic.
+
+### 18.1 Endpoints
+
+| Method | Path | Description |
+|--------|------|-------------|
+| `GET` | `/health` | Liveness check. Returns `{ "status": "ok", "version": "<PIPELINE_VERSION>" }`. |
+| `GET` | `/version` | Returns `{ "version": "<PIPELINE_VERSION>" }`. |
+| `POST` | `/analyze` | Calls `analyzeMarket()` and returns the complete `PipelineResult` unchanged. |
+
+### 18.2 POST /analyze Request Schema
+
+```json
+{
+  "symbol":      "BTCUSDT",       // required — non-empty string (uppercased before forwarding)
+  "interval":    "1h",            // required — must be in VALID_TIMEFRAMES
+  "candleLimit": 200,             // optional — integer 1–1000
+  "config":      {}               // optional — object (Partial<PipelineConfig>)
+}
+```
+
+### 18.3 Input Validation Rules
+
+| Field | Rule | HTTP on failure |
+|-------|------|-----------------|
+| `symbol` | Non-empty string | 400 `invalid_request` |
+| `interval` | Value in `VALID_TIMEFRAMES` | 400 `invalid_request` |
+| `candleLimit` | Integer, 1 ≤ n ≤ 1000, or absent | 400 `invalid_request` |
+| `config` | Object (not null, not array), or absent | 400 `invalid_request` |
+| Body | Valid JSON | 400 `invalid_json` |
+
+### 18.4 PipelineError → HTTP Status Map
+
+| PipelineErrorCode | HTTP Status | Meaning |
+|-------------------|-------------|---------|
+| `configuration_error` | 400 | Caller sent invalid options |
+| `fetch_failure` | 404 | Symbol not found / data unavailable |
+| `insufficient_candles` | 422 | Too few candles for the pipeline |
+| `validation_failure` | 422 | Semantic validation failure |
+| `internal_module_failure` | 500 | Unexpected module crash |
+| Unknown error | 500 | Unhandled exception |
+
+### 18.5 Error Response Shape
+
+Every error response (4xx and 5xx) uses the same shape:
+
+```json
+{
+  "error": {
+    "code":    "fetch_failure",
+    "message": "Failed to fetch market data for FAKEUSDT: 400 Bad Request",
+    "module":  "binance"
+  }
+}
+```
+
+`module` is omitted for non-`PipelineError` errors.
+
+### 18.6 Response Headers
+
+`X-Response-Time` is added to every response (e.g. `"42ms"`). It covers the full wall-clock time from request receipt to response flush.
+
+### 18.7 Transport Rules
+
+- **No analysis logic**: the API must not perform any market calculations.
+- **No pipeline duplication**: every analysis path goes through `analyzeMarket()`.
+- **Symbol normalization**: the route handler uppercases the symbol before forwarding.
+- **PipelineResult passthrough**: `POST /analyze` returns `res.json(result)` where `result` is the unmodified `PipelineResult`.
+- **Dependency injection preserved**: `createApp(analyzeFn?)` accepts a mock `AnalyzeFn` for testing without network access.
+
+### 18.8 Dependency Injection
+
+`createApp` accepts an optional `AnalyzeFn`:
+
+```typescript
+type AnalyzeFn = (options: PipelineOptions) => Promise<PipelineResult>
+export function createApp(analyzeFn?: AnalyzeFn): express.Application
+```
+
+When omitted, the real `analyzeMarket` from Module 10 is used. Tests inject a mock.
+
+*Last updated: Module 12 — API Layer (v0.11.1)*

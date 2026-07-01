@@ -425,7 +425,7 @@ Real-market reference datasets are planned but not yet created. When introduced:
 The full test suite must pass on every commit to a feature branch and on every
 pull request to `main`.
 
-Current suite: **932 tests across 57 test files** (as of v0.11.0).
+Current suite: **973 tests across 58 test files** (as of v0.11.1).
 
 CI command: `npm test` (`vitest run && tsc -b tsconfig.app.json --noEmit`).
 
@@ -434,4 +434,4 @@ converted to pending issues in `KNOWN_LIMITATIONS.md`.
 
 ---
 
-*Last updated: Module 11 — Historical Replay & Benchmark Engine (v0.11.0)*
+*Last updated: Module 12 — API Layer (v0.11.1)*
