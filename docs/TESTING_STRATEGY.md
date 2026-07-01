@@ -425,7 +425,7 @@ Real-market reference datasets are planned but not yet created. When introduced:
 The full test suite must pass on every commit to a feature branch and on every
 pull request to `main`.
 
-Current suite: **834 tests across 55 test files** (as of v0.10.4).
+Current suite: **837 tests across 55 test files** (as of v0.10.5).
 
 CI command: `npm test` (`vitest run`).
 

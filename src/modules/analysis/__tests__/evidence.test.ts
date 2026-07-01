@@ -169,4 +169,44 @@ describe('collectEvidence', () => {
     const items2 = getEvidence(100, ind, s)
     expect(items1).toEqual(items2)
   })
+
+  // ── Regression: CRIT-001 — breakout.detected did not exist on BreakoutResult;
+  // accessing it returned undefined (falsy), silently suppressing these items.
+
+  it('emits "Breakout confirmed" when breakout.confirmed is true (regression: CRIT-001)', () => {
+    const structure = {
+      ...emptyStructure(),
+      breakout: { confirmed: true, failed: false, level: 105, direction: 'bullish' as const },
+    }
+    const items = getEvidence(100, indicators(), structure)
+    const found = items.find(e => e.factor === 'Breakout confirmed')
+    expect(found).toBeDefined()
+    expect(found?.direction).toBe('bullish')
+    expect(found?.impact).toBe('high')
+  })
+
+  it('emits "Failed breakout" when breakout.failed is true (regression: CRIT-001)', () => {
+    const structure = {
+      ...emptyStructure(),
+      breakout: { confirmed: false, failed: true, level: 105, direction: null },
+    }
+    const items = getEvidence(100, indicators(), structure)
+    const found = items.find(e => e.factor === 'Failed breakout')
+    expect(found).toBeDefined()
+    expect(found?.impact).toBe('medium')
+  })
+
+  // ── Regression: CRIT-002 — pullback.active did not exist on PullbackResult;
+  // the correct field is pullback.detected.
+
+  it('emits "Active pullback" when pullback.detected is true (regression: CRIT-002)', () => {
+    const structure = {
+      ...emptyStructure(),
+      pullback: { detected: true, depth: 0.38 },
+    }
+    const items = getEvidence(100, indicators(), structure)
+    const found = items.find(e => e.factor === 'Active pullback')
+    expect(found).toBeDefined()
+    expect(found?.impact).toBe('medium')
+  })
 })

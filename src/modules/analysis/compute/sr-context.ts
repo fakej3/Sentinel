@@ -1,4 +1,4 @@
-import type { PriceZone, SupportResistanceResult } from '../../support-resistance/types'
+import type { SupportResistanceResult } from '../../support-resistance/types'
 import type { AnalysisConfig, SRContextResult } from '../types'
 
 export function deriveSRContext(

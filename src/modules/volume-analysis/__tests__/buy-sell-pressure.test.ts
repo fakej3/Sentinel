@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { computeBuySellPressure } from '../compute/buy-sell-pressure'
 import { DEFAULT_CONFIG } from '../config'
-import { candle, flatCandles } from './helpers'
+import { candle } from './helpers'
 
 describe('computeBuySellPressure', () => {
   it('sums takerBuyVolume and takerSellVolume over the pressure window', () => {

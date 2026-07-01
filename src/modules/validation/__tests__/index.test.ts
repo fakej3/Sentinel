@@ -1,6 +1,5 @@
 import { describe, it, expect } from 'vitest'
 import { validateAnalysis } from '../index'
-import { DEFAULT_VALIDATION_CONFIG } from '../config'
 import {
   makeValidResult, makeFullTrend, makeTrendConditions, makeEvidence,
   makeStructure, makeSupportResistance, makePriceZone,
@@ -34,9 +33,9 @@ describe('validateAnalysis', () => {
     // Produce only a warning: no high-impact evidence, with 3 medium-impact items
     const result = makeValidResult({
       evidence: makeEvidence([
-        { factor: 'MACD bullish bias', impact: 'medium', description: 'ok', source: 'indicators' },
-        { factor: 'ADX above 25', impact: 'medium', description: 'ok', source: 'indicators' },
-        { factor: 'RSI neutral', impact: 'medium', description: 'ok', source: 'indicators' },
+        { factor: 'MACD bullish bias', impact: 'medium', description: 'ok', source: 'indicators', direction: 'bullish' },
+        { factor: 'ADX above 25', impact: 'medium', description: 'ok', source: 'indicators', direction: 'neutral' },
+        { factor: 'RSI neutral', impact: 'medium', description: 'ok', source: 'indicators', direction: 'neutral' },
       ]),
     })
     const vr = validateAnalysis(result, { minHighImpactEvidence: 1 })
@@ -49,9 +48,9 @@ describe('validateAnalysis', () => {
   it('returns passed:false with failOnWarning:true when warnings are present', () => {
     const result = makeValidResult({
       evidence: makeEvidence([
-        { factor: 'MACD bullish bias', impact: 'medium', description: 'ok', source: 'indicators' },
-        { factor: 'ADX above 25', impact: 'medium', description: 'ok', source: 'indicators' },
-        { factor: 'RSI neutral', impact: 'medium', description: 'ok', source: 'indicators' },
+        { factor: 'MACD bullish bias', impact: 'medium', description: 'ok', source: 'indicators', direction: 'bullish' },
+        { factor: 'ADX above 25', impact: 'medium', description: 'ok', source: 'indicators', direction: 'neutral' },
+        { factor: 'RSI neutral', impact: 'medium', description: 'ok', source: 'indicators', direction: 'neutral' },
       ]),
     })
     const vr = validateAnalysis(result, { failOnWarning: true, minHighImpactEvidence: 1 })
@@ -64,9 +63,9 @@ describe('validateAnalysis', () => {
     const result = makeValidResult({
       price: { current: 0, change24hPercent: 0, high24h: 0, low24h: 0, atrPercent: null },
       evidence: makeEvidence([
-        { factor: 'MACD bullish bias', impact: 'medium', description: 'ok', source: 'indicators' },
-        { factor: 'ADX above 25', impact: 'medium', description: 'ok', source: 'indicators' },
-        { factor: 'RSI neutral', impact: 'medium', description: 'ok', source: 'indicators' },
+        { factor: 'MACD bullish bias', impact: 'medium', description: 'ok', source: 'indicators', direction: 'bullish' },
+        { factor: 'ADX above 25', impact: 'medium', description: 'ok', source: 'indicators', direction: 'neutral' },
+        { factor: 'RSI neutral', impact: 'medium', description: 'ok', source: 'indicators', direction: 'neutral' },
       ]),
     })
     const vr = validateAnalysis(result, { minHighImpactEvidence: 1 })

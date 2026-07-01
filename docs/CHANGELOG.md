@@ -11,6 +11,45 @@ Work in progress. No released version yet.
 
 ---
 
+## [0.10.5] — 2026-07-01
+
+### Sprint 3 — Audit Remediation (TypeScript + Production Readiness)
+
+Addressed all findings from PROJECT AUDIT v0.3. No new functionality added.
+
+#### Fixed (Production)
+
+- **`src/modules/analysis/compute/evidence.ts`**: CRIT-001 — `breakout.detected` (nonexistent on `BreakoutResult`) replaced with `breakout.confirmed` for the "Breakout confirmed" evidence item and `breakout.failed` for the "Failed breakout" evidence item. Both items were silently suppressed before this fix regardless of market conditions.
+
+- **`src/modules/analysis/compute/evidence.ts`**: CRIT-002 — `pullback.active` (nonexistent on `PullbackResult`) replaced with `pullback.detected`. The "Active pullback" evidence item was silently suppressed before this fix.
+
+- **`src/modules/analysis/compute/sr-context.ts`**: Removed unused `PriceZone` import flagged by `noUnusedLocals`.
+
+#### Fixed (Test Files — TypeScript Errors)
+
+- **`src/modules/confidence/__tests__/confidence.test.ts`**: Added missing `import type { EvidenceDirection }` from analysis types. The type was used in a parameterised test array but not imported.
+
+- **`src/modules/validation/__tests__/completeness.test.ts`**: Added `direction` field to all raw `EvidenceItem` literals (9 occurrences). Missing field was introduced when `direction` was added to `EvidenceItem` in v0.10.4 without updating these tests.
+
+- **`src/modules/validation/__tests__/index.test.ts`**: Added `direction` field to all raw `EvidenceItem` literals (9 occurrences). Removed unused `DEFAULT_VALIDATION_CONFIG` import.
+
+- **`src/modules/validation/__tests__/consistency.test.ts`**: Removed unused `makeVolumeAnalysis` import.
+
+- **`src/modules/volume-analysis/__tests__/buy-sell-pressure.test.ts`**: Removed unused `flatCandles` import.
+
+#### Added
+
+- **`src/modules/analysis/__tests__/evidence.test.ts`**: 3 regression tests — "emits Breakout confirmed when breakout.confirmed is true", "emits Failed breakout when breakout.failed is true", "emits Active pullback when pullback.detected is true". Each test would fail on the pre-fix code and passes on the fixed code.
+
+- **`package.json`**: `"typecheck": "tsc -b tsconfig.app.json --noEmit"` script. Updated `"test"` to run `vitest run && tsc -b tsconfig.app.json --noEmit`, ensuring TypeScript type errors always fail CI. CRIT-003 resolved.
+
+#### Stats
+
+- **Tests:** 837 (↑3 from 834) across 55 files — all pass.
+- **TypeScript errors:** 0 (↓ from 27).
+
+---
+
 ## [0.10.4] — 2026-07-01
 
 ### Module 9 — AI Writing Engine

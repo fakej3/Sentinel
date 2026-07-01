@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest'
 import { checkConsistency } from '../validate/consistency'
 import { DEFAULT_VALIDATION_CONFIG } from '../config'
 import {
-  makeValidResult, makeIndicators, makeStructure, makeVolumeAnalysis,
+  makeValidResult, makeIndicators, makeStructure,
   makeTrendConditions, makeFullTrend, makeSupportResistance, makePriceZone,
 } from './helpers'
 

@@ -39,7 +39,7 @@ describe('checkCompleteness', () => {
 
   it('returns a critical issue when evidence has fewer than minEvidenceItems', () => {
     const result = makeValidResult({ evidence: makeEvidence([
-      { factor: 'Price above EMA200', impact: 'high', description: 'ok', source: 'indicators' },
+      { factor: 'Price above EMA200', impact: 'high', description: 'ok', source: 'indicators', direction: 'bullish' },
     ]) })
     const cfg = { ...DEFAULT_VALIDATION_CONFIG, minEvidenceItems: 3 }
     const issues = checkCompleteness(result, cfg)
@@ -48,9 +48,9 @@ describe('checkCompleteness', () => {
 
   it('does not flag evidence when count equals minEvidenceItems exactly', () => {
     const result = makeValidResult({ evidence: makeEvidence([
-      { factor: 'Price above EMA200', impact: 'high', description: 'ok', source: 'indicators' },
-      { factor: 'Higher High confirmed', impact: 'high', description: 'ok', source: 'market_structure' },
-      { factor: 'MACD bullish bias', impact: 'medium', description: 'ok', source: 'indicators' },
+      { factor: 'Price above EMA200', impact: 'high', description: 'ok', source: 'indicators', direction: 'bullish' },
+      { factor: 'Higher High confirmed', impact: 'high', description: 'ok', source: 'market_structure', direction: 'bullish' },
+      { factor: 'MACD bullish bias', impact: 'medium', description: 'ok', source: 'indicators', direction: 'bullish' },
     ]) })
     const cfg = { ...DEFAULT_VALIDATION_CONFIG, minEvidenceItems: 3 }
     const issues = checkCompleteness(result, cfg)
@@ -59,9 +59,9 @@ describe('checkCompleteness', () => {
 
   it('returns a warning when high-impact evidence count is below minHighImpactEvidence', () => {
     const result = makeValidResult({ evidence: makeEvidence([
-      { factor: 'MACD bullish bias', impact: 'medium', description: 'ok', source: 'indicators' },
-      { factor: 'ADX above 25', impact: 'medium', description: 'ok', source: 'indicators' },
-      { factor: 'RSI neutral', impact: 'low', description: 'ok', source: 'indicators' },
+      { factor: 'MACD bullish bias', impact: 'medium', description: 'ok', source: 'indicators', direction: 'bullish' },
+      { factor: 'ADX above 25', impact: 'medium', description: 'ok', source: 'indicators', direction: 'neutral' },
+      { factor: 'RSI neutral', impact: 'low', description: 'ok', source: 'indicators', direction: 'neutral' },
     ]) })
     const cfg = { ...DEFAULT_VALIDATION_CONFIG, minHighImpactEvidence: 1 }
     const issues = checkCompleteness(result, cfg)
@@ -70,9 +70,9 @@ describe('checkCompleteness', () => {
 
   it('does not emit high-impact warning when minHighImpactEvidence is 0', () => {
     const result = makeValidResult({ evidence: makeEvidence([
-      { factor: 'MACD bullish bias', impact: 'medium', description: 'ok', source: 'indicators' },
-      { factor: 'ADX above 25', impact: 'medium', description: 'ok', source: 'indicators' },
-      { factor: 'RSI neutral', impact: 'low', description: 'ok', source: 'indicators' },
+      { factor: 'MACD bullish bias', impact: 'medium', description: 'ok', source: 'indicators', direction: 'bullish' },
+      { factor: 'ADX above 25', impact: 'medium', description: 'ok', source: 'indicators', direction: 'neutral' },
+      { factor: 'RSI neutral', impact: 'low', description: 'ok', source: 'indicators', direction: 'neutral' },
     ]) })
     const cfg = { ...DEFAULT_VALIDATION_CONFIG, minHighImpactEvidence: 0 }
     expect(checkCompleteness(result, cfg)).toHaveLength(0)

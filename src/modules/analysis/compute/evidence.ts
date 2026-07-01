@@ -119,18 +119,18 @@ export function collectEvidence(
       `Price consolidated within ${marketStructure.consolidation.rangePercent?.toFixed(2) ?? '?'}% range over ${marketStructure.consolidation.barsInRange} bars`,
       'market_structure', 'neutral'))
   }
-  if (marketStructure.breakout.detected && marketStructure.breakout.confirmed) {
+  if (marketStructure.breakout.confirmed) {
     const breakoutDir: EvidenceItem['direction'] = marketStructure.breakout.direction === 'bearish' ? 'bearish' : 'bullish'
     items.push(item('Breakout confirmed', 'high',
       `Confirmed ${marketStructure.breakout.direction ?? ''} breakout at ${marketStructure.breakout.level?.toFixed(2) ?? '?'}`,
       'market_structure', breakoutDir))
   }
-  if (marketStructure.breakout.detected && !marketStructure.breakout.confirmed) {
+  if (marketStructure.breakout.failed) {
     items.push(item('Failed breakout', 'medium',
       `Breakout attempted at ${marketStructure.breakout.level?.toFixed(2) ?? '?'} but reversed — trap signal`,
       'market_structure', 'neutral'))
   }
-  if (marketStructure.pullback.active) {
+  if (marketStructure.pullback.detected) {
     items.push(item('Active pullback', 'medium',
       `Pullback in progress — depth ratio ${marketStructure.pullback.depth?.toFixed(2) ?? '?'}`,
       'market_structure', 'neutral'))

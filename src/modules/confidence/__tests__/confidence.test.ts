@@ -4,6 +4,7 @@ import { DEFAULT_CONFIDENCE_CONFIG } from '../config'
 import { scoreToGrade } from '../compute/grade'
 import { scoreEvidence, normalize } from '../compute/score'
 import { ev, makeAnalysis, cleanValidation, validationWithWarnings, validationWithCriticals, validationWithBoth } from './helpers'
+import type { EvidenceDirection } from '../../analysis/types'
 
 const cfg = DEFAULT_CONFIDENCE_CONFIG
 
