@@ -1,0 +1,17 @@
+{
+  "_comment": "Format illustration only. These values are NOT derived from the 5-candle sample dataset above — they are placeholders showing the expected output structure. Generate real expected values by running runBenchmark({ dataset, expected: {} }) and capturing result.analysis fields.",
+  "metadata.symbol": "BTCUSDT",
+  "metadata.interval": "1h",
+  "metadata.candleCount": 200,
+  "metadata.version": "0.11.0",
+  "analysis.fullTrend.trend": "strong bullish",
+  "analysis.indicatorSummary.rsi.classification": "neutral",
+  "analysis.emaContext.emaAlignment": "bullish_stack",
+  "analysis.marketStructure.trend": "bullish",
+  "confidence.grade": "moderate",
+  "confidence.score": 5.2,
+  "validation.passed": true,
+  "validation.criticalCount": 0,
+  "validation.warningCount": 0,
+  "generatedAnalysis.headline": "BTC holds key support level"
+}

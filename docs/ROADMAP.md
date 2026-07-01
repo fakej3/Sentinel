@@ -2,7 +2,7 @@
 
 ## Overall Progress
 
-`77%` — Modules 1–10 complete + Engineering Standards established. Foundation stable.
+`85%` — Modules 1–11 complete + Engineering Standards established. Foundation stable.
 
 ---
 
@@ -20,7 +20,7 @@
 | 8 | Confidence Engine | **Complete** | Evidence-weighted scoring system (0–10) — 80 tests passing |
 | 9 | AI Writing Engine | **Complete** | Template engine; 6 output formats; critical validation gate; banned phrases enforced — 131 tests passing |
 | 10 | Analysis Pipeline Orchestrator | **Complete** | Single public entry point; orchestrates Modules 1–9; dependency-injectable fetch; typed errors; per-stage timings — 33 tests passing |
-| 11 | Image Generator | Not Started | Summary cards, S/R diagrams, indicator tables |
+| 11 | Historical Replay & Benchmark Engine | **Complete** | Deterministic regression framework; dot-notation comparison; markdown reports — 62 tests passing |
 | 12 | History Database | Not Started | Persists analyses, indicators, content, images |
 | 13 | Performance Tracker | Not Started | Evaluates historical analyses at 24h / 3d / 7d |
 
@@ -160,11 +160,39 @@
 - [x] ARCHITECTURE.md Module 9 entry updated with full implementation details
 - [x] ROADMAP.md progress updated to 69%
 
+### Module 10 — Analysis Pipeline Orchestrator ✅
+
+- [x] `types.ts` — PipelineErrorCode, PipelineTimings, PipelineMetadata, PipelineResult, PipelineConfig, FetchFn, PipelineOptions
+- [x] `config.ts` — PIPELINE_VERSION ('0.11.0'), DEFAULT_PIPELINE_CONFIG (minCandleCount: 50, all module configs: {})
+- [x] `index.ts` — analyzeMarket (public API); PipelineError class (code, module, reason, cause); sequential 9-stage orchestration; per-stage wall-clock timings; upfront input validation; typed error boundaries for every module call
+- [x] `__tests__/helpers.ts` — makeCandles(count, basePrice) (sin/cos synthetic generator), mockFetch(candles, fetchedAt), failingFetch(message)
+- [x] 33 unit tests passing across 1 test file
+- [x] CHANGELOG.md entry for v0.11.0 (Module 10)
+- [x] ROADMAP.md progress updated to 77%
+
+### Module 11 — Historical Replay & Benchmark Engine ✅
+
+- [x] `types.ts` — BenchmarkDataset, ExpectedOutput, ABSENT sentinel, DiffStatus, DiffSeverity, FieldComparison, BenchmarkMetrics, BenchmarkTimings, BenchmarkResult, ComparisonConfig, BenchmarkOptions
+- [x] `config.ts` — DEFAULT_COMPARISON_CONFIG (numericTolerance: 0.001, ignoredPaths: timestamps/timings/IDs)
+- [x] `compare.ts` — compareOutputs(); resolvePath() (dot-notation + array .length); valuesEqual() (numeric tolerance, array recursion, primitive equality); ABSENT sentinel → EXTRA/PASS
+- [x] `metrics.ts` — computeMetrics(); accuracy = (passedFields / totalFields) × 100; 100.0 when empty
+- [x] `replay.ts` — replayDataset(); builds Ticker24h from candles; calls analyzeMarket with fetchImpl DI; no network I/O
+- [x] `report.ts` — generateReport(); markdown report with pass/fail, score, per-stage timings, differences table
+- [x] `index.ts` — runBenchmark (public API); buildSummary(); re-exports all types, config, compare, metrics, replay, report
+- [x] `__tests__/helpers.ts` — makeCandles(), makeDataset(), makeMockResult(), standardMockResult(), expectedFromResult()
+- [x] `__tests__/benchmark.test.ts` — 62 tests (compare engine, metrics, replay, report, runBenchmark integration, ABSENT sentinel, tolerance, determinism)
+- [x] `test-fixtures/README.md` — dataset format docs, how to add datasets, best practices
+- [x] `test-fixtures/sample/dataset.json` — 5-candle format illustration
+- [x] `test-fixtures/sample/expected.json` — expected output format illustration
+- [x] `docs/BENCHMARKING.md` — public documentation (public API, dataset format, expected format, comparison results, tolerance, regression detection, report generation, architecture, source)
+- [x] ARCHITECTURE.md Module 11 entry updated with full implementation details
+- [x] ROADMAP.md progress updated to 85%
+
 ---
 
 ## Current Task
 
-Module 10 — Content Generator (not yet started).
+Module 12 — History Database (not yet started).
 
 ---
 
@@ -196,8 +224,8 @@ Module 10 — Content Generator (not yet started).
 
 ### Output Layer
 - [x] MODULE 9: AI Writing Engine
-- [ ] MODULE 10: Content Generator (multiple styles)
-- [ ] MODULE 11: Image Generator
+- [x] MODULE 10: Analysis Pipeline Orchestrator
+- [x] MODULE 11: Historical Replay & Benchmark Engine
 
 ### Storage & Tracking
 - [ ] MODULE 12: History Database

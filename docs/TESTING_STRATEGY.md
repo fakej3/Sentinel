@@ -425,13 +425,13 @@ Real-market reference datasets are planned but not yet created. When introduced:
 The full test suite must pass on every commit to a feature branch and on every
 pull request to `main`.
 
-Current suite: **870 tests across 56 test files** (as of v0.11.0).
+Current suite: **932 tests across 57 test files** (as of v0.11.0).
 
-CI command: `npm test` (`vitest run`).
+CI command: `npm test` (`vitest run && tsc -b tsconfig.app.json --noEmit`).
 
 No test may be skipped (`.skip`) in merged code. Skipped tests must be removed or
 converted to pending issues in `KNOWN_LIMITATIONS.md`.
 
 ---
 
-*Last updated: Module 9 — AI Writing Engine (v0.10.4)*
+*Last updated: Module 11 — Historical Replay & Benchmark Engine (v0.11.0)*

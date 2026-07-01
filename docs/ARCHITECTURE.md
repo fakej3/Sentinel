@@ -165,9 +165,21 @@ Binance Square Ready Post
 - Source: `src/modules/pipeline/`. Files: `types.ts`, `config.ts`, `index.ts`.
 - 33 tests passing (1 test file). Version `0.11.0`.
 
-### MODULE 11 — Image Generator
-- Generates visual cards from structured analysis data.
-- Types: Market Summary Card, S/R Diagram, Indicator Table, Trend Summary.
+### MODULE 11 — Historical Replay & Benchmark Engine
+- **Deterministic validation framework** for the analysis engine — not a trading strategy backtester.
+- Answers the question: "Did the same market data produce the same analysis as before?"
+- Accepts a `BenchmarkDataset` (symbol, interval, candles) and an `ExpectedOutput` (dot-notation paths → expected values).
+- Replays the dataset through the full Module 10 pipeline via dependency-injected `fetchImpl` — no network calls.
+- Compares actual `PipelineResult` against expected values using a dot-notation path resolver that supports nested objects, array `.length`, and the `'$absent'` sentinel (assert a field must NOT exist).
+- Produces `FieldComparison[]` with `PASS / FAIL / MISSING / EXTRA` status per field.
+- Computes `BenchmarkMetrics`: accuracy (0–100%), per-status counts, and per-stage timings.
+- Generates markdown benchmark reports via `generateReport(result)`: pass/fail, score, timing breakdown, all mismatched fields with expected vs actual.
+- `passed = (failedFields === 0 && missingFields === 0)`.
+- No file I/O — dataset loading is fully dependency-injected; callers provide the dataset object.
+- Public API: `runBenchmark(options): Promise<BenchmarkResult>`, `generateReport(result): string`.
+- Configuration: `ComparisonConfig` (`numericTolerance: 0.001`, `ignoredPaths`: timestamps, timings, generated IDs).
+- Source: `src/modules/benchmark/`. Files: `types.ts`, `config.ts`, `compare.ts`, `metrics.ts`, `replay.ts`, `report.ts`, `index.ts`.
+- 62 tests passing (1 test file). Dataset fixtures in `test-fixtures/`. Documentation in `docs/BENCHMARKING.md`.
 
 ### MODULE 12 — History Database
 - Persists every completed analysis.

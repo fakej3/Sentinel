@@ -11,6 +11,52 @@ Work in progress. No released version yet.
 
 ---
 
+## [0.11.1] — 2026-07-01
+
+### Module 11 — Historical Replay & Benchmark Engine
+
+Deterministic regression framework for the Sentinel analysis engine. Replays historical OHLCV datasets through the full Module 10 pipeline and compares outputs against pinned expected values.
+
+#### Added
+
+- **`src/modules/benchmark/types.ts`**: `BenchmarkDataset`, `ExpectedOutput`, `ABSENT` sentinel (`'$absent'`), `DiffStatus` (`PASS | FAIL | MISSING | EXTRA`), `DiffSeverity`, `FieldComparison`, `BenchmarkMetrics`, `BenchmarkTimings`, `BenchmarkResult`, `ComparisonConfig`, `BenchmarkOptions`.
+
+- **`src/modules/benchmark/config.ts`**: `DEFAULT_COMPARISON_CONFIG` — `numericTolerance: 0.001`, `ignoredPaths` (timestamps, all timing sub-fields, generated IDs, `analysis.analysedAt`).
+
+- **`src/modules/benchmark/compare.ts`**: `compareOutputs(actual, expected, config)` — dot-notation path resolver supports arbitrary nesting and array `.length`; `valuesEqual()` handles numeric tolerance, recursive array comparison, and primitive equality; `ABSENT` sentinel maps to `EXTRA` (field present) or `PASS` (field absent).
+
+- **`src/modules/benchmark/metrics.ts`**: `computeMetrics(comparisons, timings)` — per-status field counts, `accuracy = (passedFields / totalFields) × 100`, `100.0` when no assertions given.
+
+- **`src/modules/benchmark/replay.ts`**: `replayDataset(dataset, pipelineConfig?)` — builds `Ticker24h` from candles via `reduce`, calls `analyzeMarket` with `fetchImpl` returning dataset data. No file I/O, no network calls.
+
+- **`src/modules/benchmark/report.ts`**: `generateReport(result)` — markdown report with overall pass/fail, score, per-stage timing breakdown, and a differences section listing every `FAIL` and `MISSING` field with expected vs actual values.
+
+- **`src/modules/benchmark/index.ts`**: `runBenchmark(options): Promise<BenchmarkResult>` — public entry point. Orchestrates replay → compare → metrics → summary. Re-exports all types, config, and sub-functions.
+
+- **`src/modules/benchmark/__tests__/helpers.ts`**: `makeCandles(count, basePrice)`, `makeDataset(count, opts)`, `makeMockResult(shape)`, `standardMockResult()`, `expectedFromResult(result)`.
+
+- **`src/modules/benchmark/__tests__/benchmark.test.ts`**: 62 tests covering — comparison engine (PASS/FAIL/MISSING/EXTRA/ABSENT sentinel, dot-notation resolution, array `.length`, numeric tolerance, array comparison, ignored paths), metrics (accuracy, empty set, all-fail, all-pass, mixed), replay (DI fetchImpl, dataset passthrough, result shape), report (section presence, timing display, diff section), `runBenchmark` integration (full success, empty expected, schema completeness), and determinism.
+
+- **`test-fixtures/README.md`**: format documentation, how to add datasets, best practices.
+- **`test-fixtures/sample/dataset.json`**: 5-candle format illustration (not a real benchmark dataset).
+- **`test-fixtures/sample/expected.json`**: expected output format illustration with `_comment` field.
+- **`docs/BENCHMARKING.md`**: public documentation covering public API, dataset format, expected output format, comparison results, numeric tolerance, adding new datasets, regression detection, report generation, architecture diagram, and source file index.
+
+#### Architecture
+
+- **Not a backtester**: Module 11 validates whether the analysis engine produces stable, deterministic output for a fixed dataset — it does not evaluate trading strategy profitability.
+- **No file I/O**: Dataset objects are passed directly by callers. The module never reads from disk or network.
+- **Fully deterministic**: The same dataset + expected always produces the same comparisons (timing fields auto-excluded).
+- **`$absent` sentinel**: JSON-serializable string sentinel (not a Symbol) allows fixture files to assert that a field must NOT exist in the output.
+- **Re-export-only pattern**: `generateReport` is re-exported from `index.ts` without a local import, avoiding `noUnusedLocals` errors for functions not called by `runBenchmark` itself.
+
+#### Stats
+
+- **Tests:** 932 (↑62 from 870) across 57 files — all pass.
+- **TypeScript errors:** 0.
+
+---
+
 ## [0.11.0] — 2026-07-01
 
 ### Module 10 — Analysis Pipeline Orchestrator
