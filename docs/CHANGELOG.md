@@ -11,6 +11,38 @@ Work in progress. No released version yet.
 
 ---
 
+## [0.10.4] — 2026-07-01
+
+### Module 9 — AI Writing Engine
+
+New module implementing the template-based report generation layer per ENGINE_RULES.md §16.
+All 834 tests pass (131 new tests added). No changes to existing modules.
+
+#### Added
+
+- **`src/modules/writer/types.ts`**: `WriterTemplate` (6 values: full, executive, summary, bullet, headline, social), `WriterVerbosity`, `WriterInput` (wraps MarketAnalysisResult + ValidationResult + ConfidenceResult), `WriterMetadata`, `GeneratedAnalysis` (11 named section fields + fullReport + metadata), `WriterConfig`.
+
+- **`src/modules/writer/config.ts`**: `DEFAULT_WRITER_CONFIG` — template: 'full', verbosity: 'standard', maxSummaryLength: 600, maxReportLength: 4000, includeValidationSection/includeConfidenceSection/includeWarnings: true, maxReasonsDisplayed: 3, maxRiskFactors: 3.
+
+- **`src/modules/writer/sections.ts`**: 12 builder functions — `buildHeadline` (`SYMBOL TF: trend — Confidence N.N/10 @ price`), `buildSummary` (confidence-grade-driven opener + truncated to maxSummaryLength), `buildTrendSection` (trend label + EMA alignment + per-EMA labels + confluence zones + ATR), `buildIndicatorSection` (RSI + MACD + ADX + Bollinger + StochRSI), `buildMarketStructureSection` (trend + BOS/CHoCH + consolidation + breakout + pullback), `buildSupportResistanceSection` (nearest distances + approaching flags + strongest zones + active zone counts), `buildVolumeSection` (relative volume + VWAP + OBV + acc/dist + climax + overall strength), `buildRiskSection` (bearish evidence factors + validation penalties + overbought/oversold + climax signals + approaching S/R), `buildConfidenceSection` (score + grade + sub-scores + top reasons + penalties + warnings), `buildValidationSection` (empty string when clean; critical/warning messages otherwise), `buildConclusion` (hedging phrase + evidence count + "not financial advice"), `buildCriticalStubs` (minimal stubs for all sections when validation is critical).
+
+- **`src/modules/writer/compose.ts`**: 6 template assemblers (`composeFull`, `composeExecutive`, `composeSummaryTemplate`, `composeBullet`, `composeHeadlineTemplate`, `composeSocial`) + `composeReport` dispatcher + `buildAllSections` helper.
+
+- **`src/modules/writer/index.ts`**: `generateAnalysis(input: WriterInput, config?: Partial<WriterConfig>): GeneratedAnalysis` — public API. Merges config, applies critical validation gate (stubs all sections when criticals > 0), truncates fullReport to maxReportLength. All types re-exported.
+
+- **`src/modules/writer/__tests__/helpers.ts`**: `makeConfidence()`, `makeAnalysis()`, `makeBullishInput()`, `makeBearishInput()`, `makeNeutralInput()`, `makeWarningInput()`, `makeCriticalInput()`.
+
+- **`src/modules/writer/__tests__/writer.test.ts`**: 131 tests across 18 describe groups covering: DEFAULT_WRITER_CONFIG integrity, all 11 section builders, generateAnalysis metadata fields, section field presence, critical validation gate, all 6 templates, determinism, banned phrases (per template), config overrides, neutral and bearish inputs.
+
+#### Changed
+
+- **`docs/ENGINE_RULES.md`**: §16 (Writing Engine Rules) added — input contract, evidence-first writing rule, confidence-driven hedging language table, critical validation gate, banned phrases list, template specifications, default configuration table.
+- **`docs/ARCHITECTURE.md`**: Module 9 entry fully expanded with implementation details.
+- **`docs/ROADMAP.md`**: Module 9 marked complete; overall progress updated to 69%; Module 9 detailed completion checklist added; current task updated to Module 10.
+- **`docs/TESTING_STRATEGY.md`**: Test count updated to 834 tests across 55 test files.
+
+---
+
 ## [0.10.3] — 2026-07-01
 
 ### Module 8 — Confidence Engine

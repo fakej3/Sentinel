@@ -2,7 +2,7 @@
 
 ## Overall Progress
 
-`62%` — Modules 1–8 complete + Engineering Standards established. Foundation stable.
+`69%` — Modules 1–9 complete + Engineering Standards established. Foundation stable.
 
 ---
 
@@ -18,7 +18,7 @@
 | 6 | Analysis Engine | **Complete** | Full trend synthesis (5-condition), EMA context, indicator interpretation, S/R context, volume context, evidence collection — 115 tests passing |
 | 7 | Validation Engine | **Complete** | Completeness, consistency, contradiction, structural checks — 84 tests passing |
 | 8 | Confidence Engine | **Complete** | Evidence-weighted scoring system (0–10) — 80 tests passing |
-| 9 | AI Writing Engine | Not Started | Writes from validated JSON only; no data invention |
+| 9 | AI Writing Engine | **Complete** | Template engine; 6 output formats; critical validation gate; banned phrases enforced — 131 tests passing |
 | 10 | Content Generator | Not Started | Multiple output styles from the same analysis |
 | 11 | Image Generator | Not Started | Summary cards, S/R diagrams, indicator tables |
 | 12 | History Database | Not Started | Persists analyses, indicators, content, images |
@@ -147,11 +147,24 @@
 - [x] ARCHITECTURE.md Module 8 entry updated with implementation details
 - [x] ROADMAP.md progress updated to 62%
 
+### Module 9 — AI Writing Engine ✅
+
+- [x] `types.ts` — WriterTemplate, WriterVerbosity, WriterInput, WriterMetadata, GeneratedAnalysis, WriterConfig
+- [x] `config.ts` — DEFAULT_WRITER_CONFIG (template: 'full', verbosity: 'standard', maxSummaryLength: 600, maxReportLength: 4000, maxReasonsDisplayed: 3, maxRiskFactors: 3)
+- [x] `sections.ts` — buildHeadline, buildSummary, buildTrendSection, buildIndicatorSection, buildMarketStructureSection, buildSupportResistanceSection, buildVolumeSection, buildRiskSection, buildConfidenceSection, buildValidationSection, buildConclusion, buildCriticalStubs
+- [x] `compose.ts` — composeFull, composeExecutive, composeSummaryTemplate, composeBullet, composeHeadlineTemplate, composeSocial; composeReport dispatcher; buildAllSections helper
+- [x] `index.ts` — generateAnalysis (public API); critical validation gate; metadata builder; all types re-exported
+- [x] `__tests__/helpers.ts` — makeConfidence(), makeAnalysis(), makeBullishInput(), makeBearishInput(), makeNeutralInput(), makeWarningInput(), makeCriticalInput()
+- [x] 131 unit tests passing across 1 test file
+- [x] ENGINE_RULES.md §16 (Writing Engine Rules) added
+- [x] ARCHITECTURE.md Module 9 entry updated with full implementation details
+- [x] ROADMAP.md progress updated to 69%
+
 ---
 
 ## Current Task
 
-Module 9 — AI Writing Engine (not yet started).
+Module 10 — Content Generator (not yet started).
 
 ---
 
@@ -182,7 +195,7 @@ Module 9 — AI Writing Engine (not yet started).
 - [x] MODULE 8: Confidence Engine
 
 ### Output Layer
-- [ ] MODULE 9: AI Writing Engine
+- [x] MODULE 9: AI Writing Engine
 - [ ] MODULE 10: Content Generator (multiple styles)
 - [ ] MODULE 11: Image Generator
 

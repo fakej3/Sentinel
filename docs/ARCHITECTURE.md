@@ -136,10 +136,19 @@ Binance Square Ready Post
 - Rules documented in `ENGINE_RULES.md §11`. 80 tests passing (2 test files).
 
 ### MODULE 9 — AI Writing Engine
-- Receives only the validated, structured JSON payload.
-- Transforms structured evidence into readable professional prose.
-- Follows strict writing rules defined in `WRITING_GUIDELINES.md`.
-- Must never introduce data not present in the input JSON.
+- **Template engine**, not an LLM. Pure TypeScript, no AI API calls, no network requests, no randomness, no timestamps.
+- Accepts `WriterInput` containing `MarketAnalysisResult` (Module 6), `ValidationResult` (Module 7), and `ConfidenceResult` (Module 8). Never reads raw candles.
+- Produces `GeneratedAnalysis`: 11 named section fields + `fullReport` + `WriterMetadata`.
+- Supports 6 output templates: `full` (markdown headers), `executive` (flowing prose), `summary` (single paragraph), `bullet` (5–7 key facts), `headline` (single line), `social` (post-format).
+- All 6 templates reuse the same section builders — only assembly differs.
+- **Critical validation gate**: when `validation.criticalCount > 0`, all section content is replaced with minimal stubs; `fullReport` contains only the validation warning text.
+- Confidence-grade-driven hedging language: 5 tiers map to opening phrases (e.g. `very_strong` → "The available evidence strongly supports"). No invented analysis.
+- Banned phrases enforced: "will", "going to", "guaranteed", "certain", "definitely", "buy", "sell", "moon", "dump", "pump".
+- Every report ends with "This is not financial advice."
+- Public API: `generateAnalysis(input: WriterInput, config?: Partial<WriterConfig>): GeneratedAnalysis`.
+- Configuration: `WriterConfig` with `DEFAULT_WRITER_CONFIG`; all limits (maxSummaryLength 600, maxReportLength 4000, maxReasonsDisplayed 3, maxRiskFactors 3) are configurable.
+- 131 tests passing (1 test file). Pure, deterministic, independently testable.
+- Source: `src/modules/writer/`. Files: `types.ts`, `config.ts`, `sections.ts`, `compose.ts`, `index.ts`.
 
 ### MODULE 10 — Content Generator
 - Takes MODULE 9 output and repackages it in multiple formats:

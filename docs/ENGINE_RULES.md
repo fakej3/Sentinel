@@ -1033,4 +1033,78 @@ All findings are `category: 'structural'`.
 | `minBullishSwingsForTrend` | 2 | Swing count floor for `hasConsistentHHHL` |
 | `minBearishSwingsForTrend` | 2 | Swing count floor for `hasConsistentLHLL` |
 
-*Last updated: Module 7 — Validation Engine (v0.10.0)*
+---
+
+## §16 Writing Engine Rules (Module 9)
+
+### 16.1 Input Contract
+
+Module 9 reads from three typed objects only:
+- `MarketAnalysisResult` — full analysis including evidence[], indicatorSummary, etc. (Module 6)
+- `ValidationResult` — validation pass/fail and issue list (Module 7)
+- `ConfidenceResult` — confidence score, grade, reasons, penalties (Module 8)
+
+Module 9 must **never** read raw candles. It must **never** derive, calculate, or infer any values — it only reads the pre-computed structured fields.
+
+### 16.2 Evidence-First Writing
+
+Every statement in the generated report must be traceable to a specific field in the input objects. Prohibited:
+- Referencing price targets or future prices.
+- Inventing patterns not present in the input.
+- Parsing description strings to infer direction — always read `EvidenceItem.direction` directly.
+- Any language implying certainty about future price movement.
+
+### 16.3 Confidence-Driven Hedging Language
+
+The opening phrase of the summary and conclusion is determined by `ConfidenceResult.grade`:
+
+| Grade | Opening phrase |
+|-------|----------------|
+| `very_strong` | "The available evidence strongly supports" |
+| `strong` | "The current evidence supports" |
+| `moderate` | "The current signals suggest" |
+| `mixed` | "The current signals are mixed, with indications of" |
+| `weak` | "The available evidence is limited, with tentative indications of" |
+
+### 16.4 Critical Validation Gate
+
+When `ValidationResult.criticalCount > 0`:
+- All section content is replaced with minimal stubs (empty strings).
+- `fullReport` contains only the validation warning text.
+- The headline becomes `"Analysis unavailable — critical validation failure"`.
+- Metadata is still populated normally.
+
+### 16.5 Banned Phrases
+
+The following phrases must never appear in any generated output:
+
+"will", "going to", "definitely", "guaranteed", "certain", "buy", "sell", "moon", "dump", "pump", "100% sure", "great opportunity", "buy the dip", "according to analysts"
+
+Every report must end with: **"This is not financial advice."**
+
+### 16.6 Template Specifications
+
+| Template | Description |
+|----------|-------------|
+| `full` | Markdown headers (`## Section`), all sections, complete report |
+| `executive` | Flowing prose without headers; headline + summary + trend + confidence + risk + conclusion |
+| `summary` | Single paragraph summary only |
+| `bullet` | 5–7 `•` bullet points covering headline, trend, indicators, volume, S/R, risk |
+| `headline` | Single title line: `{SYMBOL} {TF}: {trend} — Confidence {N.N}/10 @ {price}` |
+| `social` | Short post-format: headline + first sentence of summary + first sentence of confidence |
+
+### 16.7 Default Configuration
+
+| Parameter | Default | Purpose |
+|-----------|---------|---------|
+| `template` | `'full'` | Output format |
+| `verbosity` | `'standard'` | Verbosity level |
+| `maxSummaryLength` | 600 | Character limit for summary field |
+| `maxReportLength` | 4000 | Character limit for fullReport |
+| `includeValidationSection` | true | Whether to populate validationSection |
+| `includeConfidenceSection` | true | Whether to populate confidenceSection |
+| `includeWarnings` | true | Whether to include confidence warnings |
+| `maxReasonsDisplayed` | 3 | Max confidence reasons shown |
+| `maxRiskFactors` | 3 | Max risk factors in risk section |
+
+*Last updated: Module 9 — AI Writing Engine (v0.10.4)*

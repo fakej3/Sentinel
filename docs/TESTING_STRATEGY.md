@@ -425,7 +425,7 @@ Real-market reference datasets are planned but not yet created. When introduced:
 The full test suite must pass on every commit to a feature branch and on every
 pull request to `main`.
 
-Current suite: **703 tests across 54 test files** (as of v0.10.3).
+Current suite: **834 tests across 55 test files** (as of v0.10.4).
 
 CI command: `npm test` (`vitest run`).
 
@@ -434,4 +434,4 @@ converted to pending issues in `KNOWN_LIMITATIONS.md`.
 
 ---
 
-*Last updated: Module 8 — Confidence Engine (v0.10.3)*
+*Last updated: Module 9 — AI Writing Engine (v0.10.4)*
