@@ -11,6 +11,37 @@ Work in progress. No released version yet.
 
 ---
 
+## [0.10.3] — 2026-07-01
+
+### Module 8 — Confidence Engine
+
+New module implementing evidence-weighted confidence scoring per ENGINE_RULES.md §11.
+All 703 tests pass (80 new tests added). No changes to existing modules.
+
+#### Added
+
+- **`src/modules/confidence/types.ts`**: `ConfidenceGrade` (5-tier enum: `weak` / `mixed` / `moderate` / `strong` / `very_strong`), `ConfidenceReason` (factor + points + direction), `ConfidencePenalty` (source + description + scoreReduction), `ConfidenceWarning`, `ConfidenceResult`, `ConfidenceConfig`.
+
+- **`src/modules/confidence/config.ts`**: `DEFAULT_CONFIDENCE_CONFIG` with full `factorWeights` map (21 entries from ENGINE_RULES.md §11, using canonical §14.4 factor names), `normalizationDivisor: 10.6`, `warningScorePenalty: 0.5`, `criticalScoreCap: 3.0`, and grade boundary thresholds.
+
+- **`src/modules/confidence/compute/score.ts`**: `scoreEvidence()` walks `EvidenceItem[]` and accumulates raw points, bullish sub-total, bearish sub-total, and `reasons[]` for every factor matched in `factorWeights`. `normalize()` clamps raw → 0–10 using the configured divisor.
+
+- **`src/modules/confidence/compute/grade.ts`**: `scoreToGrade()` maps normalized score to `ConfidenceGrade` using configurable tier thresholds.
+
+- **`src/modules/confidence/index.ts`**: `computeConfidence(analysis, validation, config?)` — public API. Scores evidence, normalizes, applies warning penalties and critical cap from `ValidationResult`, emits `ConfidenceResult`. Pure, deterministic, no side effects.
+
+- **`src/modules/confidence/__tests__/helpers.ts`**: `ev()`, `makeAnalysis()`, `cleanValidation()`, `validationWithWarnings()`, `validationWithCriticals()`, `validationWithBoth()`.
+
+- **`src/modules/confidence/__tests__/confidence.test.ts`**: 80 tests covering `scoreEvidence`, `normalize`, `scoreToGrade`, core scoring, directional confidence, all 21 ENGINE_RULES.md §11 factor weights, validation penalties, warning emission, config overrides, determinism, and `DEFAULT_CONFIDENCE_CONFIG` integrity.
+
+#### Changed
+
+- **`docs/ARCHITECTURE.md`**: Module 8 entry expanded with full implementation description.
+- **`docs/ROADMAP.md`**: Module 8 marked complete; overall progress updated to 62%; Module 8 detailed completion checklist added.
+- **`docs/TESTING_STRATEGY.md`**: Test count updated to 703 tests across 54 test files.
+
+---
+
 ## [0.10.2] — 2026-07-01
 
 ### Stabilization Sprint 2 — Robustness, Configurability, and Documentation (HIGH-01 through MED-01)

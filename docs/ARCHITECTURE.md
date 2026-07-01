@@ -125,10 +125,15 @@ Binance Square Ready Post
 - 84 tests passing across 5 test files. ADR: ADR-020.
 
 ### MODULE 8 — Confidence Engine
-- Scores the overall analysis using an evidence-weighted formula.
-- Positive and negative factors are configurable.
-- Outputs a score from 0.0 to 10.0.
-- Does not generate probabilities. Does not predict outcomes.
+- **Evidence-weighted scoring layer**: Reads `MarketAnalysisResult.evidence` (assembled by Module 6) and sums point weights assigned to each canonical factor name (ENGINE_RULES.md §11).
+- Raw points normalized to 0–10: `score = min(10, max(0, rawPoints / 10.6))`.
+- Computes separate `bullishConfidence` and `bearishConfidence` sub-scores from positive and negative weight totals respectively.
+- Applies validation penalties from Module 7's `ValidationResult`: each warning reduces the normalized score by a configurable amount (`warningScorePenalty`); any critical issue caps the score at `criticalScoreCap`.
+- Emits a `ConfidenceGrade` label (5 tiers: `weak` / `mixed` / `moderate` / `strong` / `very_strong`) matching ENGINE_RULES.md §11 score interpretation table.
+- All factor weights, normalization divisor, penalty amounts, and grade thresholds live in `DEFAULT_CONFIDENCE_CONFIG` — no magic numbers in compute code.
+- Pure, deterministic, no side effects, no AI, no network calls.
+- Public API: `computeConfidence(analysis: MarketAnalysisResult, validation: ValidationResult, config?)`.
+- Rules documented in `ENGINE_RULES.md §11`. 80 tests passing (2 test files).
 
 ### MODULE 9 — AI Writing Engine
 - Receives only the validated, structured JSON payload.

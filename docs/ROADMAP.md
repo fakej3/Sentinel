@@ -2,7 +2,7 @@
 
 ## Overall Progress
 
-`54%` — Modules 1–7 complete + Engineering Standards established. Foundation stable.
+`62%` — Modules 1–8 complete + Engineering Standards established. Foundation stable.
 
 ---
 
@@ -17,7 +17,7 @@
 | 5 | Volume Analysis Engine | **Complete** | Relative volume, trend (OLS), buy/sell pressure, climax, exhaustion, acc/dist, OBV, VWAP — 72 tests passing |
 | 6 | Analysis Engine | **Complete** | Full trend synthesis (5-condition), EMA context, indicator interpretation, S/R context, volume context, evidence collection — 115 tests passing |
 | 7 | Validation Engine | **Complete** | Completeness, consistency, contradiction, structural checks — 84 tests passing |
-| 8 | Confidence Engine | Not Started | Evidence-weighted scoring system (0–10) |
+| 8 | Confidence Engine | **Complete** | Evidence-weighted scoring system (0–10) — 80 tests passing |
 | 9 | AI Writing Engine | Not Started | Writes from validated JSON only; no data invention |
 | 10 | Content Generator | Not Started | Multiple output styles from the same analysis |
 | 11 | Image Generator | Not Started | Summary cards, S/R diagrams, indicator tables |
@@ -134,11 +134,24 @@
 - [x] ENGINE_RULES.md §15 (Validation Engine) added
 - [x] VALIDATION_RULES.md Stage 1 and Stage 3 updated to reflect implementation status
 
+### Module 8 — Confidence Engine ✅
+
+- [x] `types.ts` — ConfidenceGrade, ConfidenceReason, ConfidencePenalty, ConfidenceWarning, ConfidenceResult, ConfidenceConfig
+- [x] `config.ts` — DEFAULT_CONFIDENCE_CONFIG (factorWeights map with all ENGINE_RULES.md §11 weights, normalizationDivisor: 10.6, warningScorePenalty: 0.5, criticalScoreCap: 3.0, gradeThresholds)
+- [x] `compute/score.ts` — scoreEvidence (walks evidence[], looks up factorWeights, accumulates raw/bullish/bearish points, builds reasons[]); normalize()
+- [x] `compute/grade.ts` — scoreToGrade (5-tier grade from normalized score using configurable thresholds)
+- [x] `index.ts` — computeConfidence (public API); merges config; applies validation penalties (warning penalty, critical cap); emits advisories; re-exports all types
+- [x] `__tests__/helpers.ts` — ev() evidence item factory, makeAnalysis() stub, cleanValidation(), validationWithWarnings(), validationWithCriticals(), validationWithBoth()
+- [x] 80 unit tests passing across 1 test file (scoreEvidence×6, normalize×5, scoreToGrade×10, core scoring×7, directional confidence×5, validation penalties×7, warnings×4, config overrides×7, §11 factor weights×19, determinism×1, reasons×2, config integrity×3)
+- [x] ENGINE_RULES.md §11 weights confirmed; all 21 factor→weight mappings verified
+- [x] ARCHITECTURE.md Module 8 entry updated with implementation details
+- [x] ROADMAP.md progress updated to 62%
+
 ---
 
 ## Current Task
 
-Module 8 — Confidence Engine (not yet started).
+Module 9 — AI Writing Engine (not yet started).
 
 ---
 
@@ -166,7 +179,7 @@ Module 8 — Confidence Engine (not yet started).
 ### Reasoning Layer
 - [x] MODULE 6: Analysis Engine
 - [x] MODULE 7: Validation Engine
-- [ ] MODULE 8: Confidence Engine
+- [x] MODULE 8: Confidence Engine
 
 ### Output Layer
 - [ ] MODULE 9: AI Writing Engine
