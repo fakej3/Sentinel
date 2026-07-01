@@ -11,6 +11,38 @@ Work in progress. No released version yet.
 
 ---
 
+## [0.11.0] — 2026-07-01
+
+### Module 10 — Analysis Pipeline Orchestrator
+
+Single public entry point for the full Sentinel analysis stack. Orchestrates Modules 1–9 in strict sequential order and returns one complete `PipelineResult` object.
+
+#### Added
+
+- **`src/modules/pipeline/types.ts`**: `PipelineErrorCode`, `PipelineTimings`, `PipelineMetadata`, `PipelineResult`, `PipelineConfig`, `FetchFn`, `PipelineOptions`.
+
+- **`src/modules/pipeline/config.ts`**: `PIPELINE_VERSION` (`'0.11.0'`) and `DEFAULT_PIPELINE_CONFIG` (minCandleCount=50, all module configs default to `{}`).
+
+- **`src/modules/pipeline/index.ts`**: `analyzeMarket(options): Promise<PipelineResult>` — the single public entry point. Executes all 9 stages sequentially, measures wall-clock timing for each stage, validates inputs upfront, and wraps every module call in a typed `PipelineError` boundary. `PipelineError` (extends `Error`) exposes `code`, `module`, `reason`, and `cause`.
+
+- **`src/modules/pipeline/__tests__/helpers.ts`**: `makeCandles(count, basePrice)` — deterministic synthetic candle generator using `Math.sin`/`Math.cos` for realistic price movement. `mockFetch(candles, fetchedAt)` — returns a `FetchFn` that resolves with well-formed `MarketData` without network I/O. `failingFetch(message)` — returns a `FetchFn` that always rejects.
+
+- **`src/modules/pipeline/__tests__/pipeline.test.ts`**: 33 tests covering — end-to-end success (200-candle and 100-candle paths), fetch failure (`PipelineError` code, module, cause), insufficient candles, empty symbol, `configuration_error`, custom `minCandleCount`, writer config override, `fetchImpl` called with correct args (symbol, interval, candleLimit), no real network calls, deterministic output (all non-timing fields), metadata completeness (symbol uppercase, interval, candleCount, version, timestamp, executionTime), timing structure (all 10 keys present, all ≥ 0, total ≥ stage sum), `PipelineError` is `instanceof Error`, execution order verified via data-flow assertions (EMA20 non-null after fetch, writer receives confidence score from stage 8).
+
+#### Architecture
+
+- **Pure orchestration**: Module 10 adds no domain logic. All calculations remain in Modules 1–9.
+- **Dependency injection**: `fetchImpl` replaces `fetchMarketData`; all tests use this interface rather than hitting real APIs.
+- **Error model**: five typed `PipelineErrorCode` values; validation failures are non-throwing (included in `PipelineResult.validation`).
+- **Configuration**: every downstream module config can be overridden per-call via `PipelineOptions.config`; defaults are shallow-merged.
+
+#### Stats
+
+- **Tests:** 870 (↑33 from 837) across 56 files — all pass.
+- **TypeScript errors:** 0.
+
+---
+
 ## [0.10.5] — 2026-07-01
 
 ### Sprint 3 — Audit Remediation (TypeScript + Production Readiness)

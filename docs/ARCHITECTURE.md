@@ -150,15 +150,20 @@ Binance Square Ready Post
 - 131 tests passing (1 test file). Pure, deterministic, independently testable.
 - Source: `src/modules/writer/`. Files: `types.ts`, `config.ts`, `sections.ts`, `compose.ts`, `index.ts`.
 
-### MODULE 10 — Content Generator
-- Takes MODULE 9 output and repackages it in multiple formats:
-  - Professional Analysis
-  - Institutional Style
-  - Beginner Friendly
-  - Quick Summary
-  - Daily Market Update
-  - Weekly Market Review
-  - Educational Breakdown
+### MODULE 10 — Analysis Pipeline Orchestrator
+- **Single public entry point** for the entire Sentinel analysis stack.
+- Orchestrates Modules 1–9 in strict sequential order with no out-of-order execution.
+- Accepts `PipelineOptions`: `symbol`, `interval`, `candleLimit`, per-module config overrides, and an optional `fetchImpl` for dependency injection (testing without network).
+- Returns `PipelineResult`: typed outputs from all 9 modules + `PipelineMetadata` (symbol, interval, candle count, version, timestamp, per-stage timings, total execution time).
+- Validates inputs upfront: throws `PipelineError('configuration_error', ...)` for a missing symbol before any I/O occurs.
+- Enforces a configurable `minCandleCount` (default 50): throws `PipelineError('insufficient_candles', ...)` when the fetch returns too few candles.
+- Wraps every module call in a typed error boundary: unexpected module throws become `PipelineError('internal_module_failure', ...)` with the originating module name and original cause.
+- Measures wall-clock time for each stage (`fetch`, `indicators`, `marketStructure`, `supportResistance`, `volume`, `analysis`, `validation`, `confidence`, `writer`, `total`) and exposes them in `metadata.timings`.
+- Exposes `PIPELINE_VERSION` constant and `DEFAULT_PIPELINE_CONFIG` for external configuration.
+- Pure orchestration — no new calculations, no domain logic. All analysis comes from Modules 1–9.
+- Public API: `analyzeMarket(options: PipelineOptions): Promise<PipelineResult>`
+- Source: `src/modules/pipeline/`. Files: `types.ts`, `config.ts`, `index.ts`.
+- 33 tests passing (1 test file). Version `0.11.0`.
 
 ### MODULE 11 — Image Generator
 - Generates visual cards from structured analysis data.

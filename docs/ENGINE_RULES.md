@@ -1108,3 +1108,59 @@ Every report must end with: **"This is not financial advice."**
 | `maxRiskFactors` | 3 | Max risk factors in risk section |
 
 *Last updated: Module 9 — AI Writing Engine (v0.10.4)*
+
+---
+
+## §17 Analysis Pipeline Orchestrator Rules
+
+Module 10 (`src/modules/pipeline/`) is the single public entry point. It chains Modules 1–9 and returns `PipelineResult`.
+
+### 17.1 Public API
+
+```typescript
+analyzeMarket(options: PipelineOptions): Promise<PipelineResult>
+```
+
+### 17.2 Execution Order
+
+Stages execute sequentially. Each stage receives only outputs that previous stages have produced. No stage may execute before its upstream dependency has completed.
+
+| Stage | Module | Input | Output |
+|-------|--------|-------|--------|
+| 1 | Binance | `symbol`, `interval`, `candleLimit` | `MarketData` |
+| 2 | Indicators | `candles` | `IndicatorResult` |
+| 3 | Market Structure | `candles` | `MarketStructureResult` |
+| 4 | Support/Resistance | `candles`, `marketStructure` | `SupportResistanceResult` |
+| 5 | Volume Analysis | `candles`, `indicators`, `marketStructure`, `supportResistance` | `VolumeAnalysisResult` |
+| 6 | Analysis | `marketData`, `indicators`, `marketStructure`, `supportResistance`, `volumeAnalysis` | `MarketAnalysisResult` |
+| 7 | Validation | `analysis` | `ValidationResult` |
+| 8 | Confidence | `analysis`, `validation` | `ConfidenceResult` |
+| 9 | Writer | `analysis`, `validation`, `confidence` | `GeneratedAnalysis` |
+
+### 17.3 Error Model
+
+| Code | Trigger |
+|------|---------|
+| `configuration_error` | Invalid `PipelineOptions` (empty symbol) before any I/O |
+| `fetch_failure` | Fetch implementation throws |
+| `insufficient_candles` | `candles.length < minCandleCount` after fetch |
+| `internal_module_failure` | Any Module 2–9 throws unexpectedly |
+| `validation_failure` | Reserved — not thrown automatically; exposed for caller use |
+
+All errors are instances of `PipelineError` (extends `Error`) with `code`, `module`, `reason`, and `cause` fields.
+
+### 17.4 Configuration
+
+`PipelineOptions.config` accepts `Partial<PipelineConfig>`:
+- `minCandleCount` — minimum candles required (default 50)
+- `marketStructure`, `supportResistance`, `volumeAnalysis`, `analysis`, `validation`, `confidence`, `writer` — each passes through to the corresponding module as `Partial<ModuleConfig>`; defaults are preserved for any omitted field.
+
+### 17.5 Dependency Injection
+
+`PipelineOptions.fetchImpl` replaces the real `fetchMarketData` call with any function matching `(symbol, timeframe, options) => Promise<MarketData>`. When omitted, the real Binance client is used. This is the canonical testing interface — all pipeline tests inject a deterministic mock.
+
+### 17.6 Timings
+
+`metadata.timings` contains wall-clock milliseconds for each stage and a `total` covering the full `analyzeMarket` call including input validation.
+
+*Last updated: Module 10 — Analysis Pipeline Orchestrator (v0.11.0)*

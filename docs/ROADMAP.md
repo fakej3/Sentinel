@@ -2,7 +2,7 @@
 
 ## Overall Progress
 
-`69%` — Modules 1–9 complete + Engineering Standards established. Foundation stable.
+`77%` — Modules 1–10 complete + Engineering Standards established. Foundation stable.
 
 ---
 
@@ -19,7 +19,7 @@
 | 7 | Validation Engine | **Complete** | Completeness, consistency, contradiction, structural checks — 84 tests passing |
 | 8 | Confidence Engine | **Complete** | Evidence-weighted scoring system (0–10) — 80 tests passing |
 | 9 | AI Writing Engine | **Complete** | Template engine; 6 output formats; critical validation gate; banned phrases enforced — 131 tests passing |
-| 10 | Content Generator | Not Started | Multiple output styles from the same analysis |
+| 10 | Analysis Pipeline Orchestrator | **Complete** | Single public entry point; orchestrates Modules 1–9; dependency-injectable fetch; typed errors; per-stage timings — 33 tests passing |
 | 11 | Image Generator | Not Started | Summary cards, S/R diagrams, indicator tables |
 | 12 | History Database | Not Started | Persists analyses, indicators, content, images |
 | 13 | Performance Tracker | Not Started | Evaluates historical analyses at 24h / 3d / 7d |
