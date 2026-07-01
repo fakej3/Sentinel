@@ -7,7 +7,7 @@ function pipelineErrorStatus(code: PipelineErrorCode): number {
     case 'configuration_error':
       return 400
     case 'fetch_failure':
-      return 404
+      return 502
     case 'insufficient_candles':
       return 422
     case 'validation_failure':

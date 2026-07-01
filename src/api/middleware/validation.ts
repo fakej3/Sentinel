@@ -51,5 +51,18 @@ export function validateAnalyzeInput(req: Request, res: Response, next: NextFunc
     return
   }
 
+  if (body.config !== undefined) {
+    const cfg = body.config as Record<string, unknown>
+    if (cfg.minCandleCount !== undefined) {
+      const mc = Number(cfg.minCandleCount)
+      if (!Number.isInteger(mc) || mc < 1) {
+        res.status(400).json({
+          error: { code: 'invalid_request', message: 'config.minCandleCount must be a positive integer' },
+        })
+        return
+      }
+    }
+  }
+
   next()
 }

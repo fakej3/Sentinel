@@ -534,6 +534,17 @@ describe('runBenchmark — edge cases', () => {
     expect(result.passed).toBe(false)
     expect(result.metrics.missingFields).toBe(1)
   })
+
+  it('EXTRA fields (failed ABSENT assertions) cause passed to be false', async () => {
+    const dataset = makeDataset(100)
+    // confidence.grade exists in real pipeline output; ABSENT asserts it should not exist
+    const result = await runBenchmark({
+      dataset,
+      expected: { 'confidence.grade': ABSENT },
+    })
+    expect(result.passed).toBe(false)
+    expect(result.metrics.extraFields).toBe(1)
+  })
 })
 
 // ── replayDataset ─────────────────────────────────────────────────────────────

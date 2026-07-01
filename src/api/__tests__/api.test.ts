@@ -238,6 +238,41 @@ describe('POST /analyze — input validation', () => {
     expect(res.status).toBe(400)
   })
 
+  it('returns 400 when config.minCandleCount is zero', async () => {
+    const app = createApp(mockAnalyze(makePipelineResult()))
+    const res = await request(app)
+      .post('/analyze')
+      .send({ symbol: 'BTCUSDT', interval: '1h', config: { minCandleCount: 0 } })
+    expect(res.status).toBe(400)
+    expect(res.body.error.code).toBe('invalid_request')
+  })
+
+  it('returns 400 when config.minCandleCount is negative', async () => {
+    const app = createApp(mockAnalyze(makePipelineResult()))
+    const res = await request(app)
+      .post('/analyze')
+      .send({ symbol: 'BTCUSDT', interval: '1h', config: { minCandleCount: -5 } })
+    expect(res.status).toBe(400)
+    expect(res.body.error.code).toBe('invalid_request')
+  })
+
+  it('returns 400 when config.minCandleCount is not an integer', async () => {
+    const app = createApp(mockAnalyze(makePipelineResult()))
+    const res = await request(app)
+      .post('/analyze')
+      .send({ symbol: 'BTCUSDT', interval: '1h', config: { minCandleCount: 1.5 } })
+    expect(res.status).toBe(400)
+    expect(res.body.error.code).toBe('invalid_request')
+  })
+
+  it('returns 200 when config.minCandleCount is a valid positive integer', async () => {
+    const app = createApp(mockAnalyze(makePipelineResult()))
+    const res = await request(app)
+      .post('/analyze')
+      .send({ symbol: 'BTCUSDT', interval: '1h', config: { minCandleCount: 10 } })
+    expect(res.status).toBe(200)
+  })
+
   it('returns 400 when config is an array', async () => {
     const app = createApp(mockAnalyze(makePipelineResult()))
     const res = await request(app)
@@ -292,11 +327,11 @@ describe('POST /analyze — PipelineError mapping', () => {
     expect(res.body.error.module).toBe('pipeline')
   })
 
-  it('maps fetch_failure to 404', async () => {
+  it('maps fetch_failure to 502', async () => {
     const err = new PipelineError('fetch_failure', 'binance', 'Symbol FAKEUSDT not found')
     const app = createApp(throwingAnalyze(err))
     const res = await request(app).post('/analyze').send({ symbol: 'FAKEUSDT', interval: '1h' })
-    expect(res.status).toBe(404)
+    expect(res.status).toBe(502)
     expect(res.body.error.code).toBe('fetch_failure')
   })
 

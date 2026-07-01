@@ -58,7 +58,7 @@ export async function runBenchmark(options: BenchmarkOptions): Promise<Benchmark
   const timings: BenchmarkTimings = { replayTime, compareTime, totalTime }
   const metrics = computeMetrics(comparisons, timings)
 
-  const passed = metrics.failedFields === 0 && metrics.missingFields === 0
+  const passed = metrics.failedFields === 0 && metrics.missingFields === 0 && metrics.extraFields === 0
   const score = metrics.accuracy
 
   return {
