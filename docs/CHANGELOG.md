@@ -11,6 +11,53 @@ Work in progress. No released version yet.
 
 ---
 
+## [0.18.0] — 2026-07-02
+
+### Module 18 — Complete UI/UX Redesign (Presentation Layer)
+
+Full presentation-layer redesign: natural-scroll page layout, sticky header, sticky desktop sidebar, prominent price header, mobile bottom navigation drawer. Zero analysis engine, API, hook, or state management changes.
+
+#### Added
+
+- **`src/ui/components/layout/MobileNav.tsx`** *(new)*: Fixed bottom navigation bar (`lg:hidden`, h-14, z-30). Five items: Overview, Chart, Analysis, Watchlist (opens sidebar drawer), Detail. Uses `scrollIntoView` for smooth anchor navigation. Analysis/Detail items disabled when no data is loaded.
+
+#### Modified
+
+- **`src/App.tsx`**: Root div changed from `h-screen flex flex-col overflow-hidden` → `min-h-screen flex flex-col` (natural-scroll page). Added `mobileMenuOpen` state for the mobile sidebar drawer. `RightPanel` removed. `OverviewTab` rendered inline below chart (always visible, not tab-controlled). Tab bar now shows only the 7 detail tabs (Evidence … Benchmark); `detailTab` derived variable handles the `'overview'` → `'evidence'` migration for any stored localStorage values. Section anchors (`id="top"`, `id="chart"`, `id="analysis"`, `id="detail"`) added for mobile nav. `EmptyState` and `ErrorState` changed from `h-full` → `min-h-[50vh] py-16`. Mobile bottom nav receives 14-unit bottom padding on main (`pb-14 lg:pb-0`).
+
+- **`src/ui/components/layout/Header.tsx`**: Added `sticky top-0 z-50` to header element. Added `onOpenMobileMenu` prop + mobile hamburger button (`lg:hidden`). Desktop sidebar toggle changed to `hidden lg:flex`. Timeframe buttons wrapped in `hidden sm:flex`. `ApiDot` component (with `useApiStatus`) moved here from `MarketSummaryBar`. Added visual separator before Analyze button.
+
+- **`src/ui/components/layout/LeftSidebar.tsx`**: Split into two rendered elements sharing `SidebarContent`. Desktop: `hidden lg:flex self-start sticky top-11 h-[calc(100vh-44px)] overflow-hidden transition-[width]`, collapsed w-0/expanded w-60. Mobile: `lg:hidden fixed inset-y-0 left-0 z-50 w-72 translate-x` slide-in drawer with black/50 backdrop overlay. New props: `mobileOpen: boolean`, `onCloseMobile: () => void`.
+
+- **`src/ui/components/layout/MarketSummaryBar.tsx`**: When `data && !loading`, delegates entirely to `PriceHeader` component (large price display, 24h stats, confidence, trend). Loading/empty states retain compact 56px bar with symbol/interval.
+
+- **`src/ui/components/shared/Tabs.tsx`**: Tab bar container gains `sticky top-11 z-20 overflow-x-auto scrollbar-none bg-surface-900`. Inner tab row gets `min-w-max` for mobile horizontal scroll without wrapping. `TabPanel` changed from `flex-1 overflow-y-auto` → `animate-fade-in` (content scrolls with the page).
+
+- **`src/ui/components/shared/Skeleton.tsx`**: `SkeletonDashboard` updated — removed right panel column (`w-72 border-l`), now shows three responsive card grids (2-col on mobile, 3-col on sm+).
+
+- **`src/ui/components/tabs/OverviewTab.tsx`**: Removed `h-full overflow-y-auto scrollbar-none` (natural scroll). Padding `p-3` → `p-4`.
+
+- **`src/ui/components/tabs/EvidenceTab.tsx`**: Removed `flex flex-col h-full` from outer div. Filter bar `flex-shrink-0` → static. Evidence list `flex-1 overflow-y-auto` → natural height.
+
+- **`src/ui/components/tabs/BenchmarkTab.tsx`**: Removed `h-full`. `py-16` → `py-20`.
+
+- **`src/index.css`**: `body` changed from `overflow: hidden` → `overflow-x: hidden` (enables vertical page scroll). Added `html { scroll-behavior: smooth }`. Added `.scroll-target { scroll-margin-top: 44px }` utility for anchor targets below sticky header.
+
+#### Architecture
+
+- Desktop layout: sticky header (h-11) + sticky sidebar (`self-start`, `h-[calc(100vh-44px)]`) + naturally-scrolling main content. Chart height persists via `useResizablePanel` and remains user-resizable via `ResizeDivider`.
+- Mobile layout: sticky header + fixed bottom nav bar (14 units) + slide-in sidebar drawer. Main content padded `pb-14` so the fixed nav never occludes content.
+- `ApiDot` migrated from `MarketSummaryBar` → `Header` so it's always visible on every viewport regardless of scroll position.
+- `PriceHeader` (existing, previously unused) now activated as the primary data-state price display.
+- `RightPanel` removed from layout. Its content (confidence meter, signals, risk, key reasons) remains accessible via the always-inline `OverviewTab` section and the detail tabs.
+
+#### Stats
+
+- **Tests:** 1085 (unchanged) across 62 files — all pass.
+- **TypeScript errors:** 0.
+
+---
+
 ## [0.17.0] — 2026-07-02
 
 ### Module 17 — Premium UX Polish

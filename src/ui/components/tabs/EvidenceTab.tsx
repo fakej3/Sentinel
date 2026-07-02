@@ -86,9 +86,9 @@ export function EvidenceTab({ result }: EvidenceTabProps) {
   }), [evidence])
 
   return (
-    <div className="flex flex-col h-full">
+    <div>
       {/* Filters */}
-      <div className="flex-shrink-0 px-4 pt-3 pb-2 border-b border-border-subtle space-y-2">
+      <div className="px-4 pt-3 pb-2 border-b border-border-subtle space-y-2">
         {/* Search */}
         <div className="relative">
           <Search size={12} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none" />
@@ -143,7 +143,7 @@ export function EvidenceTab({ result }: EvidenceTabProps) {
       </div>
 
       {/* List */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-2">
+      <div className="p-4 space-y-2">
         {filtered.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-48 text-slate-500">
             <Filter size={24} className="mb-2 opacity-30" />

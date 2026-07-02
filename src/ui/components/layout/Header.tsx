@@ -1,10 +1,12 @@
 import { clsx } from 'clsx'
-import { PanelLeftClose, PanelLeftOpen, TrendingUp } from 'lucide-react'
+import { PanelLeftClose, PanelLeftOpen, TrendingUp, Menu, Wifi, WifiOff } from 'lucide-react'
 import { QUICK_TIMEFRAMES, EXTRA_TIMEFRAMES } from '../../utils/timeframes'
+import { useApiStatus } from '../../hooks/useApiStatus'
 
 interface HeaderProps {
   sidebarCollapsed: boolean
   onToggleSidebar: () => void
+  onOpenMobileMenu: () => void
   symbol: string
   interval: string
   loading: boolean
@@ -13,9 +15,37 @@ interface HeaderProps {
   onAnalyze: () => void
 }
 
+function ApiDot() {
+  const status = useApiStatus()
+  return (
+    <div
+      className={clsx(
+        'flex items-center gap-1 text-[10px] font-medium flex-shrink-0',
+        status === 'connected' && 'text-emerald-400',
+        status === 'offline'   && 'text-red-400',
+        status === 'checking'  && 'text-slate-500',
+      )}
+      title={
+        status === 'connected' ? 'API connected'
+        : status === 'offline' ? 'API offline'
+        : 'Checking API…'
+      }
+    >
+      {status === 'offline'
+        ? <WifiOff size={11} />
+        : <Wifi size={11} className={status === 'checking' ? 'opacity-40' : ''} />
+      }
+      <span className="hidden xl:inline">
+        {status === 'connected' ? 'Connected' : status === 'offline' ? 'Offline' : 'Checking…'}
+      </span>
+    </div>
+  )
+}
+
 export function Header({
   sidebarCollapsed,
   onToggleSidebar,
+  onOpenMobileMenu,
   symbol,
   interval,
   loading,
@@ -31,11 +61,22 @@ export function Header({
   const extraActive = (EXTRA_TIMEFRAMES as readonly string[]).includes(interval)
 
   return (
-    <header className="flex-shrink-0 flex items-center gap-1.5 px-3 h-11 border-b border-border-subtle bg-surface-900 z-10">
-      {/* Sidebar toggle */}
+    <header className="sticky top-0 z-50 flex-shrink-0 flex items-center gap-1.5 px-3 h-11 border-b border-border-subtle bg-surface-900">
+      {/* Mobile hamburger */}
+      <button
+        onClick={onOpenMobileMenu}
+        className="lg:hidden w-8 h-8 flex items-center justify-center rounded-md text-slate-500 hover:text-slate-300
+                   hover:bg-surface-700 transition-colors duration-150
+                   focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+        aria-label="Open menu"
+      >
+        <Menu size={15} />
+      </button>
+
+      {/* Desktop sidebar toggle */}
       <button
         onClick={onToggleSidebar}
-        className="w-8 h-8 flex items-center justify-center rounded-md text-slate-500 hover:text-slate-300
+        className="hidden lg:flex w-8 h-8 items-center justify-center rounded-md text-slate-500 hover:text-slate-300
                    hover:bg-surface-700 transition-colors duration-150
                    focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-1 focus-visible:ring-offset-surface-900"
         aria-label={sidebarCollapsed ? 'Open sidebar' : 'Close sidebar'}
@@ -43,7 +84,7 @@ export function Header({
         {sidebarCollapsed ? <PanelLeftOpen size={15} /> : <PanelLeftClose size={15} />}
       </button>
 
-      {/* Logo — compact */}
+      {/* Logo */}
       <div className="flex items-center gap-1.5 pr-2.5 border-r border-border-subtle flex-shrink-0 mr-1">
         <div className="w-5 h-5 rounded-md bg-blue-600 flex items-center justify-center">
           <TrendingUp size={11} className="text-white" />
@@ -69,7 +110,7 @@ export function Header({
       <div className="w-px h-4 bg-border-subtle flex-shrink-0 mx-0.5" />
 
       {/* Timeframe quick buttons */}
-      <div className="flex items-center gap-0.5" role="group" aria-label="Timeframe">
+      <div className="hidden sm:flex items-center gap-0.5" role="group" aria-label="Timeframe">
         {QUICK_TIMEFRAMES.map(tf => (
           <button
             key={tf}
@@ -105,6 +146,12 @@ export function Header({
 
       {/* Spacer */}
       <div className="flex-1" aria-hidden="true" />
+
+      {/* API status */}
+      <ApiDot />
+
+      {/* Separator */}
+      <div className="w-px h-4 bg-border-subtle flex-shrink-0 mx-0.5" />
 
       {/* Analyze button */}
       <button

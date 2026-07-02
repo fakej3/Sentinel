@@ -21,7 +21,7 @@ export function OverviewTab({ result }: OverviewTabProps) {
   const nearestResistance = supportResistance.nearestResistance
 
   return (
-    <div className="p-3 space-y-3 animate-in overflow-y-auto h-full scrollbar-none">
+    <div className="p-4 space-y-3 animate-in">
 
       {/* Primary cards — auto-fill responsive grid */}
       <div className="grid gap-2.5" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))' }}>

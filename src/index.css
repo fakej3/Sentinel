@@ -16,7 +16,16 @@
 
   body {
     @apply bg-surface-950 text-slate-200 font-sans;
-    overflow: hidden;
+    overflow-x: hidden;
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
+
+  /* Offset anchor targets so sticky header doesn't cover them */
+  .scroll-target {
+    scroll-margin-top: 44px;
   }
 
   ::-webkit-scrollbar {

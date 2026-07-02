@@ -2,7 +2,7 @@ import { FlaskConical, Clock, Database } from 'lucide-react'
 
 export function BenchmarkTab() {
   return (
-    <div className="flex flex-col items-center justify-center h-full py-16 px-8 text-center animate-in">
+    <div className="flex flex-col items-center justify-center py-20 px-8 text-center animate-in">
       <div className="w-16 h-16 rounded-2xl bg-surface-700 border border-border-subtle flex items-center justify-center mb-5">
         <FlaskConical size={28} className="text-slate-500" />
       </div>

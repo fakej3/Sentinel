@@ -57,21 +57,18 @@ export function SkeletonPriceHeader() {
 
 export function SkeletonDashboard() {
   return (
-    <div className="flex h-full animate-in">
-      <div className="flex-1 p-4 space-y-4">
-        <div className="grid grid-cols-3 gap-3">
-          <SkeletonCard />
-          <SkeletonCard />
-          <SkeletonCard />
-        </div>
-        <div className="grid grid-cols-3 gap-3">
-          <SkeletonCard />
-          <SkeletonCard />
-          <SkeletonCard />
-        </div>
+    <div className="p-4 space-y-4 animate-in">
+      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+        <SkeletonCard />
+        <SkeletonCard />
+        <SkeletonCard />
       </div>
-      <div className="w-72 border-l border-border-subtle p-4 space-y-4">
-        <Skeleton className="h-48 w-full" rounded />
+      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+        <SkeletonCard />
+        <SkeletonCard />
+        <SkeletonCard />
+      </div>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
         <SkeletonCard />
         <SkeletonCard />
       </div>

@@ -2,8 +2,8 @@ import { useState, useCallback, lazy, Suspense } from 'react'
 import { AlertCircle, ChevronDown, RefreshCw } from 'lucide-react'
 import { Header } from './ui/components/layout/Header'
 import { LeftSidebar } from './ui/components/layout/LeftSidebar'
-import { RightPanel } from './ui/components/layout/RightPanel'
 import { MarketSummaryBar } from './ui/components/layout/MarketSummaryBar'
+import { MobileNav } from './ui/components/layout/MobileNav'
 import { TradingViewChart } from './ui/components/layout/TradingViewChart'
 import { ResizeDivider } from './ui/components/layout/ResizeDivider'
 import { Tabs, TabPanel } from './ui/components/shared/Tabs'
@@ -34,6 +34,7 @@ export default function App() {
   const [sidebarCollapsed, setSidebarCollapsed] = useLocalStorage('sentinel_sidebar_collapsed', false)
   const [watchlist,        setWatchlist       ] = useLocalStorage<string[]>('sentinel_watchlist', [])
   const [recentAnalyses,   setRecentAnalyses  ] = useLocalStorage<RecentAnalysis[]>('sentinel_recent', [])
+  const [mobileMenuOpen,   setMobileMenuOpen  ] = useState(false)
 
   const { data, loading, error, errorDetail, analyze } = useAnalyze()
   const { size: chartHeight, containerRef: chartRef, startDrag } = useResizablePanel(
@@ -65,6 +66,7 @@ export default function App() {
   const handleSelectSymbol = useCallback((sym: string, iv?: string) => {
     setSymbol(sym)
     if (iv) setInterval(iv)
+    setMobileMenuOpen(false)
   }, [setSymbol, setInterval])
 
   const handleAddToWatchlist    = useCallback((sym: string) => setWatchlist(p => p.includes(sym) ? p : [...p, sym]), [setWatchlist])
@@ -73,8 +75,10 @@ export default function App() {
   const evidenceCount = data?.analysis.evidence.length ?? 0
   const issueCount    = data?.validation.issues.length ?? 0
 
-  const tabs: TabDef[] = [
-    { id: 'overview',    label: 'Overview' },
+  // 'overview' is always rendered inline below chart; detailTab drives the tabbed section
+  const detailTab: AppTab = activeTab === 'overview' ? 'evidence' : activeTab
+
+  const detailTabs: TabDef[] = [
     { id: 'evidence',    label: 'Evidence',   count: evidenceCount },
     { id: 'indicators',  label: 'Indicators' },
     { id: 'structure',   label: 'Structure' },
@@ -85,11 +89,12 @@ export default function App() {
   ]
 
   return (
-    <div className="h-screen flex flex-col overflow-hidden bg-surface-950 text-slate-200">
-      {/* Global header */}
+    <div className="min-h-screen flex flex-col bg-surface-950 text-slate-200" id="top">
+      {/* Sticky global header */}
       <Header
         sidebarCollapsed={sidebarCollapsed}
         onToggleSidebar={() => setSidebarCollapsed(c => !c)}
+        onOpenMobileMenu={() => setMobileMenuOpen(true)}
         symbol={symbol}
         interval={interval}
         loading={loading}
@@ -98,11 +103,13 @@ export default function App() {
         onAnalyze={handleAnalyze}
       />
 
-      {/* Body */}
-      <div className="flex-1 flex min-h-0 overflow-hidden">
-        {/* Left sidebar */}
+      {/* Body row */}
+      <div className="flex flex-1">
+        {/* Sidebar — desktop sticky, mobile drawer */}
         <LeftSidebar
           collapsed={sidebarCollapsed}
+          mobileOpen={mobileMenuOpen}
+          onCloseMobile={() => setMobileMenuOpen(false)}
           symbol={symbol}
           watchlist={watchlist}
           recentAnalyses={recentAnalyses}
@@ -111,9 +118,9 @@ export default function App() {
           onSelectSymbol={handleSelectSymbol}
         />
 
-        {/* Center */}
-        <main className="flex-1 flex flex-col min-w-0 overflow-hidden">
-          {/* Compact market summary bar — always visible, max 56px */}
+        {/* Main content — naturally scrolling, extra bottom pad for mobile nav */}
+        <main className="flex-1 min-w-0 flex flex-col pb-14 lg:pb-0">
+          {/* Price header / market summary */}
           <MarketSummaryBar
             symbol={symbol}
             interval={interval}
@@ -121,54 +128,59 @@ export default function App() {
             data={data}
           />
 
-          {/* Resizable chart panel */}
-          <div
-            ref={chartRef}
-            style={{ height: chartHeight }}
-            className="flex-shrink-0 overflow-hidden"
-          >
-            <TradingViewChart symbol={symbol || DEFAULT_SYMBOL} interval={interval} />
+          {/* Chart panel */}
+          <div id="chart" className="scroll-target">
+            <div ref={chartRef} style={{ height: chartHeight }}>
+              <TradingViewChart symbol={symbol || DEFAULT_SYMBOL} interval={interval} />
+            </div>
+            <ResizeDivider onMouseDown={startDrag} />
           </div>
 
-          {/* Resize handle */}
-          <ResizeDivider onMouseDown={startDrag} />
+          {/* Content below chart */}
+          {loading ? (
+            <SkeletonDashboard />
+          ) : error ? (
+            <ErrorState message={error} detail={errorDetail} onRetry={handleAnalyze} />
+          ) : data ? (
+            <>
+              {/* Analysis overview — always inline, no tab required */}
+              <section id="analysis" className="scroll-target border-b border-border-subtle">
+                <Suspense fallback={<SkeletonDashboard />}>
+                  <OverviewTab result={data} />
+                </Suspense>
+              </section>
 
-          {/* Analysis panel */}
-          <div className="flex-1 min-h-0 overflow-hidden flex flex-col">
-            {data && (
-              <Tabs tabs={tabs} active={activeTab} onChange={tab => setActiveTab(tab as AppTab)} />
-            )}
-
-            <div className="flex-1 min-h-0 overflow-hidden">
-              {loading ? (
-                <SkeletonDashboard />
-              ) : error ? (
-                <ErrorState message={error} detail={errorDetail} onRetry={handleAnalyze} />
-              ) : data ? (
+              {/* Tabbed detail section */}
+              <section id="detail" className="scroll-target">
+                <Tabs
+                  tabs={detailTabs}
+                  active={detailTab}
+                  onChange={tab => setActiveTab(tab as AppTab)}
+                />
                 <Suspense fallback={<SkeletonDashboard />}>
                   <TabPanel>
-                    {activeTab === 'overview'   && <OverviewTab   result={data} />}
-                    {activeTab === 'evidence'   && <EvidenceTab   result={data} />}
-                    {activeTab === 'indicators' && <IndicatorsTab result={data} />}
-                    {activeTab === 'structure'  && <StructureTab  result={data} />}
-                    {activeTab === 'volume'     && <VolumeTab     result={data} />}
-                    {activeTab === 'validation' && <ValidationTab result={data} />}
-                    {activeTab === 'writer'     && <WriterTab     result={data} />}
-                    {activeTab === 'benchmark'  && <BenchmarkTab />}
+                    {detailTab === 'evidence'   && <EvidenceTab   result={data} />}
+                    {detailTab === 'indicators' && <IndicatorsTab result={data} />}
+                    {detailTab === 'structure'  && <StructureTab  result={data} />}
+                    {detailTab === 'volume'     && <VolumeTab     result={data} />}
+                    {detailTab === 'validation' && <ValidationTab result={data} />}
+                    {detailTab === 'writer'     && <WriterTab     result={data} />}
+                    {detailTab === 'benchmark'  && <BenchmarkTab />}
                   </TabPanel>
                 </Suspense>
-              ) : (
-                <EmptyState onAnalyze={handleAnalyze} symbol={symbol} loading={loading} />
-              )}
-            </div>
-          </div>
+              </section>
+            </>
+          ) : (
+            <EmptyState onAnalyze={handleAnalyze} symbol={symbol} loading={loading} />
+          )}
         </main>
-
-        {/* Right panel */}
-        {data && !loading && (
-          <RightPanel result={data} />
-        )}
       </div>
+
+      {/* Mobile bottom navigation */}
+      <MobileNav
+        hasData={!!data}
+        onOpenWatchlist={() => setMobileMenuOpen(true)}
+      />
     </div>
   )
 }
@@ -178,24 +190,19 @@ export default function App() {
 function ChartIllustration() {
   return (
     <svg width="96" height="72" viewBox="0 0 96 72" fill="none" aria-hidden="true" className="text-slate-700">
-      {/* Grid lines */}
       <line x1="12" y1="18" x2="84" y2="18" stroke="currentColor" strokeWidth="0.75" strokeDasharray="3 3" />
       <line x1="12" y1="36" x2="84" y2="36" stroke="currentColor" strokeWidth="0.75" strokeDasharray="3 3" />
       <line x1="12" y1="54" x2="84" y2="54" stroke="currentColor" strokeWidth="0.75" strokeDasharray="3 3" />
-      {/* Axes */}
       <line x1="12" y1="10" x2="12" y2="64" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
       <line x1="12" y1="64" x2="84" y2="64" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-      {/* Price line */}
       <polyline
         points="12,52 26,46 40,48 52,34 64,24 76,18"
         stroke="#3b82f6" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" fill="none" strokeOpacity="0.6"
       />
-      {/* Area */}
       <polygon
         points="12,52 26,46 40,48 52,34 64,24 76,18 76,64 12,64"
         fill="#3b82f6" fillOpacity="0.06"
       />
-      {/* Data points */}
       <circle cx="52" cy="34" r="2.5" fill="#3b82f6" fillOpacity="0.5" />
       <circle cx="76" cy="18" r="2.5" fill="#3b82f6" fillOpacity="0.7" />
     </svg>
@@ -204,7 +211,7 @@ function ChartIllustration() {
 
 function EmptyState({ onAnalyze, symbol, loading }: { onAnalyze: () => void; symbol: string; loading: boolean }) {
   return (
-    <div className="flex flex-col items-center justify-center h-full text-center px-8 animate-fade-in select-none">
+    <div className="flex flex-col items-center justify-center min-h-[50vh] text-center px-8 py-16 animate-fade-in select-none">
       <div className="mb-5 opacity-70">
         <ChartIllustration />
       </div>
@@ -231,14 +238,13 @@ function ErrorState({ message, detail, onRetry }: { message: string; detail?: st
   const [showDetail, setShowDetail] = useState(false)
 
   return (
-    <div className="flex flex-col items-center justify-center h-full text-center px-8 animate-fade-in">
+    <div className="flex flex-col items-center justify-center min-h-[50vh] text-center px-8 py-16 animate-fade-in">
       <div className="w-12 h-12 rounded-2xl bg-red-400/8 border border-red-400/15 flex items-center justify-center mb-4">
         <AlertCircle size={22} className="text-red-400" />
       </div>
       <h2 className="text-sm font-semibold text-slate-200 mb-1.5">Analysis failed</h2>
       <p className="text-xs text-slate-400 max-w-sm leading-relaxed mb-4">{message}</p>
 
-      {/* Technical details — fixed height slot to prevent layout jump */}
       <div className="w-full max-w-sm mb-4" style={{ minHeight: detail ? undefined : 0 }}>
         {detail && (
           <>
