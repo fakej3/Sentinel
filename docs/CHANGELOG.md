@@ -11,6 +11,75 @@ Work in progress. No released version yet.
 
 ---
 
+## [0.16.0] — 2026-07-02
+
+### Module 16 — UX Foundation & Professional Interface
+
+UI/UX improvements transforming the dashboard into a polished, keyboard-accessible interface. Zero changes to analysis logic, API behavior, or PipelineResult.
+
+#### Added
+
+- **`src/ui/utils/timeframes.ts`**: `QUICK_TIMEFRAMES` (10 common timeframes), `EXTRA_TIMEFRAMES` (5 overflow timeframes), `ALL_TIMEFRAMES` (all 15). Single source of truth for timeframe constants across Header and tests.
+
+- **`src/ui/hooks/useResizablePanel.ts`**: Hook for resizable panels. Exported `clampSize(value, min, max)` pure function. `CHART_HEIGHT_DEFAULT` (320), `CHART_HEIGHT_MIN` (150), `CHART_HEIGHT_MAX` (600) constants. Drag mutates DOM directly (no React re-renders during drag), commits to localStorage on mouseup. Cleans up `mousemove`/`mouseup` listeners on completion.
+
+- **`src/ui/components/layout/Header.tsx`**: Global header bar (48px). Contains: sidebar toggle (`PanelLeftOpen`/`PanelLeftClose`), logo, symbol input (monospace, uppercase), 10 timeframe quick-select buttons, overflow `<select>` for 5 additional timeframes, analyze button with spinner, `ApiStatusIndicator`. All controls are keyboard accessible with `focus-visible` rings.
+
+- **`src/ui/components/layout/ResizeDivider.tsx`**: Draggable horizontal resize handle between chart panel and analysis panel. `role="separator"`, `aria-orientation="horizontal"`. Visual indicator (8px wide pill) appears on hover.
+
+- **`src/ui/__tests__/ux.test.ts`**: 17 pure-logic tests covering `clampSize` (7 cases), chart height constants (3 cases), and timeframe coverage (7 cases: array lengths, no duplicates, no overlap, union completeness).
+
+#### Modified
+
+- **`src/ui/components/layout/LeftSidebar.tsx`**: Removed symbol input, timeframe grid, and analyze button (moved to Header). Added `collapsed: boolean` prop — width transitions between `w-56` and `w-0` via `transition-[width] duration-200`. Added `aria-hidden` when collapsed. Added `role="button"` + keyboard handlers (`Enter`/`Space`) to watchlist and recent-analysis items. `onSelectSymbol` now accepts an optional `interval` argument to restore both fields from recent analyses.
+
+- **`src/App.tsx`**: Full restructure. Added global `<Header>` at top. Sidebar uses `collapsed` prop (no longer receives symbol/interval/analyze). Symbol, interval, activeTab, sidebar state, and recent analyses all persisted via `useLocalStorage`. Chart height managed by `useResizablePanel`. `<ResizeDivider>` between chart and analysis panels. All 8 tab components lazy-loaded via `React.lazy()` + `Suspense`. Removed fixed `ApiStatusIndicator` overlay (now in Header). `EmptyState` copy updated to reference the header. `ErrorState` `toggle` button is `aria-expanded`. `setActiveTab` cast preserves `AppTab` type.
+
+- **`src/index.css`**: Added semantic color utilities (`.text-success`, `.text-warning`, `.text-error`, `.text-info`, `.bg-success`, `.bg-warning`, `.bg-error`, `.bg-info`). Added `@media (prefers-reduced-motion: reduce)` block suppressing all animations and transitions. Added global `:focus-visible` rule (2px blue-500 outline). Added `:focus:not(:focus-visible)` to suppress default browser outlines.
+
+#### Architecture
+
+- Sidebar collapse is pure CSS width transition — no JS animation, no conditional rendering.
+- Resize drag: direct DOM style mutation at 60 fps, single `setSize` commit on mouseup. No React re-renders during drag.
+- `QUICK_TIMEFRAMES` + `EXTRA_TIMEFRAMES` extracted to `src/ui/utils/timeframes.ts` so tests can verify coverage without importing TSX files.
+
+#### Stats
+
+- **Tests:** 1082 (↑17 from 1065) across 62 files — all pass.
+- **TypeScript errors:** 0.
+
+---
+
+## [0.15.0] — 2026-07-02
+
+### Module 15 — UI Integration & Local Development
+
+Connected the existing frontend to the real API. No UI redesign. No analysis logic changes.
+
+#### Added
+
+- **`src/ui/api.ts`**: Centralized API client. `SentinelApiError` class with `kind: 'network' | 'timeout' | 'http' | 'parse' | 'abort'`. `analyze()` and `checkHealth()` functions. `VITE_API_URL` environment variable with `http://localhost:3000` fallback. AbortController support on both functions.
+- **`src/ui/hooks/useApiStatus.ts`**: `useApiStatus()` hook — polls `checkHealth()` every 30 seconds.
+- **`src/ui/components/shared/ApiStatusIndicator.tsx`**: Green/red/pulsing dot indicator.
+- **`src/server.ts`**: Express entry point with CORS middleware wrapping `createApp()`. Listens on `PORT` (default 3000).
+- **`src/ui/__tests__/api.test.ts`**: 21 tests covering success, HTTP errors, network failure, cancellation, malformed response, and `checkHealth()`.
+- **`.env.example`**: Documents `VITE_API_URL`.
+- **`docs/LOCAL_DEVELOPMENT.md`**: Two-process setup, environment variables, API endpoints, project structure.
+
+#### Modified
+
+- **`src/ui/hooks/useAnalyze.ts`**: Uses real `analyze()` from `src/ui/api.ts`. `SentinelApiError` friendly/detail fields surfaced. AbortController stored in ref, cancelled on re-run.
+- **`src/App.tsx`**: `errorDetail` destructured from `useAnalyze()`, passed to `ErrorState`. `ApiStatusIndicator` added as fixed overlay.
+- **`package.json`**: Added `start:api` script (`tsx src/server.ts`).
+- **`README.md`**: Quick start, scripts table, architecture overview.
+
+#### Stats
+
+- **Tests:** 1065 (↑21 from 1044) across 61 files — all pass.
+- **TypeScript errors:** 0.
+
+---
+
 ## [0.12.0] — 2026-07-01
 
 ### Module 13 — CLI

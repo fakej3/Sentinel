@@ -189,6 +189,36 @@ Binance Square Ready Post
 - Source: `src/modules/benchmark/`. Files: `types.ts`, `config.ts`, `compare.ts`, `metrics.ts`, `replay.ts`, `report.ts`, `index.ts`.
 - 62 tests passing (1 test file). Dataset fixtures in `test-fixtures/`. Documentation in `docs/BENCHMARKING.md`.
 
+### MODULE 14 — React Dashboard
+- **Presentation layer only** — zero analysis logic, zero pipeline calls, zero data transformations.
+- Renders `PipelineResult` returned by the API across 8 tab views: Overview, Evidence, Indicators, Structure, Volume, Validation, Writer, Benchmark.
+- Key components: `TradingViewChart` (embeds TradingView widget), `PriceHeader`, `LeftSidebar`, `RightPanel`, tab content components.
+- Shared component library: `Card`, `Badge`, `Skeleton`, `Tabs`, `ConfidenceMeter`, `ProgressBar`, `NumberTicker`, `CopyButton`.
+- Utility modules: `src/ui/utils/format.ts` (number/price/time formatting), `src/ui/utils/colors.ts` (grade and direction color helpers), `src/ui/utils/timeframes.ts` (timeframe constants).
+- Source: `src/ui/`. React 18, TypeScript, Vite, TailwindCSS v3.4.
+
+### MODULE 15 — UI Integration
+- **Client API layer** — `src/ui/api.ts` centralizes all HTTP communication with the backend.
+- `SentinelApiError` class: `kind: 'network' | 'timeout' | 'http' | 'parse' | 'abort'`, plus `friendly`, `detail`, `status`, `code` fields.
+- `analyze(symbol, interval, options?, signal?)` — `POST /analyze`, AbortController support.
+- `checkHealth(signal?)` — `GET /health`, returns boolean.
+- `VITE_API_URL` env var with `http://localhost:3000` fallback.
+- `useApiStatus()` hook polls every 30 seconds; `ApiStatusIndicator` component shows green/red/pulse dot.
+- `useAnalyze()` hook manages loading state, AbortController lifecycle, friendly error messages.
+- 21 unit tests (mocked `fetch`).
+
+### MODULE 16 — UX Foundation
+- **Layout and interaction layer** — global header, collapsible sidebar, resizable panels, keyboard accessibility.
+- `Header` component: sidebar toggle, symbol input, 10 timeframe quick-buttons + 5-item overflow `<select>`, analyze button, API status.
+- `LeftSidebar` collapses via CSS width transition (`transition-[width] duration-200`, `w-0` → `w-56`). Watchlist and recent-analysis items are keyboard navigable.
+- `ResizeDivider` + `useResizablePanel`: chart panel height resizable via drag. Direct DOM mutation during drag (no React re-renders at 60 fps); single state commit on mouseup. Persisted to localStorage.
+- All interactive state persisted: symbol, interval, active tab, sidebar collapsed, chart height.
+- All tab components lazy-loaded via `React.lazy()` + `Suspense`.
+- `prefers-reduced-motion` respected — all animations suppressed when set.
+- `:focus-visible` keyboard focus rings (2px blue-500).
+- Semantic color utilities: `.text-success`, `.text-warning`, `.text-error`, `.text-info`.
+- 17 pure-logic tests for `clampSize`, chart height bounds, and timeframe completeness.
+
 ### MODULE 12 — API Layer
 - **Transport layer only** — zero analysis logic, zero indicator calculations, zero pipeline duplication.
 - Wraps `analyzeMarket()` (Module 10) in a production-ready Express REST API.

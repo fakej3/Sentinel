@@ -98,11 +98,22 @@
 }
 
 @layer utilities {
-  .text-bullish { @apply text-emerald-400; }
-  .text-bearish { @apply text-red-400; }
+  /* Market direction */
+  .text-bullish     { @apply text-emerald-400; }
+  .text-bearish     { @apply text-red-400; }
   .text-neutral-val { @apply text-slate-400; }
-  .bg-bullish { @apply bg-emerald-400; }
-  .bg-bearish { @apply bg-red-400; }
+  .bg-bullish       { @apply bg-emerald-400; }
+  .bg-bearish       { @apply bg-red-400; }
+
+  /* Semantic status colors */
+  .text-success { @apply text-emerald-400; }
+  .text-warning { @apply text-amber-400; }
+  .text-error   { @apply text-red-400; }
+  .text-info    { @apply text-blue-400; }
+  .bg-success   { @apply bg-emerald-400/10 border border-emerald-400/20; }
+  .bg-warning   { @apply bg-amber-400/10 border border-amber-400/20; }
+  .bg-error     { @apply bg-red-400/10 border border-red-400/20; }
+  .bg-info      { @apply bg-blue-400/10 border border-blue-400/20; }
 
   .scrollbar-none {
     scrollbar-width: none;
@@ -116,4 +127,25 @@
     user-select: none;
     -webkit-user-select: none;
   }
+}
+
+/* Reduced motion: disable all transitions and animations */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Visible focus rings for keyboard navigation */
+:focus-visible {
+  outline: 2px solid theme('colors.blue.500');
+  outline-offset: 2px;
+}
+
+/* Remove default focus ring — we use focus-visible instead */
+:focus:not(:focus-visible) {
+  outline: none;
 }

@@ -2,7 +2,7 @@
 
 ## Overall Progress
 
-`92%` — Modules 1–12 complete + Engineering Standards established. Foundation stable.
+`99%` — Modules 1–16 complete. Full-stack crypto analysis platform: analysis engine, REST API, CLI, and polished dashboard.
 
 ---
 
@@ -23,8 +23,11 @@
 | 11 | Historical Replay & Benchmark Engine | **Complete** | Deterministic regression framework; dot-notation comparison; markdown reports — 62 tests passing |
 | 12 | API Layer | **Complete** | Express REST API wrapping Module 10; 3 endpoints; PipelineError mapping; timing header — 41 tests passing |
 | 13 | CLI | **Complete** | Command-line interface wrapping Module 10; argument parsing; 6 output modes; PipelineError mapping; DI factory — 66 tests passing |
-| 14 | History Database | Not Started | Persists analyses, indicators, content, images |
-| 14 | Performance Tracker | Not Started | Evaluates historical analyses at 24h / 3d / 7d |
+| 14 | React Dashboard | **Complete** | 8-tab dashboard: Overview, Evidence, Indicators, Structure, Volume, Validation, Writer, Benchmark. TradingView chart, shared component library |
+| 15 | UI Integration | **Complete** | `SentinelApiError` class, `analyze()` / `checkHealth()` API client, `useApiStatus` hook, friendly error messages, AbortController cancellation — 21 tests passing |
+| 16 | UX Foundation | **Complete** | Global header, collapsible sidebar (CSS width transition), resizable chart panel (drag-to-resize, localStorage), lazy-loaded tabs, keyboard accessibility, `prefers-reduced-motion` — 17 tests passing |
+| — | History Database | Not Started | Persists analyses, indicators, content, images |
+| — | Performance Tracker | Not Started | Evaluates historical analyses at 24h / 3d / 7d |
 
 ---
 

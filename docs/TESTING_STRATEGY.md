@@ -341,11 +341,29 @@ Vitest will not treat them as test files. They export factory functions only.
 
 ### Network Calls
 
-Module 1 (`fetchMarketData`) is the only module that makes network calls. Its tests
+Module 1 (`fetchMarketData`) is the only engine module that makes network calls. Its tests
 mock the global `fetch` function using Vitest's `vi.fn()` / `vi.stubGlobal`.
+
+Module 15's UI API client (`src/ui/api.ts`) also makes network calls. Its tests
+(`src/ui/__tests__/api.test.ts`) mock `fetch` with `vi.stubGlobal('fetch', mockFetch)`.
+The test environment is `node` (no jsdom), so `vi.stubGlobal` patches the global directly.
 
 Modules 2–8 are pure computation functions. They must not be tested with mocks.
 All inputs are passed directly as function parameters.
+
+### UI Component Tests
+
+The vitest environment is `node` (no jsdom, no DOM APIs). React component rendering
+is not possible in this environment. UI tests must test **pure logic only**:
+
+- Exported pure functions (e.g., `clampSize` from `useResizablePanel`)
+- Exported constants (e.g., timeframe arrays from `src/ui/utils/timeframes.ts`)
+- Formatting utilities (`src/ui/utils/format.ts`, `src/ui/utils/colors.ts`)
+- Hooks that depend only on browser APIs (`window.localStorage`, `fetch`) can be tested
+  by importing the module without calling the hook — only export constants / pure helpers alongside the hook.
+
+Do not attempt to import `.tsx` components in tests — JSX transpiles correctly but React lifecycle
+hooks (e.g., `useState`) cannot run without a DOM host. Keep test imports to `.ts` files only.
 
 ### Time
 
