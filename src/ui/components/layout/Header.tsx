@@ -1,12 +1,11 @@
 import { clsx } from 'clsx'
-import { PanelLeftClose, PanelLeftOpen, TrendingUp, Menu, Wifi, WifiOff } from 'lucide-react'
+import { PanelLeftClose, PanelLeftOpen, TrendingUp, Wifi, WifiOff } from 'lucide-react'
 import { QUICK_TIMEFRAMES, EXTRA_TIMEFRAMES } from '../../utils/timeframes'
 import { useApiStatus } from '../../hooks/useApiStatus'
 
 interface HeaderProps {
   sidebarCollapsed: boolean
   onToggleSidebar: () => void
-  onOpenMobileMenu: () => void
   symbol: string
   interval: string
   loading: boolean
@@ -45,7 +44,6 @@ function ApiDot() {
 export function Header({
   sidebarCollapsed,
   onToggleSidebar,
-  onOpenMobileMenu,
   symbol,
   interval,
   loading,
@@ -62,18 +60,7 @@ export function Header({
 
   return (
     <header className="sticky top-0 z-50 flex-shrink-0 flex items-center gap-1.5 px-3 h-11 border-b border-border-subtle bg-surface-900">
-      {/* Mobile hamburger */}
-      <button
-        onClick={onOpenMobileMenu}
-        className="lg:hidden w-8 h-8 flex items-center justify-center rounded-md text-slate-500 hover:text-slate-300
-                   hover:bg-surface-700 transition-colors duration-150
-                   focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
-        aria-label="Open menu"
-      >
-        <Menu size={15} />
-      </button>
-
-      {/* Desktop sidebar toggle */}
+      {/* Sidebar toggle */}
       <button
         onClick={onToggleSidebar}
         className="hidden lg:flex w-8 h-8 items-center justify-center rounded-md text-slate-500 hover:text-slate-300

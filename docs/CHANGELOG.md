@@ -11,6 +11,42 @@ Work in progress. No released version yet.
 
 ---
 
+## [0.19.0] — 2026-07-02
+
+### Module 19 — Sentinel 2.0 UX Architecture Redesign
+
+Multi-page SPA architecture. Sentinel is now an AI-first crypto analysis platform with six dedicated pages (Dashboard, Chart, Analysis, Watchlist, History, Settings), a persistent navigation sidebar on desktop, and a bottom nav on mobile. Zero analysis engine, API, hook, or data model changes.
+
+#### Added
+
+- **`src/ui/types.ts`**: Added `AppPage` union type: `'dashboard' | 'chart' | 'analysis' | 'watchlist' | 'history' | 'settings'`.
+
+- **`src/ui/components/layout/Sidebar.tsx`** *(new)*: Desktop-only (`hidden lg:flex`) navigation sidebar. Expanded state (220px) shows icon + label; collapsed state (56px) shows icon only. CSS `transition-[width]` for smooth collapse. Six nav items: Dashboard, Chart, Analysis, Watchlist, History, Settings. Active item highlighted `bg-blue-600/15 text-blue-400`. `aria-current="page"` on active item.
+
+- **`src/ui/components/layout/BottomNav.tsx`** *(new)*: Mobile-only (`lg:hidden`) fixed bottom navigation bar (h-14). Five items: Home, Chart, Analysis, Watchlist, Settings. Analysis disabled (`opacity-30 cursor-not-allowed`) when no data is loaded. Active item uses `text-blue-400`.
+
+- **`src/ui/pages/DashboardPage.tsx`** *(new)*: AI-first landing page. No TradingView chart. When data is available: hero section (ConfidenceMeter + TrendBadge + price + 24h stats + S/R levels), 6-card key metrics grid (Trend, Momentum, Volume, Structure, Validation, VWAP), recent analyses list (up to 3, click to navigate to Analysis page), re-analyze + chart shortcut buttons. Empty state: prompt to analyze with recent analyses list. Error state: shows error message inline.
+
+- **`src/ui/pages/ChartPage.tsx`** *(new)*: Dedicated chart workspace. TradingView chart fills all remaining viewport height (`flex-1 min-h-0`). Shows `PriceHeader` bar when analysis data is available. No analysis cards.
+
+- **`src/ui/pages/AnalysisPage.tsx`** *(new)*: Full AI report with all 8 tabs (Overview, Evidence, Indicators, Structure, Volume, Validation, Writer, Benchmark). Tab state stored in `sentinel_analysis_tab` (localStorage). `Tabs` sticky to top of scrollable container. Empty state when no data.
+
+- **`src/ui/pages/WatchlistPage.tsx`** *(new)*: Watchlist management. Filter symbols, add new symbols, remove existing ones, quick-analyze per-row button. Shows last analysis score + timestamp per symbol.
+
+- **`src/ui/pages/HistoryPage.tsx`** *(new)*: Full analysis history list with search-by-symbol filter and clear-all. Each row navigates to Analysis page with that symbol/interval loaded.
+
+- **`src/ui/pages/SettingsPage.tsx`** *(new)*: Settings page. API connection status (live, using `useApiStatus`). Data management: clear history, clear watchlist, reset all. About section.
+
+#### Modified
+
+- **`src/App.tsx`**: Complete restructure. Root div changed to `h-screen flex flex-col overflow-hidden` (fixed viewport, pages scroll internally). Page routing via `useLocalStorage<AppPage>('sentinel_page', 'dashboard')` — no new routing dependency. All 6 pages lazy-loaded via `React.lazy`. Body row is `flex flex-1 min-h-0 overflow-hidden`. Chart page main is `overflow-hidden flex flex-col`; all other page mains are `overflow-y-auto`. `Sidebar` + `BottomNav` replace `LeftSidebar` + `MobileNav`. `mobileMenuOpen` state and `useResizablePanel` removed from App (chart resizing moved to ChartPage native flex layout). `activeTab` / `detailTab` removed from App (moved into AnalysisPage). `MAX_RECENT` increased from 5 → 10. Watchlist clear + full-reset callbacks added for SettingsPage. `handleSelectSymbol` no longer closes mobile menu.
+
+- **`src/ui/components/layout/Header.tsx`**: Removed `onOpenMobileMenu` prop and mobile hamburger button (`Menu` icon). Sidebar toggle is now always rendered (not `hidden lg:flex`) since the sidebar is desktop-only anyway.
+
+- **`src/ui/components/shared/Tabs.tsx`**: `sticky top-11` → `sticky top-0`. In the new architecture the scrollable container is `<main>` (not the document), so the sticky offset is relative to `<main>`'s top edge — no header height compensation needed.
+
+---
+
 ## [0.18.0] — 2026-07-02
 
 ### Module 18 — Complete UI/UX Redesign (Presentation Layer)

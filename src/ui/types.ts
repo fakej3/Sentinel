@@ -90,6 +90,14 @@ export type AppTab =
   | 'writer'
   | 'benchmark'
 
+export type AppPage =
+  | 'dashboard'
+  | 'chart'
+  | 'analysis'
+  | 'watchlist'
+  | 'history'
+  | 'settings'
+
 export interface AnalyzeParams {
   symbol: string
   interval: string
