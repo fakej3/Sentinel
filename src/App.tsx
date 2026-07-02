@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react'
-import { AlertCircle, TrendingUp } from 'lucide-react'
+import { AlertCircle, TrendingUp, ChevronDown } from 'lucide-react'
 import { LeftSidebar } from './ui/components/layout/LeftSidebar'
 import { RightPanel } from './ui/components/layout/RightPanel'
 import { PriceHeader } from './ui/components/layout/PriceHeader'
@@ -14,6 +14,7 @@ import { ValidationTab } from './ui/components/tabs/ValidationTab'
 import { WriterTab } from './ui/components/tabs/WriterTab'
 import { BenchmarkTab } from './ui/components/tabs/BenchmarkTab'
 import { SkeletonDashboard, SkeletonPriceHeader } from './ui/components/shared/Skeleton'
+import { ApiStatusIndicator } from './ui/components/shared/ApiStatusIndicator'
 import { useAnalyze } from './ui/hooks/useAnalyze'
 import { useLocalStorage } from './ui/hooks/useLocalStorage'
 import type { AppTab, RecentAnalysis } from './ui/types'
@@ -29,7 +30,7 @@ export default function App() {
   const [activeTab, setActiveTab] = useState<AppTab>('overview')
   const [watchlist, setWatchlist] = useLocalStorage<string[]>('sentinel_watchlist', [])
   const [recentAnalyses, setRecentAnalyses] = useLocalStorage<RecentAnalysis[]>('sentinel_recent', [])
-  const { data, loading, error, analyze } = useAnalyze()
+  const { data, loading, error, errorDetail, analyze } = useAnalyze()
 
   const handleAnalyze = useCallback(async () => {
     const sym = symbol.trim().toUpperCase()
@@ -122,7 +123,7 @@ export default function App() {
           {loading ? (
             <SkeletonDashboard />
           ) : error ? (
-            <ErrorState message={error} onRetry={handleAnalyze} />
+            <ErrorState message={error} detail={errorDetail} onRetry={handleAnalyze} />
           ) : data ? (
             <TabPanel>
               {activeTab === 'overview' && <OverviewTab result={data} />}
@@ -144,6 +145,11 @@ export default function App() {
       {data && !loading && (
         <RightPanel result={data} />
       )}
+
+      {/* API status — fixed top-right overlay */}
+      <div className="fixed top-3 right-4 z-50">
+        <ApiStatusIndicator />
+      </div>
     </div>
   )
 }
@@ -169,14 +175,37 @@ function EmptyState({ onAnalyze, symbol, loading }: { onAnalyze: () => void; sym
   )
 }
 
-function ErrorState({ message, onRetry }: { message: string; onRetry: () => void }) {
+function ErrorState({ message, detail, onRetry }: { message: string; detail?: string; onRetry: () => void }) {
+  const [showDetail, setShowDetail] = useState(false)
+
   return (
     <div className="flex flex-col items-center justify-center h-full text-center px-8 animate-fade-in">
       <div className="w-14 h-14 rounded-2xl bg-red-400/10 border border-red-400/20 flex items-center justify-center mb-4">
         <AlertCircle size={24} className="text-red-400" />
       </div>
       <h2 className="text-base font-semibold text-red-400 mb-2">Analysis failed</h2>
-      <p className="text-sm text-slate-400 max-w-sm leading-relaxed mb-5">{message}</p>
+      <p className="text-sm text-slate-300 max-w-sm leading-relaxed mb-4">{message}</p>
+
+      {detail && (
+        <div className="w-full max-w-sm mb-4">
+          <button
+            onClick={() => setShowDetail(d => !d)}
+            className="flex items-center gap-1 text-[11px] text-slate-500 hover:text-slate-400 transition-colors mx-auto"
+          >
+            <ChevronDown
+              size={12}
+              className={`transition-transform duration-150 ${showDetail ? 'rotate-180' : ''}`}
+            />
+            {showDetail ? 'Hide' : 'Show'} technical details
+          </button>
+          {showDetail && (
+            <div className="mt-2 px-3 py-2 bg-surface-800 border border-border-subtle rounded-lg text-left">
+              <p className="text-[11px] font-mono text-slate-500 break-all leading-relaxed">{detail}</p>
+            </div>
+          )}
+        </div>
+      )}
+
       <button onClick={onRetry} className="btn-primary bg-red-600 hover:bg-red-500">
         Try again
       </button>

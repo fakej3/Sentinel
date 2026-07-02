@@ -1,4 +1,5 @@
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useRef } from 'react'
+import { analyze as apiAnalyze, SentinelApiError } from '../api'
 import type { PipelineResult } from '../types'
 import type { AnalyzeParams } from '../types'
 
@@ -6,50 +7,63 @@ interface AnalyzeState {
   data: PipelineResult | null
   loading: boolean
   error: string | null
+  errorDetail: string | undefined
 }
-
-const API_BASE = import.meta.env.VITE_API_URL ?? '/api'
 
 export function useAnalyze() {
   const [state, setState] = useState<AnalyzeState>({
     data: null,
     loading: false,
     error: null,
+    errorDetail: undefined,
   })
 
+  const abortRef = useRef<AbortController | null>(null)
+
   const analyze = useCallback(async (params: AnalyzeParams) => {
-    setState({ data: null, loading: true, error: null })
+    abortRef.current?.abort()
+    const controller = new AbortController()
+    abortRef.current = controller
+
+    setState({ data: null, loading: true, error: null, errorDetail: undefined })
+
     try {
-      const res = await fetch(`${API_BASE}/analyze`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          symbol: params.symbol.trim().toUpperCase(),
-          interval: params.interval,
-          candleLimit: params.candleLimit,
-        }),
-      })
+      const data = await apiAnalyze(
+        params.symbol,
+        params.interval,
+        params.candleLimit !== undefined ? { candleLimit: params.candleLimit } : undefined,
+        controller.signal,
+      )
 
-      if (!res.ok) {
-        const body = await res.json().catch(() => ({}))
-        const msg = (body as { error?: { message?: string } }).error?.message
-          ?? `HTTP ${res.status}`
-        throw new Error(msg)
-      }
+      if (controller.signal.aborted) return null
 
-      const data = (await res.json()) as PipelineResult
-      setState({ data, loading: false, error: null })
+      setState({ data, loading: false, error: null, errorDetail: undefined })
       return data
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Unknown error'
-      setState({ data: null, loading: false, error: message })
+      if (controller.signal.aborted) {
+        setState(prev => ({ ...prev, loading: false }))
+        return null
+      }
+
+      const friendly = err instanceof SentinelApiError ? err.friendly
+        : err instanceof Error ? err.message
+        : 'Unknown error'
+      const detail = err instanceof SentinelApiError ? err.detail : undefined
+
+      setState({ data: null, loading: false, error: friendly, errorDetail: detail })
       return null
     }
   }, [])
 
-  const reset = useCallback(() => {
-    setState({ data: null, loading: false, error: null })
+  const cancel = useCallback(() => {
+    abortRef.current?.abort()
+    abortRef.current = null
+    setState(prev => prev.loading ? { ...prev, loading: false } : prev)
   }, [])
 
-  return { ...state, analyze, reset }
+  const reset = useCallback(() => {
+    setState({ data: null, loading: false, error: null, errorDetail: undefined })
+  }, [])
+
+  return { ...state, analyze, cancel, reset }
 }
