@@ -209,14 +209,23 @@ Binance Square Ready Post
 
 ### MODULE 16 — UX Foundation
 - **Layout and interaction layer** — global header, collapsible sidebar, resizable panels, keyboard accessibility.
-- `Header` component: sidebar toggle, symbol input, 10 timeframe quick-buttons + 5-item overflow `<select>`, analyze button, API status.
-- `LeftSidebar` collapses via CSS width transition (`transition-[width] duration-200`, `w-0` → `w-56`). Watchlist and recent-analysis items are keyboard navigable.
+- `Header` component: sidebar toggle, symbol input, 10 timeframe quick-buttons + 5-item overflow `<select>`, analyze button.
+- `LeftSidebar` collapses via CSS width transition (`transition-[width] duration-200`, `w-0` → `w-52`). Watchlist and recent-analysis items are keyboard navigable.
 - `ResizeDivider` + `useResizablePanel`: chart panel height resizable via drag. Direct DOM mutation during drag (no React re-renders at 60 fps); single state commit on mouseup. Persisted to localStorage.
 - All interactive state persisted: symbol, interval, active tab, sidebar collapsed, chart height.
 - All tab components lazy-loaded via `React.lazy()` + `Suspense`.
 - `prefers-reduced-motion` respected — all animations suppressed when set.
 - `:focus-visible` keyboard focus rings (2px blue-500).
 - Semantic color utilities: `.text-success`, `.text-warning`, `.text-error`, `.text-info`.
+
+### MODULE 17 — Premium UX Polish
+- **Information-density pass** — reduces visual noise, improves hierarchy, eliminates wasted space. Zero analysis logic changes.
+- `MarketSummaryBar` (56px): single always-visible bar replacing the old conditional PriceHeader. Shows symbol, interval, price, 24h change, trend badge, confidence, last analysis time, execution time, and `ApiDot` status. `ApiDot` consumes `useApiStatus()` — API status migrated here from Header.
+- `useResizablePanel` constants updated: `CHART_HEIGHT_DEFAULT` 560px (was 320), `CHART_HEIGHT_MIN` 300px (was 150), `CHART_HEIGHT_MAX` 900px (was 600). Chart dominates at default.
+- `LeftSidebar` grade scores: `recentBySymbol` Map (built once per `recentAnalyses` via `useMemo`) enables O(1) lookups. Each watchlist symbol shows its most-recent confidence score using `scoreColor`; removed by hover → remove-button reveal.
+- `OverviewTab` primary grid: `repeat(auto-fill, minmax(180px, 1fr))` — fills available width at any card count. All cards gain 150ms shadow elevation on hover (`shadow-card-hover`). `Row` helper component for consistent key-value pair layout.
+- `App.tsx` `EmptyState`: `ChartIllustration` inline SVG (no external assets). `ErrorState` fixed-height detail slot prevents layout jump on collapsible details toggle.
+- All transitions 120–180ms (Tailwind `duration-150`); `prefers-reduced-motion` suppresses all via `index.css`.
 - 17 pure-logic tests for `clampSize`, chart height bounds, and timeframe completeness.
 
 ### MODULE 12 — API Layer

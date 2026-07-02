@@ -11,6 +11,43 @@ Work in progress. No released version yet.
 
 ---
 
+## [0.17.0] — 2026-07-02
+
+### Module 17 — Premium UX Polish
+
+Information-density pass on the dashboard. No analysis logic, API, or pipeline changes.
+
+#### Added
+
+- **`src/ui/components/layout/MarketSummaryBar.tsx`**: Compact fixed-height (56px) bar that unifies three prior conditional states (idle / loading / data) into a single always-visible component. Displays: symbol, interval badge, current price, 24h change (color-coded), trend badge, confidence score, last analysis timestamp, execution time, and API status dot (`ApiDot` subcomponent via `useApiStatus`). Responsive: progressive detail visible at sm/md/lg/xl breakpoints.
+
+#### Modified
+
+- **`src/ui/hooks/useResizablePanel.ts`**: Updated panel size constants — `CHART_HEIGHT_DEFAULT` 320→560, `CHART_HEIGHT_MIN` 150→300, `CHART_HEIGHT_MAX` 600→900. Chart now dominates the workspace at default zoom.
+
+- **`src/ui/components/layout/Header.tsx`**: Removed `ApiStatusIndicator` (moved to `MarketSummaryBar`). Height h-12→h-11. All controls unified at h-8. Added visual separator between symbol input and timeframe buttons. Logo icon reduced (w-6→w-5). Analyze button uses explicit inline classes for consistent h-8 sizing.
+
+- **`src/ui/components/layout/LeftSidebar.tsx`**: Width w-56→w-52. Added `recentBySymbol` lookup Map (built via `useMemo`) for O(1) grade score display in watchlist items. Recent analysis grade shown as colored score chip next to each watchlist symbol; replaced by remove button on hover.
+
+- **`src/ui/components/tabs/OverviewTab.tsx`**: Primary card grid changed to `repeat(auto-fill, minmax(180px, 1fr))` for true responsiveness at any card count. All summary cards gain `hover` prop and 150ms shadow elevation transition. Icon containers shrunk (w-8→w-7, size 15→13). ProgressBar heights h-1→h-0.5. Added `Row` helper component for consistent key-value rows. `tabular-nums` class on all mono numeric values.
+
+- **`src/App.tsx`**: `MarketSummaryBar` replaces the old conditional `PriceHeader`/`SkeletonPriceHeader` block. `ChartIllustration` SVG component provides custom empty-state graphic. `EmptyState` and `ErrorState` rebuilt: cleaner inline button styles, fixed-height detail slot in `ErrorState` prevents layout jump on expand/collapse. Removed unused `TrendingUp` import.
+
+- **`src/ui/__tests__/ux.test.ts`**: Three new tests verifying Module 17 constants — default height ≥500px (chart dominance spec), exact values (560/300/900), and clamp behavior across the full new range. Total: 20 tests (↑3 from 17).
+
+#### Architecture
+
+- API status dot migrated from `Header` → `MarketSummaryBar`, consolidating all live-data indicators in one bar and reducing header clutter.
+- Empty-state layout jump eliminated via fixed-height wrapper slot (`minHeight` trick) around collapsible error detail block.
+- `recentBySymbol` Map built once per `recentAnalyses` change via `useMemo` — O(1) watchlist lookups regardless of history length.
+
+#### Stats
+
+- **Tests:** 1085 (↑3 from 1082) across 62 files — all pass.
+- **TypeScript errors:** 0.
+
+---
+
 ## [0.16.0] — 2026-07-02
 
 ### Module 16 — UX Foundation & Professional Interface

@@ -2,9 +2,9 @@ import { useCallback } from 'react'
 import { useRef } from 'react'
 import { useLocalStorage } from './useLocalStorage'
 
-export const CHART_HEIGHT_MIN = 150
-export const CHART_HEIGHT_MAX = 600
-export const CHART_HEIGHT_DEFAULT = 320
+export const CHART_HEIGHT_MIN = 300
+export const CHART_HEIGHT_MAX = 900
+export const CHART_HEIGHT_DEFAULT = 560
 
 export function clampSize(value: number, min: number, max: number): number {
   return Math.max(min, Math.min(max, value))

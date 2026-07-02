@@ -362,6 +362,13 @@ is not possible in this environment. UI tests must test **pure logic only**:
 - Hooks that depend only on browser APIs (`window.localStorage`, `fetch`) can be tested
   by importing the module without calling the hook — only export constants / pure helpers alongside the hook.
 
+**Module 16–17 UI tests** (`src/ui/__tests__/ux.test.ts`, 20 tests):
+- `clampSize()` — 7 boundary/delta/range tests
+- Chart height constants — 6 tests: default within range, min < max, clamping identity, default ≥ 500px (chart dominance spec), exact Module 17 values (560/300/900), full-range clamp behavior
+- `QUICK_TIMEFRAMES` — 2 tests: length 10, key timeframes present
+- `EXTRA_TIMEFRAMES` — 2 tests: length 5, no overlap with quick set
+- `ALL_TIMEFRAMES` — 3 tests: length 15, no duplicates, union completeness
+
 Do not attempt to import `.tsx` components in tests — JSX transpiles correctly but React lifecycle
 hooks (e.g., `useState`) cannot run without a DOM host. Keep test imports to `.ts` files only.
 

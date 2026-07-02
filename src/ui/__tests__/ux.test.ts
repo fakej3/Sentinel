@@ -49,6 +49,23 @@ describe('chart height constants', () => {
   it('clamping default returns default unchanged', () => {
     expect(clampSize(CHART_HEIGHT_DEFAULT, CHART_HEIGHT_MIN, CHART_HEIGHT_MAX)).toBe(CHART_HEIGHT_DEFAULT)
   })
+
+  // Module 17: premium layout — chart should dominate the workspace
+  it('default height is at least 500px so chart dominates the workspace', () => {
+    expect(CHART_HEIGHT_DEFAULT).toBeGreaterThanOrEqual(500)
+  })
+
+  it('has the Module 17 premium values (560 default, 300 min, 900 max)', () => {
+    expect(CHART_HEIGHT_DEFAULT).toBe(560)
+    expect(CHART_HEIGHT_MIN).toBe(300)
+    expect(CHART_HEIGHT_MAX).toBe(900)
+  })
+
+  it('clamps correctly across the full Module 17 range', () => {
+    expect(clampSize(0, CHART_HEIGHT_MIN, CHART_HEIGHT_MAX)).toBe(300)
+    expect(clampSize(1000, CHART_HEIGHT_MIN, CHART_HEIGHT_MAX)).toBe(900)
+    expect(clampSize(560, CHART_HEIGHT_MIN, CHART_HEIGHT_MAX)).toBe(560)
+  })
 })
 
 // ── timeframe coverage ───────────────────────────────────────────────────────

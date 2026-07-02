@@ -2,7 +2,7 @@
 
 ## Overall Progress
 
-`99%` — Modules 1–16 complete. Full-stack crypto analysis platform: analysis engine, REST API, CLI, and polished dashboard.
+`100%` — Modules 1–17 complete. Full-stack crypto analysis platform: analysis engine, REST API, CLI, and premium dashboard.
 
 ---
 
@@ -26,6 +26,7 @@
 | 14 | React Dashboard | **Complete** | 8-tab dashboard: Overview, Evidence, Indicators, Structure, Volume, Validation, Writer, Benchmark. TradingView chart, shared component library |
 | 15 | UI Integration | **Complete** | `SentinelApiError` class, `analyze()` / `checkHealth()` API client, `useApiStatus` hook, friendly error messages, AbortController cancellation — 21 tests passing |
 | 16 | UX Foundation | **Complete** | Global header, collapsible sidebar (CSS width transition), resizable chart panel (drag-to-resize, localStorage), lazy-loaded tabs, keyboard accessibility, `prefers-reduced-motion` — 17 tests passing |
+| 17 | Premium UX Polish | **Complete** | Compact market summary bar (56px), chart height 560px default, watchlist grade scores, responsive auto-fill card grid, hover elevation micro-interactions, improved empty/error states — 20 tests passing |
 | — | History Database | Not Started | Persists analyses, indicators, content, images |
 | — | Performance Tracker | Not Started | Evaluates historical analyses at 24h / 3d / 7d |
 
