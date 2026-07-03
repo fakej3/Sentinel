@@ -5,6 +5,7 @@ import { BottomNav } from './ui/components/layout/BottomNav'
 import { SkeletonDashboard } from './ui/components/shared/Skeleton'
 import { useAnalyze } from './ui/hooks/useAnalyze'
 import { useLocalStorage } from './ui/hooks/useLocalStorage'
+import { resolveSymbol } from './ui/utils/symbolSearch'
 import type { AppPage, RecentAnalysis } from './ui/types'
 
 const DashboardPage = lazy(() => import('./ui/pages/DashboardPage').then(m => ({ default: m.DashboardPage })))
@@ -29,8 +30,10 @@ export default function App() {
   const { data, loading, error, analyze } = useAnalyze()
 
   const handleAnalyze = useCallback(async () => {
-    const sym = symbol.trim().toUpperCase()
+    const sym = resolveSymbol(symbol)
     if (!sym) return
+    // Update the displayed symbol to the resolved form (e.g. "ETH" → "ETHUSDT")
+    if (sym !== symbol.trim().toUpperCase()) setSymbol(sym)
     const result = await analyze({ symbol: sym, interval })
     if (result) {
       setRecentAnalyses(prev => {

@@ -81,6 +81,8 @@ export interface RecentAnalysis {
 }
 
 export type AppTab =
+  | 'summary'
+  | 'trade'
   | 'overview'
   | 'evidence'
   | 'indicators'

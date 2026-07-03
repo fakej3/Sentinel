@@ -7,6 +7,7 @@ import { ProgressBar } from '../shared/ProgressBar'
 import { TrendBadge, GradeBadge } from '../shared/Badge'
 import { formatPrice, formatPercent, formatScore } from '../../utils/format'
 import { trendColor, changeColor, scoreColor } from '../../utils/colors'
+import { trendLabel, emaAlignmentLabel, volumeLabel } from '../../utils/tradingLanguage'
 import type { PipelineResult } from '../../types'
 
 interface OverviewTabProps {
@@ -40,6 +41,7 @@ export function OverviewTab({ result }: OverviewTabProps) {
             <div className="flex-1 min-w-0">
               <p className="section-label mb-1.5">Trend</p>
               <TrendBadge trend={fullTrend.trend} />
+              <p className="text-[10px] text-slate-500 mt-1 leading-snug">{trendLabel(fullTrend.trend)}</p>
               <div className="flex gap-2.5 mt-2">
                 <div>
                   <p className="text-[9px] text-slate-600 mb-0.5">Bull</p>
@@ -140,8 +142,8 @@ export function OverviewTab({ result }: OverviewTabProps) {
               <p className="text-sm font-semibold text-slate-200 capitalize leading-tight">
                 {volumeContext.volumeClassification.replace(/_/g, ' ')}
               </p>
-              <p className="text-[10px] text-slate-500 mt-0.5 font-mono">
-                {volumeContext.relativeVolume.toFixed(2)}× avg · {volumeContext.accDistState}
+              <p className="text-[10px] text-slate-500 mt-0.5 leading-snug">
+                {volumeLabel(volumeContext.volumeClassification, volumeContext.relativeVolume)}
               </p>
               <ProgressBar
                 value={volumeContext.overallStrength}
@@ -251,7 +253,7 @@ export function OverviewTab({ result }: OverviewTabProps) {
                   : analysis.emaContext.emaAlignment === 'bearish_stack' ? 'text-red-400'
                   : 'text-slate-400'
               }`}>
-                {analysis.emaContext.emaAlignment.replace(/_/g, ' ')}
+                {emaAlignmentLabel(analysis.emaContext.emaAlignment)}
               </span>
             </div>
           </div>

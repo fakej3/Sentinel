@@ -194,14 +194,16 @@ describe('computeConfidence — core scoring', () => {
     expect(result.reasons[0].points).toBe(15)
   })
 
-  it('clamps to 0 when all factors are negative', () => {
+  it('scores bearish-only evidence by signal strength, not direction', () => {
+    // rawPoints = -45, abs(-45) = 45, 45/10.6 ≈ 4.245 (mixed grade)
     const analysis = makeAnalysis([
       ev('Price below EMA200', 'bearish'),    // -15
       ev('Lower High confirmed', 'bearish'),   // -15
       ev('Lower Low confirmed', 'bearish'),    // -15
     ])
     const result = computeConfidence(analysis, cleanValidation())
-    expect(result.score).toBe(0)
+    expect(result.score).toBeCloseTo(norm(45))
+    expect(result.grade).toBe('mixed')
   })
 
   it('clamps to 10 when raw points exceed 106', () => {

@@ -40,7 +40,7 @@ export function computeConfidence(
 
   // ── Step 2: Normalize raw points to 0–10 ─────────────────────────────────
 
-  let score = normalize(rawPoints, cfg.normalizationDivisor)
+  let score = normalize(Math.abs(rawPoints), cfg.normalizationDivisor)
   const bullishConfidence = normalize(bullishRawPoints, cfg.normalizationDivisor)
   const bearishConfidence = normalize(bearishRawPoints, cfg.normalizationDivisor)
 

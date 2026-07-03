@@ -1,7 +1,10 @@
+import { useState, useRef, useCallback, useEffect } from 'react'
 import { clsx } from 'clsx'
 import { PanelLeftClose, PanelLeftOpen, TrendingUp, Wifi, WifiOff } from 'lucide-react'
 import { QUICK_TIMEFRAMES, EXTRA_TIMEFRAMES } from '../../utils/timeframes'
 import { useApiStatus } from '../../hooks/useApiStatus'
+import { searchSymbols } from '../../utils/symbolSearch'
+import type { SymbolSuggestion } from '../../utils/symbolSearch'
 
 interface HeaderProps {
   sidebarCollapsed: boolean
@@ -51,10 +54,69 @@ export function Header({
   onIntervalChange,
   onAnalyze,
 }: HeaderProps) {
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter') onAnalyze()
-    if (e.key === 'Escape') e.currentTarget.blur()
-  }
+  const [suggestions, setSuggestions] = useState<SymbolSuggestion[]>([])
+  const [showSuggestions, setShowSuggestions] = useState(false)
+  const [activeSuggestion, setActiveSuggestion] = useState(-1)
+  const inputRef = useRef<HTMLInputElement>(null)
+  const dropdownRef = useRef<HTMLDivElement>(null)
+
+  const handleInput = useCallback((value: string) => {
+    onSymbolChange(value)
+    setActiveSuggestion(-1)
+    const upper = value.trim().toUpperCase()
+    // Only show suggestions for partial input (not already-complete pairs)
+    if (upper.length >= 1 && upper.length <= 6) {
+      const found = searchSymbols(upper)
+      setSuggestions(found)
+      setShowSuggestions(found.length > 0)
+    } else {
+      setSuggestions([])
+      setShowSuggestions(false)
+    }
+  }, [onSymbolChange])
+
+  const selectSuggestion = useCallback((s: SymbolSuggestion) => {
+    onSymbolChange(s.symbol)
+    setSuggestions([])
+    setShowSuggestions(false)
+    setActiveSuggestion(-1)
+    // Slight delay so state settles before analyzing
+    setTimeout(onAnalyze, 50)
+  }, [onSymbolChange, onAnalyze])
+
+  const handleKeyDown = useCallback((e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'ArrowDown') {
+      e.preventDefault()
+      setActiveSuggestion(i => Math.min(i + 1, suggestions.length - 1))
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault()
+      setActiveSuggestion(i => Math.max(i - 1, -1))
+    } else if (e.key === 'Enter') {
+      if (activeSuggestion >= 0 && suggestions[activeSuggestion]) {
+        selectSuggestion(suggestions[activeSuggestion])
+      } else {
+        setShowSuggestions(false)
+        onAnalyze()
+      }
+    } else if (e.key === 'Escape') {
+      setShowSuggestions(false)
+      e.currentTarget.blur()
+    }
+  }, [activeSuggestion, suggestions, selectSuggestion, onAnalyze])
+
+  // Close suggestions on outside click
+  useEffect(() => {
+    function handleClick(e: MouseEvent) {
+      if (
+        inputRef.current && !inputRef.current.contains(e.target as Node) &&
+        dropdownRef.current && !dropdownRef.current.contains(e.target as Node)
+      ) {
+        setShowSuggestions(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClick)
+    return () => document.removeEventListener('mousedown', handleClick)
+  }, [])
 
   const extraActive = (EXTRA_TIMEFRAMES as readonly string[]).includes(interval)
 
@@ -79,19 +141,54 @@ export function Header({
         <span className="text-xs font-bold text-slate-200 tracking-tight hidden sm:block">Sentinel</span>
       </div>
 
-      {/* Symbol input */}
-      <input
-        type="text"
-        value={symbol}
-        onChange={e => onSymbolChange(e.target.value)}
-        onKeyDown={handleKeyDown}
-        placeholder="BTCUSDT"
-        spellCheck={false}
-        aria-label="Trading symbol"
-        className="h-8 w-28 px-2 bg-surface-700 border border-border-subtle rounded-md text-xs text-slate-200
-                   placeholder-slate-500 uppercase font-mono focus:outline-none focus:ring-1
-                   focus:ring-blue-500/60 focus:border-blue-500/40 transition-all duration-150"
-      />
+      {/* Symbol input + suggestions */}
+      <div className="relative flex-shrink-0">
+        <input
+          ref={inputRef}
+          type="text"
+          value={symbol}
+          onChange={e => handleInput(e.target.value)}
+          onKeyDown={handleKeyDown}
+          onFocus={() => {
+            if (suggestions.length > 0) setShowSuggestions(true)
+          }}
+          placeholder="BTC, ETH, SOL…"
+          spellCheck={false}
+          aria-label="Trading symbol"
+          aria-autocomplete="list"
+          aria-expanded={showSuggestions}
+          className="h-8 w-32 px-2 bg-surface-700 border border-border-subtle rounded-md text-xs text-slate-200
+                     placeholder-slate-500 uppercase font-mono focus:outline-none focus:ring-1
+                     focus:ring-blue-500/60 focus:border-blue-500/40 transition-all duration-150"
+        />
+
+        {showSuggestions && suggestions.length > 0 && (
+          <div
+            ref={dropdownRef}
+            role="listbox"
+            className="absolute top-full left-0 mt-1 w-44 bg-surface-800 border border-border-subtle
+                       rounded-lg shadow-xl overflow-hidden z-50"
+          >
+            {suggestions.map((s, i) => (
+              <button
+                key={s.symbol}
+                role="option"
+                aria-selected={i === activeSuggestion}
+                onMouseDown={e => { e.preventDefault(); selectSuggestion(s) }}
+                className={clsx(
+                  'w-full flex items-center justify-between px-3 py-1.5 text-xs transition-colors',
+                  i === activeSuggestion
+                    ? 'bg-blue-600/20 text-slate-100'
+                    : 'text-slate-400 hover:bg-surface-700 hover:text-slate-200',
+                )}
+              >
+                <span className="font-mono font-semibold">{s.base}</span>
+                <span className="text-[10px] text-slate-600">{s.quote}</span>
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
 
       {/* Separator */}
       <div className="w-px h-4 bg-border-subtle flex-shrink-0 mx-0.5" />

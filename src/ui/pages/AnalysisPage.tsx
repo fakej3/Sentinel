@@ -6,6 +6,8 @@ import { useLocalStorage } from '../hooks/useLocalStorage'
 import type { AppTab, PipelineResult } from '../types'
 import type { TabDef } from '../components/shared/Tabs'
 
+const SummaryTab    = lazy(() => import('../components/tabs/SummaryTab').then(m => ({ default: m.SummaryTab })))
+const TradeTab      = lazy(() => import('../components/tabs/TradeTab').then(m => ({ default: m.TradeTab })))
 const OverviewTab   = lazy(() => import('../components/tabs/OverviewTab').then(m => ({ default: m.OverviewTab })))
 const EvidenceTab   = lazy(() => import('../components/tabs/EvidenceTab').then(m => ({ default: m.EvidenceTab })))
 const IndicatorsTab = lazy(() => import('../components/tabs/IndicatorsTab').then(m => ({ default: m.IndicatorsTab })))
@@ -23,7 +25,7 @@ interface AnalysisPageProps {
 }
 
 export function AnalysisPage({ data, loading, onAnalyze, symbol }: AnalysisPageProps) {
-  const [activeTab, setActiveTab] = useLocalStorage<AppTab>('sentinel_analysis_tab', 'overview')
+  const [activeTab, setActiveTab] = useLocalStorage<AppTab>('sentinel_analysis_tab', 'summary')
 
   if (loading) return <SkeletonDashboard />
 
@@ -54,8 +56,10 @@ export function AnalysisPage({ data, loading, onAnalyze, symbol }: AnalysisPageP
   const issueCount    = data.validation.issues.length
 
   const tabs: TabDef[] = [
-    { id: 'overview',   label: 'Overview' },
+    { id: 'summary',    label: 'Summary' },
+    { id: 'trade',      label: 'Trade' },
     { id: 'evidence',   label: 'Evidence',   count: evidenceCount },
+    { id: 'overview',   label: 'Overview' },
     { id: 'indicators', label: 'Indicators' },
     { id: 'structure',  label: 'Structure' },
     { id: 'volume',     label: 'Volume' },
@@ -69,6 +73,8 @@ export function AnalysisPage({ data, loading, onAnalyze, symbol }: AnalysisPageP
       <Tabs tabs={tabs} active={activeTab} onChange={tab => setActiveTab(tab as AppTab)} />
       <Suspense fallback={<SkeletonDashboard />}>
         <TabPanel>
+          {activeTab === 'summary'    && <SummaryTab    result={data} />}
+          {activeTab === 'trade'      && <TradeTab      result={data} />}
           {activeTab === 'overview'   && <OverviewTab   result={data} />}
           {activeTab === 'evidence'   && <EvidenceTab   result={data} />}
           {activeTab === 'indicators' && <IndicatorsTab result={data} />}
