@@ -3,6 +3,9 @@ import { createApp } from './api/server'
 import { analyzeMarket } from './modules/pipeline/index'
 import type { PipelineOptions } from './modules/pipeline/types'
 
+// Load .env.local for local development (no-op if the file is absent)
+try { process.loadEnvFile('.env.local') } catch { /* ignore */ }
+
 const PORT = Number(process.env.PORT ?? 3000)
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY ?? ''
 
