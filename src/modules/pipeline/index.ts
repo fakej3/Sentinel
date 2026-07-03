@@ -16,6 +16,8 @@ import { computeConfidence } from '../confidence/index'
 import type { ConfidenceResult } from '../confidence/types'
 import { generateAnalysis } from '../writer/index'
 import type { GeneratedAnalysis } from '../writer/types'
+import { createAIProvider } from '../ai/index'
+import type { AIConfig } from '../ai/types'
 import { DEFAULT_PIPELINE_CONFIG, PIPELINE_VERSION } from './config'
 import type {
   PipelineOptions,
@@ -62,6 +64,7 @@ function mergeConfig(partial: Partial<PipelineConfig>): PipelineConfig {
     validation: { ...DEFAULT_PIPELINE_CONFIG.validation, ...partial.validation },
     confidence: { ...DEFAULT_PIPELINE_CONFIG.confidence, ...partial.confidence },
     writer: { ...DEFAULT_PIPELINE_CONFIG.writer, ...partial.writer },
+    ai: partial.ai,
   }
 }
 
@@ -198,6 +201,37 @@ export async function analyzeMarket(options: PipelineOptions): Promise<PipelineR
   }
   const writerTime = Date.now() - t8
 
+  // ── Stage 10: AI Enhancement (optional, never throws) ───────────────────────
+  let aiTime: number | undefined
+  const aiCfg = cfg.ai
+  if (aiCfg?.provider && aiCfg.apiKey) {
+    const t9 = Date.now()
+    try {
+      const provider = createAIProvider(aiCfg as AIConfig)
+      if (provider.isAvailable()) {
+        const enhancement = await provider.enhance({
+          symbol,
+          interval,
+          headline: generatedAnalysis.headline,
+          summary: generatedAnalysis.summary,
+          conclusion: generatedAnalysis.conclusion,
+          fullReport: generatedAnalysis.fullReport,
+          confidenceScore: confidence.score,
+          confidenceGrade: confidence.grade,
+        })
+        generatedAnalysis = {
+          ...generatedAnalysis,
+          summary: enhancement.summary,
+          conclusion: enhancement.conclusion,
+          aiEnhanced: true,
+        }
+      }
+    } catch {
+      // Silently fall back to deterministic output — AI is always optional
+    }
+    aiTime = Date.now() - t9
+  }
+
   const totalTime = Date.now() - pipelineStart
 
   const timings: PipelineTimings = {
@@ -210,6 +244,7 @@ export async function analyzeMarket(options: PipelineOptions): Promise<PipelineR
     validation: validationTime,
     confidence: confidenceTime,
     writer: writerTime,
+    ...(aiTime !== undefined && { aiEnhancement: aiTime }),
     total: totalTime,
   }
 

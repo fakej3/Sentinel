@@ -77,6 +77,8 @@ export interface GeneratedAnalysis {
   /** Full assembled report text in the selected template's format */
   fullReport: string
   metadata: WriterMetadata
+  /** True when an AI provider enhanced the summary and conclusion fields */
+  aiEnhanced?: boolean
 }
 
 // ─── Config ───────────────────────────────────────────────────────────────────

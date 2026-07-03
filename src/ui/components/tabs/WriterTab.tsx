@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { FileText, Hash, AlignLeft, List, BookOpen, X } from 'lucide-react'
+import { FileText, Hash, AlignLeft, List, BookOpen, X, Sparkles } from 'lucide-react'
 import { Card } from '../shared/Card'
 import { CopyButton } from '../shared/CopyButton'
 import { clsx } from 'clsx'
@@ -114,7 +114,13 @@ export function WriterTab({ result }: WriterTabProps) {
               {t.label}
             </button>
           ))}
-          <div className="ml-auto">
+          <div className="ml-auto flex items-center gap-1.5">
+            {generatedAnalysis.aiEnhanced && (
+              <span className="flex items-center gap-1 text-[10px] px-2 py-1 rounded-full bg-violet-400/10 text-violet-400">
+                <Sparkles size={9} />
+                AI enhanced
+              </span>
+            )}
             <span className={clsx(
               'text-[10px] px-2 py-1 rounded-full',
               isGenerated

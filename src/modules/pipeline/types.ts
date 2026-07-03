@@ -7,6 +7,7 @@ import type { MarketAnalysisResult, AnalysisConfig } from '../analysis/types'
 import type { ValidationResult, ValidationConfig } from '../validation/types'
 import type { ConfidenceResult, ConfidenceConfig } from '../confidence/types'
 import type { GeneratedAnalysis, WriterConfig } from '../writer/types'
+import type { AIConfig } from '../ai/types'
 
 export type PipelineErrorCode =
   | 'fetch_failure'
@@ -25,6 +26,7 @@ export interface PipelineTimings {
   validation: number
   confidence: number
   writer: number
+  aiEnhancement?: number
   total: number
 }
 
@@ -60,6 +62,8 @@ export interface PipelineConfig {
   validation: Partial<ValidationConfig>
   confidence: Partial<ConfidenceConfig>
   writer: Partial<WriterConfig>
+  /** Optional AI enhancement config. When omitted or apiKey is empty, Stage 10 is skipped. */
+  ai?: Partial<AIConfig>
 }
 
 export type FetchFn = (
