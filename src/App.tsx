@@ -43,6 +43,8 @@ export default function App() {
           timestamp: Date.now(),
           grade: result.confidence.grade,
           score: result.confidence.score,
+          decision: result.decision?.label,
+          bias: result.analysis.fullTrend.trend,
         }
         const filtered = prev.filter(r => !(r.symbol === sym && r.interval === interval))
         return [entry, ...filtered].slice(0, MAX_RECENT)

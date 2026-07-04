@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { Clock, Search, Trash2, ArrowRight } from 'lucide-react'
 import { formatScore, formatTimeAgo } from '../utils/format'
 import { gradeColor } from '../utils/colors'
-import type { RecentAnalysis, ConfidenceGrade, AppPage } from '../types'
+import type { RecentAnalysis, ConfidenceGrade, AppPage, TradeDecisionLabel } from '../types'
 
 interface HistoryPageProps {
   recentAnalyses: RecentAnalysis[]
@@ -82,13 +82,33 @@ export function HistoryPage({ recentAnalyses, onSelectSymbol, onClearHistory, on
                     {r.symbol}
                   </span>
                   <span className="text-[10px] text-slate-600 ml-2">{r.interval}</span>
+                  {r.decision && (
+                    <span className={`text-[10px] ml-2 font-medium ${
+                      (r.decision as TradeDecisionLabel).includes('Buy') ? 'text-emerald-400'
+                        : (r.decision as TradeDecisionLabel).includes('Sell') ? 'text-red-400'
+                        : 'text-slate-500'
+                    }`}>
+                      {r.decision}
+                    </span>
+                  )}
                 </div>
-                <span className={`text-xs font-mono font-semibold flex-shrink-0 ${gradeColor(r.grade as ConfidenceGrade)}`}>
-                  {formatScore(r.score)}
-                </span>
-                <span className="text-[10px] text-slate-600 hidden sm:block flex-shrink-0">
-                  {formatTimeAgo(r.timestamp)}
-                </span>
+                <div className="flex items-center gap-2 flex-shrink-0">
+                  {r.bias && (
+                    <span className={`text-[10px] hidden sm:block ${
+                      r.bias.includes('bullish') ? 'text-emerald-400/70'
+                        : r.bias.includes('bearish') ? 'text-red-400/70'
+                        : 'text-slate-600'
+                    }`}>
+                      {r.bias}
+                    </span>
+                  )}
+                  <span className={`text-xs font-mono font-semibold ${gradeColor(r.grade as ConfidenceGrade)}`}>
+                    {formatScore(r.score)}
+                  </span>
+                  <span className="text-[10px] text-slate-600 hidden sm:block">
+                    {formatTimeAgo(r.timestamp)}
+                  </span>
+                </div>
                 <ArrowRight size={12} className="text-slate-600 group-hover:text-slate-400 transition-colors flex-shrink-0" />
               </div>
             ))}

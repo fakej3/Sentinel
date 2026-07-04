@@ -173,15 +173,27 @@ describe('collectEvidence', () => {
   // ── Regression: CRIT-001 — breakout.detected did not exist on BreakoutResult;
   // accessing it returned undefined (falsy), silently suppressing these items.
 
-  it('emits "Breakout confirmed" when breakout.confirmed is true (regression: CRIT-001)', () => {
+  it('emits "Bullish breakout confirmed" when breakout.confirmed is true and direction is bullish (regression: CRIT-001)', () => {
     const structure = {
       ...emptyStructure(),
       breakout: { confirmed: true, failed: false, level: 105, direction: 'bullish' as const },
     }
     const items = getEvidence(100, indicators(), structure)
-    const found = items.find(e => e.factor === 'Breakout confirmed')
+    const found = items.find(e => e.factor === 'Bullish breakout confirmed')
     expect(found).toBeDefined()
     expect(found?.direction).toBe('bullish')
+    expect(found?.impact).toBe('high')
+  })
+
+  it('emits "Bearish breakout confirmed" when breakout.confirmed is true and direction is bearish', () => {
+    const structure = {
+      ...emptyStructure(),
+      breakout: { confirmed: true, failed: false, level: 95, direction: 'bearish' as const },
+    }
+    const items = getEvidence(100, indicators(), structure)
+    const found = items.find(e => e.factor === 'Bearish breakout confirmed')
+    expect(found).toBeDefined()
+    expect(found?.direction).toBe('bearish')
     expect(found?.impact).toBe('high')
   })
 

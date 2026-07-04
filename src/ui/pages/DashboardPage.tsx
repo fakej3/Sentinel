@@ -1,4 +1,4 @@
-import { Activity, RefreshCw, ArrowRight, Clock, BarChart2 } from 'lucide-react'
+import { Activity, RefreshCw, ArrowRight, Clock, BarChart2, TrendingUp, TrendingDown, Minus } from 'lucide-react'
 import { ConfidenceMeter } from '../components/shared/ConfidenceMeter'
 import { TrendBadge } from '../components/shared/Badge'
 import { Card } from '../components/shared/Card'
@@ -38,7 +38,7 @@ export function DashboardPage({
     )
   }
 
-  const { confidence, analysis, marketStructure, validation, supportResistance, indicators } = data
+  const { confidence, analysis, marketStructure, validation, supportResistance, indicators, decision } = data
   const { fullTrend, price, volumeContext, indicatorSummary } = analysis
   const nearestSupport    = supportResistance.nearestSupport
   const nearestResistance = supportResistance.nearestResistance
@@ -89,6 +89,62 @@ export function DashboardPage({
           </button>
         </Card>
       </div>
+
+      {/* Trade Decision card */}
+      {decision && (
+        <Card className={`p-4 border ${
+          decision.label.includes('Buy') ? 'border-emerald-500/20 bg-emerald-400/5'
+            : decision.label.includes('Sell') ? 'border-red-500/20 bg-red-400/5'
+            : 'border-border-subtle'
+        }`}>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className={`w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 ${
+                decision.label.includes('Buy') ? 'bg-emerald-400/10'
+                  : decision.label.includes('Sell') ? 'bg-red-400/10'
+                  : 'bg-slate-600/20'
+              }`}>
+                {decision.label.includes('Buy')
+                  ? <TrendingUp size={16} className="text-emerald-400" />
+                  : decision.label.includes('Sell')
+                    ? <TrendingDown size={16} className="text-red-400" />
+                    : <Minus size={16} className="text-slate-400" />
+                }
+              </div>
+              <div>
+                <p className="section-label">Decision</p>
+                <p className={`text-base font-bold leading-tight ${
+                  decision.label.includes('Buy') ? 'text-emerald-400'
+                    : decision.label.includes('Sell') ? 'text-red-400'
+                    : 'text-slate-300'
+                }`}>
+                  {decision.label}
+                </p>
+              </div>
+            </div>
+            <div className="text-right">
+              <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${
+                decision.riskLevel === 'Low' ? 'bg-emerald-400/10 text-emerald-400 border border-emerald-500/20'
+                  : decision.riskLevel === 'High' ? 'bg-red-400/10 text-red-400 border border-red-500/20'
+                  : 'bg-amber-400/10 text-amber-400 border border-amber-500/20'
+              }`}>
+                {decision.riskLevel} Risk
+              </span>
+            </div>
+          </div>
+          {decision.reasons.length > 0 && (
+            <ul className="mt-3 space-y-1">
+              {decision.reasons.slice(0, 3).map((r, i) => (
+                <li key={i} className="flex items-start gap-2">
+                  <span className="text-slate-600 text-[10px] mt-0.5 flex-shrink-0">•</span>
+                  <span className="text-xs text-slate-400 leading-relaxed">{r}</span>
+                </li>
+              ))}
+            </ul>
+          )}
+          <p className="text-[9px] text-slate-600 mt-2">Not financial advice.</p>
+        </Card>
+      )}
 
       {/* Key metrics grid */}
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">

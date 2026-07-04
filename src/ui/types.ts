@@ -1,5 +1,5 @@
 // Re-export engine types used by the UI layer
-export type { PipelineResult, PipelineMetadata, PipelineTimings } from '../modules/pipeline/types'
+export type { PipelineResult, PipelineMetadata, PipelineTimings, TradeDecision, TradeDecisionLabel } from '../modules/pipeline/types'
 export type {
   MarketAnalysisResult,
   PriceSummary,
@@ -78,6 +78,8 @@ export interface RecentAnalysis {
   timestamp: number
   grade: string
   score: number
+  decision?: string
+  bias?: string
 }
 
 export type AppTab =

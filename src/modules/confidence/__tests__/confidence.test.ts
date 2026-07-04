@@ -100,24 +100,24 @@ describe('scoreEvidence', () => {
 
 describe('normalize', () => {
   it('returns 0 for negative raw points', () => {
-    expect(normalize(-100, 10.6)).toBe(0)
+    expect(normalize(-100, 10)).toBe(0)
   })
 
   it('returns 10 for raw points equal to divisor × 10', () => {
-    expect(normalize(106, 10.6)).toBe(10)
+    expect(normalize(100, 10)).toBe(10)
   })
 
   it('clamps to 10 for raw points above max', () => {
-    expect(normalize(200, 10.6)).toBe(10)
+    expect(normalize(200, 10)).toBe(10)
   })
 
   it('normalizes intermediate values correctly', () => {
-    // 15 / 10.6 ≈ 1.4150943...
-    expect(normalize(15, 10.6)).toBeCloseTo(15 / 10.6)
+    // 15 / 10 = 1.5
+    expect(normalize(15, 10)).toBeCloseTo(1.5)
   })
 
   it('returns 0 for raw = 0', () => {
-    expect(normalize(0, 10.6)).toBe(0)
+    expect(normalize(0, 10)).toBe(0)
   })
 })
 
@@ -206,41 +206,44 @@ describe('computeConfidence — core scoring', () => {
     expect(result.grade).toBe('mixed')
   })
 
-  it('clamps to 10 when raw points exceed 106', () => {
-    // All non-deferred positive factors sum to 106 → score = 10.0
+  it('clamps to 10 when raw points exceed 100', () => {
+    // A strong bullish market easily exceeds 100 raw points → score clamps at 10
     const analysis = makeAnalysis([
-      ev('Price above EMA200', 'bullish'),       // +15
-      ev('Higher High confirmed', 'bullish'),     // +15
-      ev('Higher Low confirmed', 'bullish'),      // +15
-      ev('Strong volume confirmation', 'neutral'),// +12
-      ev('MACD bullish bias', 'bullish'),         // +10
-      ev('RSI in 55–70 range', 'bullish'),        // +8
-      ev('ADX above 25', 'neutral'),              // +8
-      ev('Price above EMA50', 'bullish'),         // +7
-      ev('Bullish OBV trend', 'bullish'),         // +6
-      ev('Price above EMA20', 'bullish'),         // +5
-      ev('StochRSI oversold', 'bullish'),         // +5
+      ev('Price above EMA200', 'bullish'),        // +15
+      ev('EMA bullish alignment', 'bullish'),      // +12
+      ev('Higher High confirmed', 'bullish'),      // +15
+      ev('Higher Low confirmed', 'bullish'),       // +15
+      ev('Strong volume confirmation', 'neutral'), // +12
+      ev('MACD bullish bias', 'bullish'),          // +10
+      ev('Accumulation detected', 'bullish'),      // +10
+      ev('Bullish BOS', 'bullish'),                // +10
+      ev('RSI in 55–70 range', 'bullish'),         // +8
+      ev('ADX above 25', 'neutral'),               // +8
+      ev('Price above EMA50', 'bullish'),          // +7
+      ev('Bullish OBV trend', 'bullish'),          // +6
+      ev('Price above EMA20', 'bullish'),          // +5
+      ev('StochRSI oversold', 'bullish'),          // +5
     ])
-    // Sum = 106, 106/10.6 = 10.0
+    // Sum = 138 raw points, 138/10 = 13.8 → clamped to 10
     const result = computeConfidence(analysis, cleanValidation())
     expect(result.score).toBeCloseTo(10)
   })
 
   it('produces grade that matches score', () => {
-    // 'Price above EMA200' (+15) + 'Higher High confirmed' (+15) = 30 → 30/10.6 ≈ 2.83 → weak
+    // 'Price above EMA200' (+15) + 'Higher High confirmed' (+15) = 30 → 30/10 = 3.0 → mixed
     const analysis = makeAnalysis([
       ev('Price above EMA200', 'bullish'),
       ev('Higher High confirmed', 'bullish'),
     ])
     const result = computeConfidence(analysis, cleanValidation())
-    expect(result.grade).toBe('weak')
+    expect(result.grade).toBe('mixed')
   })
 
   it('ignores evidence factors not in the weight map', () => {
     const analysis = makeAnalysis([
       ev('Price above EMA200', 'bullish'),        // +15 → counted
-      ev('EMA bullish alignment', 'bullish'),     // not in weights → ignored
-      ev('Active pullback', 'neutral'),           // not in weights → ignored
+      ev('Unknown wave pattern', 'bullish'),       // not in weights → ignored
+      ev('Elliott wave impulse', 'neutral'),       // not in weights → ignored
     ])
     const result = computeConfidence(analysis, cleanValidation())
     expect(result.score).toBeCloseTo(norm(15))
@@ -310,14 +313,14 @@ describe('computeConfidence — directional confidence', () => {
       ev('Lower High confirmed', 'bearish'),   // -15
       ev('Lower Low confirmed', 'bearish'),    // -15
       ev('MACD bearish bias', 'bearish'),      // -10
-      ev('Strong resistance overhead', 'bearish'), // -10
+      ev('Strong resistance overhead', 'bearish'), // -5
       ev('Overbought RSI (>70)', 'bearish'),   // -10
       ev('RSI in 30–45 range', 'bearish'),     // -8
       ev('Below average volume on move', 'neutral'), // -8
     ])
-    // Total negative points = 91, 91/10.6 ≈ 8.58 → capped at 10? No, it's <10
+    // Total negative points = 86, 86/10 = 8.6 → high but < 10
     const result = computeConfidence(analysis, cleanValidation())
-    expect(result.bearishConfidence).toBeCloseTo(norm(91))
+    expect(result.bearishConfidence).toBeCloseTo(norm(86))
     expect(result.bearishConfidence).toBeLessThanOrEqual(10)
   })
 })
@@ -558,25 +561,63 @@ describe('computeConfidence — config overrides', () => {
 
 describe('computeConfidence — ENGINE_RULES.md §11 factor weights', () => {
   const factorCases: Array<[string, EvidenceDirection, number]> = [
-    ['Price above EMA200',         'bullish',  15],
-    ['Higher High confirmed',      'bullish',  15],
-    ['Higher Low confirmed',       'bullish',  15],
-    ['Strong volume confirmation', 'neutral',  12],
-    ['MACD bullish bias',          'bullish',  10],
-    ['RSI in 55–70 range',         'bullish',   8],
-    ['ADX above 25',               'neutral',   8],
-    ['Price above EMA50',          'bullish',   7],
-    ['Bullish OBV trend',          'bullish',   6],
-    ['Price above EMA20',          'bullish',   5],
-    ['StochRSI oversold',          'bullish',   5],
-    ['Price below EMA200',         'bearish', -15],
-    ['Lower High confirmed',       'bearish', -15],
-    ['Lower Low confirmed',        'bearish', -15],
-    ['MACD bearish bias',          'bearish', -10],
-    ['Strong resistance overhead', 'bearish', -10],
-    ['Overbought RSI (>70)',        'bearish', -10],
-    ['RSI in 30–45 range',         'bearish',  -8],
+    // ── Positive weights ──
+    ['Price above EMA200',          'bullish',  15],
+    ['EMA bullish alignment',       'bullish',  12],
+    ['Higher High confirmed',       'bullish',  15],
+    ['Higher Low confirmed',        'bullish',  15],
+    ['Strong volume confirmation',  'neutral',  12],
+    ['Accumulation detected',       'bullish',  10],
+    ['Price at active support',     'bullish',  10],
+    ['Bullish BOS',                 'bullish',  10],
+    ['Bullish breakout confirmed',  'bullish',  10],
+    ['MACD bullish bias',           'bullish',  10],
+    ['Price above EMA100',          'bullish',  10],
+    ['Bullish CHoCH',               'bullish',   8],
+    ['RSI in 55–70 range',          'bullish',   8],
+    ['Oversold RSI (<30)',           'bullish',   8],
+    ['ADX above 25',                'neutral',   8],
+    ['RSI supports bullish',        'bullish',   7],
+    ['Price above EMA50',           'bullish',   7],
+    ['Volume climax selling',       'bullish',   6],
+    ['Bullish OBV trend',           'bullish',   6],
+    ['Price at Bollinger lower',    'bullish',   5],
+    ['Price above EMA20',           'bullish',   5],
+    ['StochRSI oversold',           'bullish',   5],
+    ['Strong support below',        'bullish',   5],
+    ['Price above VWAP',            'bullish',   4],
+    ['Active support zone',         'bullish',   3],
+    ['High relative volume',        'neutral',   3],
+    // ── Negative weights ──
+    ['Price below EMA200',          'bearish', -15],
+    ['Lower High confirmed',        'bearish', -15],
+    ['Lower Low confirmed',         'bearish', -15],
+    ['EMA bearish alignment',       'bearish', -12],
+    ['Distribution detected',       'bearish', -10],
+    ['Price at active resistance',  'bearish', -10],
+    ['Bearish BOS',                 'bearish', -10],
+    ['Bearish breakout confirmed',  'bearish', -10],
+    ['MACD bearish bias',           'bearish', -10],
+    ['Overbought RSI (>70)',         'bearish', -10],
+    ['Price below EMA100',          'bearish', -10],
+    ['RSI in 30–45 range',          'bearish',  -8],
+    ['Bearish CHoCH',               'bearish',  -8],
+    ['Strong resistance above',     'bearish',  -8],
     ['Below average volume on move','neutral',  -8],
+    ['RSI supports bearish',        'bearish',  -7],
+    ['Price below EMA50',           'bearish',  -7],
+    ['Volume climax buying',        'bearish',  -6],
+    ['OBV diverging from price',    'bearish',  -5],
+    ['Failed breakout',             'bearish',  -5],
+    ['Strong resistance overhead',  'bearish',  -5],
+    ['Price at Bollinger upper',    'bearish',  -5],
+    ['Price below EMA20',           'bearish',  -5],
+    ['Price below VWAP',            'bearish',  -4],
+    ['StochRSI overbought',         'bearish',  -4],
+    ['ADX trend weak',              'neutral',  -4],
+    ['Active pullback',             'neutral',  -3],
+    ['Market in consolidation',     'neutral',  -3],
+    ['Low relative volume',         'neutral',  -3],
   ]
 
   for (const [factor, direction, expectedPoints] of factorCases) {
@@ -615,16 +656,18 @@ describe('computeConfidence — reasons array', () => {
   it('includes all weighted factors in reasons', () => {
     const analysis = makeAnalysis([
       ev('Price above EMA200', 'bullish'),
-      ev('EMA bullish alignment', 'bullish'),   // not in weights → excluded
+      ev('EMA bullish alignment', 'bullish'),      // now in weights → included
       ev('RSI in 55–70 range', 'bullish'),
       ev('ADX above 25', 'neutral'),
+      ev('Unknown wave pattern', 'bullish'),        // not in weights → excluded
     ])
     const result = computeConfidence(analysis, cleanValidation())
     const factors = result.reasons.map(r => r.factor)
     expect(factors).toContain('Price above EMA200')
+    expect(factors).toContain('EMA bullish alignment')
     expect(factors).toContain('RSI in 55–70 range')
     expect(factors).toContain('ADX above 25')
-    expect(factors).not.toContain('EMA bullish alignment')
+    expect(factors).not.toContain('Unknown wave pattern')
   })
 
   it('reasons preserve direction from evidence items', () => {
@@ -645,28 +688,31 @@ describe('computeConfidence — reasons array', () => {
 // ─────────────────────────────────────────────────────────────────────────────
 
 describe('DEFAULT_CONFIDENCE_CONFIG', () => {
-  it('normalizationDivisor is 10.6', () => {
-    expect(cfg.normalizationDivisor).toBe(10.6)
+  it('normalizationDivisor is 10', () => {
+    expect(cfg.normalizationDivisor).toBe(10)
   })
 
-  it('maximum achievable non-deferred positive score equals 10.0', () => {
-    // All non-deferred positive factors sum to 106 = normalizationDivisor × 10
-    const nonDeferredPositive = [
-      'Price above EMA200',         // 15
-      'Higher High confirmed',      // 15
-      'Higher Low confirmed',       // 15
-      'Strong volume confirmation', // 12
-      'MACD bullish bias',          // 10
-      'RSI in 55–70 range',         //  8
-      'ADX above 25',               //  8
-      'Price above EMA50',          //  7
-      'Bullish OBV trend',          //  6
-      'Price above EMA20',          //  5
-      'StochRSI oversold',          //  5
+  it('a strong bullish market achieves a very high (≥ 10) raw score before clamping', () => {
+    // A representative strong bullish market fires many high-weight factors
+    const strongBullishFactors = [
+      'Price above EMA200',        // 15
+      'EMA bullish alignment',     // 12
+      'Higher High confirmed',     // 15
+      'Higher Low confirmed',      // 15
+      'Strong volume confirmation',// 12
+      'MACD bullish bias',         // 10
+      'Accumulation detected',     // 10
+      'Bullish BOS',               // 10
+      'RSI in 55–70 range',        //  8
+      'ADX above 25',              //  8
+      'Price above EMA50',         //  7
+      'Bullish OBV trend',         //  6
+      'Price above EMA20',         //  5
     ]
-    const sum = nonDeferredPositive.reduce((acc, name) => acc + (cfg.factorWeights[name] ?? 0), 0)
-    expect(sum).toBe(106)
-    expect(sum / cfg.normalizationDivisor).toBeCloseTo(10.0)
+    const sum = strongBullishFactors.reduce((acc, name) => acc + (cfg.factorWeights[name] ?? 0), 0)
+    // Verify sum > 100 so normalized score exceeds 10 (gets clamped)
+    expect(sum).toBeGreaterThan(100)
+    expect(sum / cfg.normalizationDivisor).toBeGreaterThan(10)
   })
 
   it('contains grade thresholds matching ENGINE_RULES.md §11', () => {

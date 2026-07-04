@@ -121,7 +121,8 @@ export function collectEvidence(
   }
   if (marketStructure.breakout.confirmed) {
     const breakoutDir: EvidenceItem['direction'] = marketStructure.breakout.direction === 'bearish' ? 'bearish' : 'bullish'
-    items.push(item('Breakout confirmed', 'high',
+    const breakoutFactor = breakoutDir === 'bullish' ? 'Bullish breakout confirmed' : 'Bearish breakout confirmed'
+    items.push(item(breakoutFactor, 'high',
       `Confirmed ${marketStructure.breakout.direction ?? ''} breakout at ${marketStructure.breakout.level?.toFixed(2) ?? '?'}`,
       'market_structure', breakoutDir))
   }
@@ -252,8 +253,18 @@ export function collectEvidence(
 
   // ── Volume evidence ───────────────────────────────────────────────────────
   if (volumeContext.confirmsCurrentMove) {
-    items.push(item('Strong volume confirmation', 'high',
-      `Volume at ${volumeContext.relativeVolume.toFixed(2)}× average confirms the current price move`, 'volume', 'neutral'))
+    const isBullishTrend = fullTrend.trend.includes('bullish')
+    const isBearishTrend = fullTrend.trend.includes('bearish')
+    if (isBullishTrend) {
+      items.push(item('Strong bullish volume confirmation', 'high',
+        `Volume at ${volumeContext.relativeVolume.toFixed(2)}× average confirms the bullish price move`, 'volume', 'bullish'))
+    } else if (isBearishTrend) {
+      items.push(item('Strong bearish volume confirmation', 'high',
+        `Volume at ${volumeContext.relativeVolume.toFixed(2)}× average confirms the bearish price move`, 'volume', 'bearish'))
+    } else {
+      items.push(item('Strong volume confirmation', 'high',
+        `Volume at ${volumeContext.relativeVolume.toFixed(2)}× average confirms the current price move`, 'volume', 'neutral'))
+    }
   }
   if (!volumeContext.confirmsCurrentMove) {
     items.push(item('Below average volume on move', 'medium',

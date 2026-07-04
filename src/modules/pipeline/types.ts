@@ -9,6 +9,25 @@ import type { ConfidenceResult, ConfidenceConfig } from '../confidence/types'
 import type { GeneratedAnalysis, WriterConfig } from '../writer/types'
 import type { AIConfig } from '../ai/types'
 
+export type TradeDecisionLabel =
+  | 'Strong Buy'
+  | 'Buy'
+  | 'Cautious Buy'
+  | 'Watch'
+  | 'Neutral'
+  | 'Cautious Sell'
+  | 'Sell'
+  | 'Strong Sell'
+
+export interface TradeDecision {
+  label: TradeDecisionLabel
+  /** 3–5 concise reasons supporting the label */
+  reasons: string[]
+  riskLevel: 'Low' | 'Medium' | 'High'
+  /** Mirrors confidence.score for convenience */
+  confidence: number
+}
+
 export type PipelineErrorCode =
   | 'fetch_failure'
   | 'insufficient_candles'
@@ -49,6 +68,7 @@ export interface PipelineResult {
   analysis: MarketAnalysisResult
   validation: ValidationResult
   confidence: ConfidenceResult
+  decision: TradeDecision
   generatedAnalysis: GeneratedAnalysis
   metadata: PipelineMetadata
 }

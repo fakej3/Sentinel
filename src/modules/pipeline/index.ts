@@ -18,6 +18,7 @@ import { generateAnalysis } from '../writer/index'
 import type { GeneratedAnalysis } from '../writer/types'
 import { createAIProvider } from '../ai/index'
 import type { AIConfig } from '../ai/types'
+import { computeDecision } from './compute/decision'
 import { DEFAULT_PIPELINE_CONFIG, PIPELINE_VERSION } from './config'
 import type {
   PipelineOptions,
@@ -26,6 +27,7 @@ import type {
   PipelineTimings,
   PipelineErrorCode,
   FetchFn,
+  TradeDecision,
 } from './types'
 
 export type {
@@ -35,6 +37,8 @@ export type {
   PipelineTimings,
   PipelineErrorCode,
   FetchFn,
+  TradeDecision,
+  TradeDecisionLabel,
 } from './types'
 export { PIPELINE_VERSION, DEFAULT_PIPELINE_CONFIG } from './config'
 
@@ -191,7 +195,15 @@ export async function analyzeMarket(options: PipelineOptions): Promise<PipelineR
   }
   const confidenceTime = Date.now() - t7
 
-  // ── Stage 9: Writer ─────────────────────────────────────────────────────────
+  // ── Stage 9: Trade Decision ─────────────────────────────────────────────────
+  let decision!: TradeDecision
+  try {
+    decision = computeDecision(analysis, confidence, validation)
+  } catch (err) {
+    throw new PipelineError('internal_module_failure', 'decision', String(err), err)
+  }
+
+  // ── Stage 10: Writer ─────────────────────────────────────────────────────────
   const t8 = Date.now()
   let generatedAnalysis!: GeneratedAnalysis
   try {
@@ -201,7 +213,7 @@ export async function analyzeMarket(options: PipelineOptions): Promise<PipelineR
   }
   const writerTime = Date.now() - t8
 
-  // ── Stage 10: AI Enhancement (optional, never throws) ───────────────────────
+  // ── Stage 11: AI Enhancement (optional, never throws) ───────────────────────
   let aiTime: number | undefined
   const aiCfg = cfg.ai
   if (aiCfg?.provider && aiCfg.apiKey) {
@@ -257,6 +269,7 @@ export async function analyzeMarket(options: PipelineOptions): Promise<PipelineR
     analysis,
     validation,
     confidence,
+    decision,
     generatedAnalysis,
     metadata: {
       symbol: marketData.symbol,

@@ -142,17 +142,65 @@ export function EvidenceTab({ result }: EvidenceTabProps) {
         </div>
       </div>
 
-      {/* List */}
+      {/* List — grouped when no active filter, flat when filtering */}
       <div className="p-4 space-y-2">
         {filtered.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-48 text-slate-500">
             <Filter size={24} className="mb-2 opacity-30" />
             <p className="text-sm">No evidence matches filters</p>
           </div>
+        ) : dirFilter === 'all' && impactFilter === 'all' && !query ? (
+          /* Grouped view */
+          <GroupedEvidence evidence={filtered} />
         ) : (
+          /* Flat filtered view */
           filtered.map((item, i) => <EvidenceCard key={i} item={item} />)
         )}
       </div>
+    </div>
+  )
+}
+
+function GroupedEvidence({ evidence }: { evidence: EvidenceItem[] }) {
+  const bullish = evidence.filter(e => e.direction === 'bullish')
+  const bearish = evidence.filter(e => e.direction === 'bearish')
+  const neutral = evidence.filter(e => e.direction === 'neutral')
+
+  return (
+    <div className="space-y-5">
+      {bullish.length > 0 && (
+        <div>
+          <div className="flex items-center gap-2 mb-2">
+            <TrendingUp size={12} className="text-emerald-400" />
+            <p className="text-xs font-semibold text-emerald-400">Why Bullish ({bullish.length})</p>
+          </div>
+          <div className="space-y-2">
+            {bullish.map((item, i) => <EvidenceCard key={i} item={item} />)}
+          </div>
+        </div>
+      )}
+      {bearish.length > 0 && (
+        <div>
+          <div className="flex items-center gap-2 mb-2">
+            <TrendingDown size={12} className="text-red-400" />
+            <p className="text-xs font-semibold text-red-400">Why Bearish ({bearish.length})</p>
+          </div>
+          <div className="space-y-2">
+            {bearish.map((item, i) => <EvidenceCard key={i} item={item} />)}
+          </div>
+        </div>
+      )}
+      {neutral.length > 0 && (
+        <div>
+          <div className="flex items-center gap-2 mb-2">
+            <Minus size={12} className="text-slate-400" />
+            <p className="text-xs font-semibold text-slate-400">Neutral Context ({neutral.length})</p>
+          </div>
+          <div className="space-y-2">
+            {neutral.map((item, i) => <EvidenceCard key={i} item={item} />)}
+          </div>
+        </div>
+      )}
     </div>
   )
 }
