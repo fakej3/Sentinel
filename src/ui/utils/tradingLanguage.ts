@@ -5,30 +5,27 @@
 
 export function trendLabel(trend: string): string {
   switch (trend) {
-    case 'strong_bullish':    return 'Strong Uptrend'
-    case 'bullish':           return 'Uptrend'
-    case 'weak_bullish':      return 'Weak Uptrend'
-    case 'sideways_bullish':  return 'Sideways / Leaning Up'
-    case 'sideways':          return 'Sideways / Ranging'
-    case 'sideways_bearish':  return 'Sideways / Leaning Down'
-    case 'weak_bearish':      return 'Weak Downtrend'
-    case 'bearish':           return 'Downtrend'
-    case 'strong_bearish':    return 'Strong Downtrend'
-    default:                  return trend.replace(/_/g, ' ')
+    case 'strong bullish':   return 'Strong Uptrend'
+    case 'moderate bullish': return 'Uptrend'
+    case 'weak bullish':     return 'Weak Uptrend'
+    case 'ranging':          return 'Sideways / Ranging'
+    case 'weak bearish':     return 'Weak Downtrend'
+    case 'moderate bearish': return 'Downtrend'
+    case 'strong bearish':   return 'Strong Downtrend'
+    default:                 return trend.replace(/_/g, ' ')
   }
 }
 
 export function rsiLabel(classification: string, rsi: number | null): string {
   if (rsi === null) return 'RSI unavailable'
   switch (classification) {
-    case 'overbought':         return `RSI ${rsi.toFixed(0)} — overbought, momentum may be fading`
-    case 'mildly_overbought':  return `RSI ${rsi.toFixed(0)} — approaching overbought territory`
-    case 'neutral_high':       return `RSI ${rsi.toFixed(0)} — momentum favors bulls`
-    case 'neutral':            return `RSI ${rsi.toFixed(0)} — neutral momentum`
-    case 'neutral_low':        return `RSI ${rsi.toFixed(0)} — momentum leans bearish`
-    case 'mildly_oversold':    return `RSI ${rsi.toFixed(0)} — approaching oversold territory`
-    case 'oversold':           return `RSI ${rsi.toFixed(0)} — oversold, potential bounce zone`
-    default:                   return `RSI ${rsi.toFixed(0)} — ${classification.replace(/_/g, ' ')}`
+    case 'overbought':      return `RSI ${rsi.toFixed(0)} — overbought, momentum may be fading`
+    case 'healthy_bullish': return `RSI ${rsi.toFixed(0)} — momentum favors bulls`
+    case 'neutral':         return `RSI ${rsi.toFixed(0)} — neutral momentum`
+    case 'weak_bearish':    return `RSI ${rsi.toFixed(0)} — momentum leans bearish`
+    case 'oversold':        return `RSI ${rsi.toFixed(0)} — oversold, potential bounce zone`
+    case 'unavailable':     return 'RSI unavailable'
+    default:                return `RSI ${rsi.toFixed(0)} — ${classification.replace(/_/g, ' ')}`
   }
 }
 

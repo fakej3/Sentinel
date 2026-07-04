@@ -5,6 +5,7 @@ import { Card } from '../components/shared/Card'
 import { SkeletonDashboard } from '../components/shared/Skeleton'
 import { formatPrice, formatPercent, formatScore, formatTimeAgo } from '../utils/format'
 import { changeColor, gradeColor } from '../utils/colors'
+import { trendLabel } from '../utils/tradingLanguage'
 import type { PipelineResult, RecentAnalysis, ConfidenceGrade, AppPage } from '../types'
 
 interface DashboardPageProps {
@@ -150,7 +151,7 @@ export function DashboardPage({
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
         <MetricCard
           label="Trend"
-          value={fullTrend.trend.replace(/_/g, ' ')}
+          value={trendLabel(fullTrend.trend)}
           sub={`${fullTrend.bullishConditionsMet}/5 bull · ${fullTrend.bearishConditionsMet}/5 bear`}
           valueClass={
             fullTrend.trend.includes('bullish') ? 'text-emerald-400'
