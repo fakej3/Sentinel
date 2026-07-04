@@ -4,16 +4,20 @@ import type { ConfidenceConfig, ConfidenceResult, ConfidencePenalty, ConfidenceW
 import { DEFAULT_CONFIDENCE_CONFIG } from './config'
 import { scoreEvidence, normalize } from './compute/score'
 import { scoreToGrade } from './compute/grade'
+import { computeBreakdown } from './compute/breakdown'
+import { computeTrust } from './compute/trust'
 
 /**
  * Module 8 — Confidence Engine.
  *
- * Computes a 0–10 confidence score from the evidence items assembled by
- * Module 6 (MarketAnalysisResult.evidence) and applies score adjustments
- * for structural validation issues from Module 7 (ValidationResult).
+ * Computes a 0–10 confidence score representing how certain Sentinel is that its
+ * conclusion is correct — not how bullish or bearish the market is.
+ *
+ * Direction-aware: in bullish/bearish markets the dominant-side evidence drives the
+ * score; opposing evidence applies a configurable contradiction penalty.
+ * In ranging markets the legacy abs(net) path is used, preserving existing behaviour.
  *
  * Pure, deterministic, no side effects, no network calls.
- * ENGINE_RULES.md §11.
  */
 export function computeConfidence(
   analysis: MarketAnalysisResult,
@@ -38,16 +42,55 @@ export function computeConfidence(
   const { rawPoints, bullishRawPoints, bearishRawPoints, reasons } =
     scoreEvidence(analysis.evidence, cfg)
 
-  // ── Step 2: Normalize raw points to 0–10 ─────────────────────────────────
+  // ── Step 2: Direction-aware normalization ─────────────────────────────────
+  //
+  // For bullish trends: score = dominant (bullish) evidence minus
+  //   a fraction of contradicting (bearish) evidence.
+  // For bearish trends: symmetric — bearish is dominant, bullish contradicts.
+  // For ranging: preserve the original abs(net) behaviour so existing tests
+  //   and calibration remain unchanged.
 
-  let score = normalize(Math.abs(rawPoints), cfg.normalizationDivisor)
+  const trend = analysis.fullTrend.trend
+  const penaltyFactor = cfg.contradictionPenaltyFactor
+
+  let directedPoints: number
+  let contradictionPoints: number
+
+  if (trend.includes('bullish')) {
+    directedPoints = bullishRawPoints
+    contradictionPoints = bearishRawPoints
+  } else if (trend.includes('bearish')) {
+    directedPoints = bearishRawPoints
+    contradictionPoints = bullishRawPoints
+  } else {
+    directedPoints = Math.abs(rawPoints)
+    contradictionPoints = 0
+  }
+
+  const penalizedPoints = Math.max(0, directedPoints - contradictionPoints * penaltyFactor)
+  let score = normalize(penalizedPoints, cfg.normalizationDivisor)
+
   const bullishConfidence = normalize(bullishRawPoints, cfg.normalizationDivisor)
   const bearishConfidence = normalize(bearishRawPoints, cfg.normalizationDivisor)
 
-  // ── Step 3: Apply validation penalties ───────────────────────────────────
+  // ── Step 3: Apply validation penalties + contradiction penalty ────────────
 
   const penalties: ConfidencePenalty[] = []
   const warnings: ConfidenceWarning[] = []
+
+  // Contradiction penalty (directional markets only)
+  if (contradictionPoints > 0 && (trend.includes('bullish') || trend.includes('bearish'))) {
+    const reductionAmount = contradictionPoints * penaltyFactor
+    const scoreReduction = normalize(reductionAmount, cfg.normalizationDivisor)
+    if (scoreReduction > 0.01) {
+      const side = trend.includes('bullish') ? 'bearish' : 'bullish'
+      penalties.push({
+        source: 'contradiction',
+        description: `${contradictionPoints} pts of ${side} evidence contradicts the trend — score reduced by ${scoreReduction.toFixed(2)}`,
+        scoreReduction,
+      })
+    }
+  }
 
   if (validation.warningCount > 0) {
     const reduction = validation.warningCount * cfg.warningScorePenalty
@@ -88,6 +131,11 @@ export function computeConfidence(
 
   const grade = scoreToGrade(score, cfg)
 
+  // ── Step 5: Breakdown and trust ───────────────────────────────────────────
+
+  const breakdown = computeBreakdown(analysis.evidence, cfg, contradictionPoints)
+  const trust = computeTrust(analysis, validation)
+
   return {
     score,
     grade,
@@ -96,6 +144,8 @@ export function computeConfidence(
     reasons,
     penalties,
     warnings,
+    breakdown,
+    trust,
   }
 }
 
@@ -106,6 +156,9 @@ export type {
   ConfidencePenalty,
   ConfidenceWarning,
   ConfidenceConfig,
+  ConfidenceBreakdown,
+  TrustFactor,
+  TrustResult,
 } from './types'
 
 export { DEFAULT_CONFIDENCE_CONFIG } from './config'

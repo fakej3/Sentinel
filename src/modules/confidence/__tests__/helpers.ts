@@ -156,6 +156,23 @@ export function makeAnalysis(evidence: EvidenceItem[] = []): MarketAnalysisResul
   }
 }
 
+/**
+ * Creates a MarketAnalysisResult with a specific trend direction.
+ * Used for testing direction-aware confidence scoring (Module 25).
+ */
+export function makeDirectionalAnalysis(
+  trend: 'strong bullish' | 'moderate bullish' | 'weak bullish' | 'ranging' | 'weak bearish' | 'moderate bearish' | 'strong bearish',
+  evidence: EvidenceItem[] = [],
+): MarketAnalysisResult {
+  return {
+    ...makeAnalysis(evidence),
+    fullTrend: {
+      ...EMPTY_FULL_TREND,
+      trend,
+    },
+  }
+}
+
 // ─── ValidationResult factory ─────────────────────────────────────────────────
 
 export function cleanValidation(): ValidationResult {

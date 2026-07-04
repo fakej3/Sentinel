@@ -3,7 +3,9 @@ import { computeConfidence } from '../index'
 import { DEFAULT_CONFIDENCE_CONFIG } from '../config'
 import { scoreToGrade } from '../compute/grade'
 import { scoreEvidence, normalize } from '../compute/score'
-import { ev, makeAnalysis, cleanValidation, validationWithWarnings, validationWithCriticals, validationWithBoth } from './helpers'
+import { computeBreakdown } from '../compute/breakdown'
+import { computeTrust } from '../compute/trust'
+import { ev, makeAnalysis, makeDirectionalAnalysis, cleanValidation, validationWithWarnings, validationWithCriticals, validationWithBoth } from './helpers'
 import type { EvidenceDirection } from '../../analysis/types'
 
 const cfg = DEFAULT_CONFIDENCE_CONFIG
@@ -726,5 +728,333 @@ describe('DEFAULT_CONFIDENCE_CONFIG', () => {
     expect(cfg.factorWeights['Bullish RSI divergence']).toBe(15)
     expect(cfg.factorWeights['Bearish RSI divergence']).toBe(-20)
     expect(cfg.factorWeights['Weak volume on breakout']).toBe(-12)
+  })
+
+  it('contradictionPenaltyFactor is 0.3', () => {
+    expect(cfg.contradictionPenaltyFactor).toBe(0.3)
+  })
+})
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Module 25 — Direction-Aware Confidence Scoring
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('computeConfidence — directional symmetry', () => {
+  // Use perfectly mirrored factor pairs so bull === bear in both raw points
+  // Each bullish factor has an exact negative-weight mirror in the bearish list.
+  const strongBullishEvidence = [
+    ev('Price above EMA200', 'bullish'),                  // +15
+    ev('EMA bullish alignment', 'bullish'),               // +12
+    ev('Higher High confirmed', 'bullish'),               // +15
+    ev('Higher Low confirmed', 'bullish'),                // +15
+    ev('MACD bullish bias', 'bullish'),                   // +10
+    ev('RSI in 55–70 range', 'bullish'),                  // +8
+    ev('Strong bullish volume confirmation', 'bullish'),  // +12
+  ]
+  const strongBearishEvidence = [
+    ev('Price below EMA200', 'bearish'),                  // -15  mirror of +15
+    ev('EMA bearish alignment', 'bearish'),               // -12  mirror of +12
+    ev('Lower High confirmed', 'bearish'),                // -15  mirror of +15
+    ev('Lower Low confirmed', 'bearish'),                 // -15  mirror of +15
+    ev('MACD bearish bias', 'bearish'),                   // -10  mirror of +10
+    ev('RSI in 30–45 range', 'bearish'),                  // -8   mirror of +8
+    ev('Strong bearish volume confirmation', 'bearish'),  // -12  mirror of +12
+  ]
+
+  it('strong bullish and strong bearish produce equal confidence scores', () => {
+    const bullResult = computeConfidence(
+      makeDirectionalAnalysis('strong bullish', strongBullishEvidence),
+      cleanValidation(),
+    )
+    const bearResult = computeConfidence(
+      makeDirectionalAnalysis('strong bearish', strongBearishEvidence),
+      cleanValidation(),
+    )
+    // Scores must be within 0.5 of each other (symmetric markets → symmetric confidence)
+    expect(Math.abs(bullResult.score - bearResult.score)).toBeLessThan(0.5)
+    expect(bullResult.score).toBeGreaterThan(7.0)
+    expect(bearResult.score).toBeGreaterThan(7.0)
+  })
+
+  it('both strong setups produce strong or very_strong grade', () => {
+    const bullResult = computeConfidence(
+      makeDirectionalAnalysis('strong bullish', strongBullishEvidence),
+      cleanValidation(),
+    )
+    const bearResult = computeConfidence(
+      makeDirectionalAnalysis('strong bearish', strongBearishEvidence),
+      cleanValidation(),
+    )
+    expect(['strong', 'very_strong']).toContain(bullResult.grade)
+    expect(['strong', 'very_strong']).toContain(bearResult.grade)
+  })
+
+  it('ranging market with same evidence uses abs(net) path — backward compatible', () => {
+    // A mix of bullish and bearish in a ranging market
+    const mixedEvidence = [
+      ev('Price above EMA200', 'bullish'),    // +15
+      ev('Lower High confirmed', 'bearish'),  // -15
+      ev('ADX above 25', 'neutral'),          // +8
+    ]
+    const ranging = computeConfidence(makeDirectionalAnalysis('ranging', mixedEvidence), cleanValidation())
+    // abs(15 - 15 + 8) = 8; 8/10 = 0.8 (no contradiction penalty for ranging)
+    expect(ranging.score).toBeCloseTo(0.8)
+  })
+
+  it('pure bullish evidence in bullish market scores higher than in ranging market', () => {
+    const evidence = [
+      ev('Price above EMA200', 'bullish'),      // +15
+      ev('Higher High confirmed', 'bullish'),   // +15
+      ev('MACD bullish bias', 'bullish'),       // +10
+    ]
+    const directional = computeConfidence(
+      makeDirectionalAnalysis('strong bullish', evidence),
+      cleanValidation(),
+    )
+    const ranging = computeConfidence(makeDirectionalAnalysis('ranging', evidence), cleanValidation())
+    // Both: bullishRawPoints=40, no bearish, contradictionPoints=0
+    // Both paths produce the same result when there are no contradictions
+    expect(directional.score).toBeCloseTo(ranging.score)
+    expect(directional.score).toBeCloseTo(normalize(40, 10))
+  })
+})
+
+describe('computeConfidence — contradiction penalties', () => {
+  it('contradicting evidence reduces confidence in a bullish trend', () => {
+    const pureEvidence = [
+      ev('Price above EMA200', 'bullish'),    // +15
+      ev('Higher High confirmed', 'bullish'), // +15
+      ev('MACD bullish bias', 'bullish'),     // +10
+    ]
+    const withContradiction = [
+      ...pureEvidence,
+      ev('Lower Low confirmed', 'bearish'),   // -15 → contradiction
+      ev('MACD bearish bias', 'bearish'),     // -10 → contradiction
+    ]
+    const pure = computeConfidence(makeDirectionalAnalysis('strong bullish', pureEvidence), cleanValidation())
+    const mixed = computeConfidence(makeDirectionalAnalysis('strong bullish', withContradiction), cleanValidation())
+    expect(mixed.score).toBeLessThan(pure.score)
+  })
+
+  it('contradicting evidence reduces confidence in a bearish trend symmetrically', () => {
+    const pureEvidence = [
+      ev('Price below EMA200', 'bearish'),   // -15
+      ev('Lower High confirmed', 'bearish'), // -15
+      ev('MACD bearish bias', 'bearish'),    // -10
+    ]
+    const withContradiction = [
+      ...pureEvidence,
+      ev('Higher High confirmed', 'bullish'), // +15 → contradiction
+      ev('MACD bullish bias', 'bullish'),     // +10 → contradiction
+    ]
+    const pure = computeConfidence(makeDirectionalAnalysis('strong bearish', pureEvidence), cleanValidation())
+    const mixed = computeConfidence(makeDirectionalAnalysis('strong bearish', withContradiction), cleanValidation())
+    expect(mixed.score).toBeLessThan(pure.score)
+  })
+
+  it('the contradiction reduction is proportional to the penalty factor', () => {
+    // 40 bull, 20 bear in bullish trend
+    // With factor 0.3: penalizedPoints = 40 - 20*0.3 = 34 → score = 3.4
+    // With factor 0.0: penalizedPoints = 40 - 0 = 40 → score = 4.0
+    const evidence = [
+      ev('Price above EMA200', 'bullish'),    // +15
+      ev('Higher High confirmed', 'bullish'), // +15
+      ev('MACD bullish bias', 'bullish'),     // +10
+      ev('Lower Low confirmed', 'bearish'),   // -15 contradiction
+      ev('MACD bearish bias', 'bearish'),     // -10 contradiction
+    ]
+    const analysis = makeDirectionalAnalysis('strong bullish', evidence)
+    const withPenalty = computeConfidence(analysis, cleanValidation(), { contradictionPenaltyFactor: 0.3 })
+    const noPenalty  = computeConfidence(analysis, cleanValidation(), { contradictionPenaltyFactor: 0.0 })
+    // 40 bull - 25*0.3 = 32.5 → 3.25
+    expect(withPenalty.score).toBeCloseTo(normalize(40 - 25 * 0.3, 10))
+    // 40 bull - 25*0.0 = 40 → 4.0
+    expect(noPenalty.score).toBeCloseTo(normalize(40, 10))
+    expect(withPenalty.score).toBeLessThan(noPenalty.score)
+  })
+
+  it('contradiction penalty appears in the penalties array', () => {
+    const evidence = [
+      ev('Price above EMA200', 'bullish'),    // +15
+      ev('Lower Low confirmed', 'bearish'),   // -15 (contradiction in bullish trend)
+    ]
+    const result = computeConfidence(
+      makeDirectionalAnalysis('strong bullish', evidence),
+      cleanValidation(),
+    )
+    const contPenalty = result.penalties.find(p => p.source === 'contradiction')
+    expect(contPenalty).toBeDefined()
+    expect(contPenalty?.description).toContain('bearish')
+  })
+
+  it('no contradiction penalty when no opposing evidence exists', () => {
+    const evidence = [
+      ev('Price above EMA200', 'bullish'),    // +15
+      ev('Higher High confirmed', 'bullish'), // +15
+    ]
+    const result = computeConfidence(
+      makeDirectionalAnalysis('strong bullish', evidence),
+      cleanValidation(),
+    )
+    expect(result.penalties.filter(p => p.source === 'contradiction')).toHaveLength(0)
+  })
+
+  it('ranging market has no contradiction penalty even with mixed evidence', () => {
+    const evidence = [
+      ev('Price above EMA200', 'bullish'),    // +15
+      ev('Lower Low confirmed', 'bearish'),   // -15
+    ]
+    const result = computeConfidence(makeDirectionalAnalysis('ranging', evidence), cleanValidation())
+    expect(result.penalties.filter(p => p.source === 'contradiction')).toHaveLength(0)
+  })
+})
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Module 25 — Confidence Breakdown
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('computeBreakdown', () => {
+  it('returns all six components', () => {
+    const bd = computeBreakdown([], cfg, 0)
+    expect(bd).toHaveProperty('trendQuality')
+    expect(bd).toHaveProperty('momentum')
+    expect(bd).toHaveProperty('volume')
+    expect(bd).toHaveProperty('marketStructure')
+    expect(bd).toHaveProperty('srPositioning')
+    expect(bd).toHaveProperty('contradictions')
+  })
+
+  it('all components are 0 for empty evidence', () => {
+    const bd = computeBreakdown([], cfg, 0)
+    expect(bd.trendQuality).toBe(0)
+    expect(bd.momentum).toBe(0)
+    expect(bd.volume).toBe(0)
+    expect(bd.marketStructure).toBe(0)
+    expect(bd.srPositioning).toBe(0)
+    expect(bd.contradictions).toBe(0)
+  })
+
+  it('EMA factor contributes to trendQuality only', () => {
+    const bd = computeBreakdown([ev('Price above EMA200', 'bullish')], cfg, 0)
+    expect(bd.trendQuality).toBeCloseTo(normalize(15, 10))
+    expect(bd.momentum).toBe(0)
+    expect(bd.volume).toBe(0)
+    expect(bd.marketStructure).toBe(0)
+    expect(bd.srPositioning).toBe(0)
+  })
+
+  it('RSI factor contributes to momentum only', () => {
+    const bd = computeBreakdown([ev('RSI supports bullish', 'bullish')], cfg, 0)
+    expect(bd.momentum).toBeCloseTo(normalize(7, 10))
+    expect(bd.trendQuality).toBe(0)
+  })
+
+  it('volume factor contributes to volume only', () => {
+    const bd = computeBreakdown([ev('Strong volume confirmation', 'neutral')], cfg, 0)
+    expect(bd.volume).toBeCloseTo(normalize(12, 10))
+    expect(bd.trendQuality).toBe(0)
+  })
+
+  it('structure factor contributes to marketStructure only', () => {
+    const bd = computeBreakdown([ev('Higher High confirmed', 'bullish')], cfg, 0)
+    expect(bd.marketStructure).toBeCloseTo(normalize(15, 10))
+    expect(bd.trendQuality).toBe(0)
+  })
+
+  it('SR factor contributes to srPositioning only', () => {
+    const bd = computeBreakdown([ev('Price at active support', 'bullish')], cfg, 0)
+    expect(bd.srPositioning).toBeCloseTo(normalize(10, 10))
+    expect(bd.trendQuality).toBe(0)
+  })
+
+  it('uses abs(weight) so bearish factors also contribute positively to their category', () => {
+    const bd = computeBreakdown([ev('Price below EMA200', 'bearish')], cfg, 0)
+    // abs(-15) = 15 → trendQuality = normalize(15, 10) = 1.5
+    expect(bd.trendQuality).toBeCloseTo(normalize(15, 10))
+  })
+
+  it('contradictions component reflects the contradictionPoints passed in', () => {
+    const bd = computeBreakdown([], cfg, 20)
+    expect(bd.contradictions).toBeCloseTo(normalize(20, 10))
+  })
+
+  it('computeConfidence result contains a valid breakdown', () => {
+    const evidence = [
+      ev('Price above EMA200', 'bullish'),
+      ev('Higher High confirmed', 'bullish'),
+      ev('RSI in 55–70 range', 'bullish'),
+      ev('Strong volume confirmation', 'neutral'),
+      ev('Price at active support', 'bullish'),
+    ]
+    const result = computeConfidence(makeAnalysis(evidence), cleanValidation())
+    expect(result.breakdown.trendQuality).toBeGreaterThan(0)
+    expect(result.breakdown.marketStructure).toBeGreaterThan(0)
+    expect(result.breakdown.momentum).toBeGreaterThan(0)
+    expect(result.breakdown.volume).toBeGreaterThan(0)
+    expect(result.breakdown.srPositioning).toBeGreaterThan(0)
+    expect(result.breakdown.contradictions).toBe(0) // no opposing evidence
+  })
+})
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Module 25 — Trust Layer
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('computeTrust', () => {
+  it('returns required fields', () => {
+    const trust = computeTrust(makeAnalysis(), cleanValidation())
+    expect(trust).toHaveProperty('score')
+    expect(trust).toHaveProperty('level')
+    expect(trust).toHaveProperty('factors')
+    expect(trust).toHaveProperty('reductions')
+    expect(Array.isArray(trust.factors)).toBe(true)
+    expect(Array.isArray(trust.reductions)).toBe(true)
+  })
+
+  it('score is a percentage (0-100)', () => {
+    const trust = computeTrust(makeAnalysis(), cleanValidation())
+    expect(trust.score).toBeGreaterThanOrEqual(0)
+    expect(trust.score).toBeLessThanOrEqual(100)
+  })
+
+  it('level is high, medium, or low', () => {
+    const trust = computeTrust(makeAnalysis(), cleanValidation())
+    expect(['high', 'medium', 'low']).toContain(trust.level)
+  })
+
+  it('each factor has label and passed fields', () => {
+    const trust = computeTrust(makeAnalysis(), cleanValidation())
+    for (const factor of trust.factors) {
+      expect(typeof factor.label).toBe('string')
+      expect(typeof factor.passed).toBe('boolean')
+    }
+  })
+
+  it('reductions correspond to failed factors', () => {
+    const trust = computeTrust(makeAnalysis(), cleanValidation())
+    const failedWithNotes = trust.factors.filter(f => !f.passed && f.note !== undefined)
+    expect(trust.reductions).toHaveLength(failedWithNotes.length)
+  })
+
+  it('critical validation issues reduce trust and appear in reductions', () => {
+    const trustClean   = computeTrust(makeAnalysis(), cleanValidation())
+    const trustCritical = computeTrust(makeAnalysis(), validationWithCriticals(1))
+    expect(trustCritical.score).toBeLessThan(trustClean.score)
+    expect(trustCritical.reductions.some(r => r.includes('critical'))).toBe(true)
+  })
+
+  it('computeConfidence result contains a valid trust object', () => {
+    const result = computeConfidence(makeAnalysis([ev('Price above EMA200', 'bullish')]), cleanValidation())
+    expect(result.trust.score).toBeGreaterThanOrEqual(0)
+    expect(result.trust.score).toBeLessThanOrEqual(100)
+    expect(['high', 'medium', 'low']).toContain(result.trust.level)
+    expect(result.trust.factors.length).toBeGreaterThan(0)
+  })
+
+  it('determinism — same inputs produce same trust output', () => {
+    const analysis = makeAnalysis([ev('Price above EMA200', 'bullish')])
+    const t1 = computeTrust(analysis, cleanValidation())
+    const t2 = computeTrust(analysis, cleanValidation())
+    expect(t1).toEqual(t2)
   })
 })

@@ -4,7 +4,7 @@ import type {
   FullTrendLabel,
   EvidenceDirection,
 } from '../../analysis/types'
-import type { ConfidenceResult, ConfidenceGrade } from '../../confidence/types'
+import type { ConfidenceResult, ConfidenceGrade, ConfidenceBreakdown, TrustResult } from '../../confidence/types'
 import type { WriterInput } from '../types'
 import {
   makeAnalysis as baseMakeAnalysis,
@@ -27,6 +27,17 @@ export function ev(
 
 // ─── Confidence factory ───────────────────────────────────────────────────────
 
+const ZERO_BREAKDOWN: ConfidenceBreakdown = {
+  trendQuality: 0, momentum: 0, volume: 0,
+  marketStructure: 0, srPositioning: 0, contradictions: 0,
+}
+
+const DEFAULT_TRUST: TrustResult = {
+  score: 100, level: 'high',
+  factors: [{ label: 'All checks passed', passed: true }],
+  reductions: [],
+}
+
 export function makeConfidence(
   score: number,
   grade: ConfidenceGrade = 'moderate',
@@ -40,6 +51,8 @@ export function makeConfidence(
     reasons: [],
     penalties: [],
     warnings: [],
+    breakdown: ZERO_BREAKDOWN,
+    trust: DEFAULT_TRUST,
     ...overrides,
   }
 }

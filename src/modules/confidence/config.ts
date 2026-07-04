@@ -114,4 +114,6 @@ export const DEFAULT_CONFIDENCE_CONFIG: ConfidenceConfig = {
     moderate:   5.0,
     mixed:      3.0,
   },
+
+  contradictionPenaltyFactor: 0.3,
 }

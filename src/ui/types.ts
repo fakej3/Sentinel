@@ -62,6 +62,9 @@ export type {
   ConfidenceReason,
   ConfidencePenalty,
   ConfidenceWarning,
+  ConfidenceBreakdown,
+  TrustFactor,
+  TrustResult,
 } from '../modules/confidence/types'
 export type {
   GeneratedAnalysis,

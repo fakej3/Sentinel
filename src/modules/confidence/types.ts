@@ -23,10 +23,52 @@ export interface ConfidenceReason {
 }
 
 /**
- * A score adjustment applied because of a validation issue.
+ * Per-component breakdown of what drove the confidence score.
+ * Each field is a 0–10 sub-score derived from that category of evidence.
+ */
+export interface ConfidenceBreakdown {
+  /** EMA positioning and alignment evidence */
+  trendQuality: number
+  /** RSI, MACD, ADX, StochRSI, Bollinger evidence */
+  momentum: number
+  /** Volume, OBV, VWAP, accumulation/distribution evidence */
+  volume: number
+  /** Structure events — HH/HL/LH/LL, BOS, CHoCH, breakouts */
+  marketStructure: number
+  /** Support and resistance positioning evidence */
+  srPositioning: number
+  /** Strength of evidence opposing the dominant trend (higher = more contradictions) */
+  contradictions: number
+}
+
+/**
+ * A single data-quality or availability check that contributes to the trust score.
+ */
+export interface TrustFactor {
+  label: string
+  passed: boolean
+  /** Why this factor did not pass; omitted when passed = true */
+  note?: string
+}
+
+/**
+ * Measures how reliable the underlying data and analysis pipeline is,
+ * independently of how strong the market signal is.
+ */
+export interface TrustResult {
+  /** 0–100 percentage of trust factors that passed */
+  score: number
+  level: 'high' | 'medium' | 'low'
+  factors: TrustFactor[]
+  /** Human-readable list of what reduced trust below 100% */
+  reductions: string[]
+}
+
+/**
+ * A score adjustment applied because of a validation issue or contradiction.
  */
 export interface ConfidencePenalty {
-  source: 'validation_warning' | 'validation_critical'
+  source: 'validation_warning' | 'validation_critical' | 'contradiction'
   description: string
   /** Reduction applied to the normalized 0–10 score */
   scoreReduction: number
@@ -43,9 +85,9 @@ export interface ConfidenceWarning {
 /**
  * The output of Module 8 — Confidence Engine.
  *
- * score and grade represent the overall evidence quality.
- * bullishConfidence and bearishConfidence are independent directional
- * sub-scores useful for showing "X% bullish case vs Y% bearish case."
+ * score and grade represent overall confidence that Sentinel's conclusion is correct.
+ * bullishConfidence and bearishConfidence are independent directional sub-scores.
+ * breakdown and trust are additive explainability fields.
  */
 export interface ConfidenceResult {
   /** Normalized 0–10 confidence score after penalties */
@@ -57,10 +99,14 @@ export interface ConfidenceResult {
   bearishConfidence: number
   /** Evidence factors that matched a weight entry in ConfidenceConfig */
   reasons: ConfidenceReason[]
-  /** Score reductions applied due to validation issues */
+  /** Score reductions applied due to validation issues or contradictions */
   penalties: ConfidencePenalty[]
   /** Non-fatal advisory messages */
   warnings: ConfidenceWarning[]
+  /** Per-component breakdown of where the evidence comes from */
+  breakdown: ConfidenceBreakdown
+  /** Data and pipeline quality assessment, independent of signal strength */
+  trust: TrustResult
 }
 
 /**
@@ -103,4 +149,12 @@ export interface ConfidenceConfig {
     mixed: number      // ≥ 3.0
     // below mixed → 'weak'
   }
+  /**
+   * In directional markets (bullish/bearish trend), opposing evidence is penalised
+   * by this factor before computing the score.
+   * A value of 0.3 means 10 bearish points in a bullish market subtract 3 from the
+   * directed bullish points before normalization.
+   * Default: 0.3
+   */
+  contradictionPenaltyFactor: number
 }
