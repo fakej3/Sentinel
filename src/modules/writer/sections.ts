@@ -32,17 +32,6 @@ function trendDirectionWord(trend: FullTrendLabel): string {
   return 'neutral'
 }
 
-function gradeOpeningPhrase(grade: ConfidenceGrade): string {
-  const map: Record<ConfidenceGrade, string> = {
-    very_strong: 'The available evidence strongly supports',
-    strong: 'The current evidence supports',
-    moderate: 'The current signals suggest',
-    mixed: 'The current signals are mixed, with indications of',
-    weak: 'The available evidence is limited, with tentative indications of',
-  }
-  return map[grade]
-}
-
 function gradeHedge(grade: ConfidenceGrade): string {
   const map: Record<ConfidenceGrade, string> = {
     very_strong: 'with high conviction',
@@ -146,27 +135,70 @@ export function buildSummary(
   confidence: ConfidenceResult,
   cfg: WriterConfig,
 ): string {
-  const { fullTrend, price, indicatorSummary, volumeContext } = analysis
-  const direction = trendDirectionWord(fullTrend.trend)
-  const opener = gradeOpeningPhrase(confidence.grade)
-  const hedge = gradeHedge(confidence.grade)
+  const { fullTrend, price, indicatorSummary, volumeContext, emaContext } = analysis
+  const trend = fullTrend.trend
+  const bull = fullTrend.bullishConditionsMet
+  const bear = fullTrend.bearishConditionsMet
 
-  const rsiPart =
-    indicatorSummary.rsi.value !== null
-      ? ` RSI at ${indicatorSummary.rsi.value.toFixed(1)} is in ${rsiLabel(indicatorSummary.rsi.classification)}.`
+  // Opener: describe what's happening conversationally
+  const symbolStr = analysis.symbol.replace('USDT', '/USDT').replace('BTC', 'BTC').replace('ETH', 'ETH')
+  const priceStr  = formatPrice(price.current)
+  const changePart = ` (24h change: ${formatPercent(price.change24hPercent)})`
+
+  let opener: string
+  if (trend === 'strong bullish') {
+    opener = `${symbolStr} is showing a convincing bullish setup at ${priceStr}${changePart}, with ${bull}/5 bullish conditions met.`
+  } else if (trend === 'moderate bullish') {
+    opener = `${symbolStr} has a moderate bullish bias at ${priceStr}${changePart}, with ${bull}/5 bullish conditions active.`
+  } else if (trend === 'weak bullish') {
+    opener = `${symbolStr} leans slightly bullish at ${priceStr}${changePart}, though only ${bull}/5 bullish conditions are met — the trend is tentative.`
+  } else if (trend === 'ranging') {
+    opener = `${symbolStr} is moving without a clear trend at ${priceStr}${changePart}, with neither bulls nor bears in control.`
+  } else if (trend === 'weak bearish') {
+    opener = `${symbolStr} has a mild bearish lean at ${priceStr}${changePart}, though only ${bear}/5 bearish conditions are confirmed.`
+  } else if (trend === 'moderate bearish') {
+    opener = `${symbolStr} is showing moderate bearish pressure at ${priceStr}${changePart}, with ${bear}/5 bearish conditions active.`
+  } else {
+    opener = `${symbolStr} is in a clear downtrend at ${priceStr}${changePart}, with ${bear}/5 bearish conditions confirmed.`
+  }
+
+  // EMA context
+  let emaPart = ''
+  if (emaContext.emaAlignment === 'bullish_stack') {
+    emaPart = ' Moving averages are fully stacked bullishly, supporting the uptrend.'
+  } else if (emaContext.emaAlignment === 'bearish_stack') {
+    emaPart = ' Moving averages are fully stacked bearishly, reinforcing the downtrend.'
+  } else if (emaContext.emaAlignment === 'mixed') {
+    emaPart = ' Moving averages are mixed, reflecting the conflicted market structure.'
+  }
+
+  // Momentum
+  let momentumPart = ''
+  if (indicatorSummary.rsi.value !== null) {
+    const rsiVal = indicatorSummary.rsi.value.toFixed(0)
+    const cls = indicatorSummary.rsi.classification
+    if (cls === 'overbought') {
+      momentumPart = ` RSI at ${rsiVal} is overbought — watch for potential exhaustion.`
+    } else if (cls === 'oversold') {
+      momentumPart = ` RSI at ${rsiVal} is oversold — selling pressure may be nearing a limit.`
+    } else if (cls === 'healthy_bullish') {
+      momentumPart = ` RSI at ${rsiVal} sits in a healthy bullish zone, supporting buyers.`
+    } else if (cls === 'weak_bearish') {
+      momentumPart = ` RSI at ${rsiVal} is in bearish territory, favouring sellers.`
+    }
+  }
+
+  // Volume
+  const volumePart = volumeContext.confirmsCurrentMove
+    ? ` Volume is backing the move (${volumeContext.relativeVolume.toFixed(1)}× average), adding conviction.`
+    : volumeContext.relativeVolume < 0.8
+      ? ` Volume is thin (${volumeContext.relativeVolume.toFixed(1)}× average) — treat the signal with caution.`
       : ''
 
-  const volumePart = volumeContext.confirmsCurrentMove
-    ? ' Volume is confirming the current move.'
-    : ' Volume is not confirming the current move.'
+  // Confidence hedge
+  const hedge = ` Overall signal strength is ${gradeHedge(confidence.grade)}.`
 
-  const text =
-    `${opener} a ${trendLabel(fullTrend.trend)} setup, ${hedge}.` +
-    ` The 24-hour price change is ${formatPercent(price.change24hPercent)}.` +
-    rsiPart +
-    volumePart +
-    ` Overall market bias is ${direction}.`
-
+  const text = opener + emaPart + momentumPart + volumePart + hedge
   return truncate(text, cfg.maxSummaryLength)
 }
 
@@ -564,16 +596,30 @@ export function buildConclusion(
   analysis: MarketAnalysisResult,
   confidence: ConfidenceResult,
 ): string {
-  const { fullTrend } = analysis
-  const opener = gradeOpeningPhrase(confidence.grade)
-  const direction = trendDirectionWord(fullTrend.trend)
-  const hedge = gradeHedge(confidence.grade)
+  const { fullTrend, evidence } = analysis
+  const trend     = fullTrend.trend
+  const direction = trendDirectionWord(trend)
+  const evidenceCount = evidence.length
 
-  return (
-    `${opener} a ${direction} outlook ${hedge}.` +
-    ` This analysis is based on ${analysis.evidence.length} evidence factor(s) from technical indicators, market structure, volume, and support/resistance data.` +
-    ` This is not financial advice.`
-  )
+  let weightSentence: string
+  if (confidence.grade === 'very_strong' || confidence.grade === 'strong') {
+    weightSentence = `Across ${evidenceCount} evidence factors — spanning trend, momentum, volume, and market structure — the weight of evidence clearly favours the ${direction} side.`
+  } else if (confidence.grade === 'moderate') {
+    weightSentence = `Across ${evidenceCount} evidence factors, the signals lean ${direction}, though the picture is not yet conclusive.`
+  } else if (confidence.grade === 'mixed') {
+    weightSentence = `With ${evidenceCount} evidence factors assessed, ${direction} and opposing signals are roughly balanced — directional conviction is limited.`
+  } else {
+    weightSentence = `With ${evidenceCount} evidence factors assessed, the ${direction} bias is tentative and low-confidence.`
+  }
+
+  let qualitySentence = ''
+  if (confidence.penalties.length > 0) {
+    qualitySentence = ' Note that validation warnings are present — treat this assessment with appropriate caution.'
+  } else if (confidence.trust.level === 'high') {
+    qualitySentence = ' The analysis quality indicators are strong.'
+  }
+
+  return `${weightSentence}${qualitySentence} Always manage risk independently — this is not financial advice.`
 }
 
 // ─── Critical stub ────────────────────────────────────────────────────────────

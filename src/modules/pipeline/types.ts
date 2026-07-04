@@ -28,6 +28,23 @@ export interface TradeDecision {
   confidence: number
 }
 
+/**
+ * Actionable trade plan derived from S/R context, trend, and confidence.
+ * All price levels are in the same currency unit as the market data.
+ */
+export interface TradePlan {
+  /** Price zone to target for entry — null when insufficient S/R data */
+  entryZone: { lower: number; upper: number } | null
+  /** Level at which the thesis is invalidated — null when S/R is unavailable */
+  invalidationLevel: number | null
+  /** Price target level (nearest S/R on the opposite side) */
+  targetLevel: number | null
+  /** Estimated risk/reward ratio (reward ÷ risk) — null when either level is missing */
+  riskRewardRatio: number | null
+  /** Patient guidance message based on trend strength and confidence */
+  patienceMessage: string
+}
+
 export type PipelineErrorCode =
   | 'fetch_failure'
   | 'insufficient_candles'
@@ -69,6 +86,7 @@ export interface PipelineResult {
   validation: ValidationResult
   confidence: ConfidenceResult
   decision: TradeDecision
+  tradePlan: TradePlan
   generatedAnalysis: GeneratedAnalysis
   metadata: PipelineMetadata
 }

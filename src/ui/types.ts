@@ -65,6 +65,12 @@ export type {
   ConfidenceBreakdown,
   TrustFactor,
   TrustResult,
+  EvidenceQualityRating,
+  EvidenceQuality,
+  ConfluenceResult,
+  ContradictionGroup,
+  IndicatorReliabilityContext,
+  AnalysisQuality,
 } from '../modules/confidence/types'
 export type {
   GeneratedAnalysis,
@@ -72,6 +78,7 @@ export type {
   WriterTemplate,
 } from '../modules/writer/types'
 export type { IndicatorResult } from '../modules/indicators/types'
+export type { TradePlan } from '../modules/pipeline/types'
 
 // ── UI-specific types ──────────────────────────────────────────────────────────
 

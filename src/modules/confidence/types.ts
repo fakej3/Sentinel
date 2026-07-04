@@ -1,4 +1,81 @@
 /**
+ * Per-category quality rating based on how much evidence exists in that category.
+ */
+export type EvidenceQualityRating = 'excellent' | 'good' | 'moderate' | 'poor' | 'unavailable'
+
+/**
+ * How much evidence we have in each signal category.
+ * 'poor' = zero known factors; 'excellent' = 3 or more.
+ */
+export interface EvidenceQuality {
+  trendQuality:    EvidenceQualityRating
+  momentum:        EvidenceQualityRating
+  volume:          EvidenceQualityRating
+  marketStructure: EvidenceQualityRating
+  srPositioning:   EvidenceQualityRating
+}
+
+/**
+ * Measures how many independent signal categories agree with the dominant trend.
+ * A higher score means more categories are internally consistent with each other.
+ */
+export interface ConfluenceResult {
+  /** 0–10: strength of multi-category agreement */
+  score: number
+  /** Category display names that are aligned with the dominant trend */
+  agreeing: string[]
+  /** Category display names with signals opposing the dominant trend */
+  disagreeing: string[]
+  /** Fraction of active categories that agree: 0–1 */
+  agreementRatio: number
+}
+
+/**
+ * A cluster of opposing-direction evidence within one signal category.
+ */
+export interface ContradictionGroup {
+  /** Display name of the signal category */
+  category: string
+  severity: 'strong' | 'moderate' | 'mild'
+  /** Human-readable explanation of the contradiction */
+  description: string
+  /** Canonical factor names in this contradiction cluster */
+  factors: string[]
+}
+
+/**
+ * Context-sensitive modifier describing how reliable each indicator type
+ * is under the current market conditions.
+ */
+export interface IndicatorReliabilityContext {
+  /** 0–10: reliability of trend-following signals (EMA, market structure) */
+  trendReliability: number
+  /** 0–10: reliability of oscillator signals (RSI, MACD, StochRSI) */
+  oscillatorReliability: number
+  /** 0–10: reliability of volume-based signals */
+  volumeReliability: number
+  /** One-line explanation of the current reliability context */
+  note: string
+}
+
+/**
+ * Internal 0–10 synthesis of how coherent and complete the analysis is.
+ * Combines confluence, evidence breadth, contradiction strength, and indicator reliability.
+ */
+export interface AnalysisQuality {
+  /** 0–10: overall internal quality of the analysis */
+  score: number
+  /** Multi-category directional agreement */
+  confluence: ConfluenceResult
+  /** Per-category evidence availability */
+  evidenceQuality: EvidenceQuality
+  /** Clustered contradictions by category */
+  contradictions: ContradictionGroup[]
+  /** Context-sensitive indicator reliability */
+  reliability: IndicatorReliabilityContext
+}
+
+/**
  * Confidence grade — coarse label for the 0–10 score.
  * ENGINE_RULES.md §11.
  */
@@ -105,6 +182,8 @@ export interface ConfidenceResult {
   warnings: ConfidenceWarning[]
   /** Per-component breakdown of where the evidence comes from */
   breakdown: ConfidenceBreakdown
+  /** Analysis quality assessment — coherence, confluence, and evidence breadth */
+  analysisQuality: AnalysisQuality
   /** Data and pipeline quality assessment, independent of signal strength */
   trust: TrustResult
 }

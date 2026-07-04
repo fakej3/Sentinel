@@ -37,6 +37,7 @@ function makePipelineResult(symbol = 'BTCUSDT'): PipelineResult {
     validation: {} as PipelineResult['validation'],
     confidence: {} as PipelineResult['confidence'],
     decision: {} as PipelineResult['decision'],
+    tradePlan: {} as PipelineResult['tradePlan'],
     generatedAnalysis: {} as PipelineResult['generatedAnalysis'],
     metadata: {
       symbol,

@@ -19,6 +19,7 @@ import type { GeneratedAnalysis } from '../writer/types'
 import { createAIProvider } from '../ai/index'
 import type { AIConfig } from '../ai/types'
 import { computeDecision } from './compute/decision'
+import { computeTradePlan } from './compute/trade-plan'
 import { DEFAULT_PIPELINE_CONFIG, PIPELINE_VERSION } from './config'
 import type {
   PipelineOptions,
@@ -28,6 +29,7 @@ import type {
   PipelineErrorCode,
   FetchFn,
   TradeDecision,
+  TradePlan,
 } from './types'
 
 export type {
@@ -39,6 +41,7 @@ export type {
   FetchFn,
   TradeDecision,
   TradeDecisionLabel,
+  TradePlan,
 } from './types'
 export { PIPELINE_VERSION, DEFAULT_PIPELINE_CONFIG } from './config'
 
@@ -195,10 +198,12 @@ export async function analyzeMarket(options: PipelineOptions): Promise<PipelineR
   }
   const confidenceTime = Date.now() - t7
 
-  // ── Stage 9: Trade Decision ─────────────────────────────────────────────────
+  // ── Stage 9: Trade Decision + Trade Plan ───────────────────────────────────
   let decision!: TradeDecision
+  let tradePlan!: TradePlan
   try {
-    decision = computeDecision(analysis, confidence, validation)
+    decision  = computeDecision(analysis, confidence, validation)
+    tradePlan = computeTradePlan(analysis, supportResistance, confidence)
   } catch (err) {
     throw new PipelineError('internal_module_failure', 'decision', String(err), err)
   }
@@ -270,6 +275,7 @@ export async function analyzeMarket(options: PipelineOptions): Promise<PipelineR
     validation,
     confidence,
     decision,
+    tradePlan,
     generatedAnalysis,
     metadata: {
       symbol: marketData.symbol,

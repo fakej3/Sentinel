@@ -5,6 +5,7 @@ import { DEFAULT_CONFIDENCE_CONFIG } from './config'
 import { scoreEvidence, normalize } from './compute/score'
 import { scoreToGrade } from './compute/grade'
 import { computeBreakdown } from './compute/breakdown'
+import { computeAnalysisQuality } from './compute/quality'
 import { computeTrust } from './compute/trust'
 
 /**
@@ -131,10 +132,11 @@ export function computeConfidence(
 
   const grade = scoreToGrade(score, cfg)
 
-  // ── Step 5: Breakdown and trust ───────────────────────────────────────────
+  // ── Step 5: Breakdown, quality, and trust ────────────────────────────────
 
-  const breakdown = computeBreakdown(analysis.evidence, cfg, contradictionPoints)
-  const trust = computeTrust(analysis, validation)
+  const breakdown       = computeBreakdown(analysis.evidence, cfg, contradictionPoints)
+  const analysisQuality = computeAnalysisQuality(analysis, cfg)
+  const trust           = computeTrust(analysis, validation)
 
   return {
     score,
@@ -145,6 +147,7 @@ export function computeConfidence(
     penalties,
     warnings,
     breakdown,
+    analysisQuality,
     trust,
   }
 }
@@ -159,6 +162,12 @@ export type {
   ConfidenceBreakdown,
   TrustFactor,
   TrustResult,
+  EvidenceQualityRating,
+  EvidenceQuality,
+  ConfluenceResult,
+  ContradictionGroup,
+  IndicatorReliabilityContext,
+  AnalysisQuality,
 } from './types'
 
 export { DEFAULT_CONFIDENCE_CONFIG } from './config'

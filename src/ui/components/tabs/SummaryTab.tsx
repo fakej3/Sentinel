@@ -1,11 +1,11 @@
 import { useState } from 'react'
-import { TrendingUp, TrendingDown, Minus, ShieldCheck, AlertTriangle, Target, Zap, HelpCircle, Lightbulb, Activity, ChevronDown, ChevronUp, CheckCircle2, XCircle, Lock } from 'lucide-react'
+import { TrendingUp, TrendingDown, Minus, ShieldCheck, AlertTriangle, Target, Zap, HelpCircle, Lightbulb, Activity, ChevronDown, ChevronUp, CheckCircle2, XCircle, Lock, GitMerge } from 'lucide-react'
 import { Card } from '../shared/Card'
 import { ConfidenceMeter } from '../shared/ConfidenceMeter'
 import { GradeBadge } from '../shared/Badge'
 import { formatPrice } from '../../utils/format'
 import { trendLabel, rsiLabel, vwapLabel, biasLabel, gradeLabel } from '../../utils/tradingLanguage'
-import type { PipelineResult, ConfidenceBreakdown, TrustResult } from '../../types'
+import type { PipelineResult, ConfidenceBreakdown, TrustResult, AnalysisQuality } from '../../types'
 
 interface SummaryTabProps {
   result: PipelineResult
@@ -114,10 +114,33 @@ function BreakdownBar({ label, value, isContradiction }: { label: string; value:
   )
 }
 
-function BreakdownPanel({ breakdown, penalties }: { breakdown: ConfidenceBreakdown; penalties: PipelineResult['confidence']['penalties'] }) {
+function ConfluenceChip({ label, isAgreeing }: { label: string; isAgreeing: boolean }) {
+  return (
+    <span className={`text-[10px] px-1.5 py-0.5 rounded font-medium ${
+      isAgreeing ? 'bg-emerald-400/10 text-emerald-400' : 'bg-red-400/10 text-red-400'
+    }`}>
+      {label}
+    </span>
+  )
+}
+
+function BreakdownPanel({
+  breakdown,
+  penalties,
+  quality,
+}: {
+  breakdown: ConfidenceBreakdown
+  penalties: PipelineResult['confidence']['penalties']
+  quality: AnalysisQuality
+}) {
   const [open, setOpen] = useState(true)
 
-  const reductionLines: string[] = penalties.map(p => p.description)
+  const reductionLines: string[] = [
+    ...penalties.map(p => p.description),
+    ...quality.contradictions.filter(c => c.severity === 'strong' || c.severity === 'moderate').map(c => c.description),
+  ]
+
+  const hasConfluence = quality.confluence.agreeing.length + quality.confluence.disagreeing.length > 0
 
   return (
     <Card className="p-4">
@@ -140,6 +163,25 @@ function BreakdownPanel({ breakdown, penalties }: { breakdown: ConfidenceBreakdo
             />
           ))}
 
+          {hasConfluence && (
+            <div className="mt-3 pt-2.5 border-t border-border-subtle">
+              <div className="flex items-center gap-1.5 mb-1.5">
+                <GitMerge size={10} className="text-slate-500" />
+                <p className="text-[10px] text-slate-500 font-medium">
+                  Category confluence: {quality.confluence.agreeing.length}/{quality.confluence.agreeing.length + quality.confluence.disagreeing.length} categories aligned
+                </p>
+              </div>
+              <div className="flex flex-wrap gap-1">
+                {quality.confluence.agreeing.map((label, i) => (
+                  <ConfluenceChip key={i} label={label} isAgreeing={true} />
+                ))}
+                {quality.confluence.disagreeing.map((label, i) => (
+                  <ConfluenceChip key={i} label={label} isAgreeing={false} />
+                ))}
+              </div>
+            </div>
+          )}
+
           {reductionLines.length > 0 && (
             <div className="mt-3 pt-2.5 border-t border-border-subtle space-y-1">
               <p className="text-[10px] text-slate-500 font-medium mb-1">Why not maximum confidence?</p>
@@ -149,6 +191,12 @@ function BreakdownPanel({ breakdown, penalties }: { breakdown: ConfidenceBreakdo
                   <span className="text-[10px] text-slate-500 leading-relaxed">{line}</span>
                 </div>
               ))}
+            </div>
+          )}
+
+          {quality.reliability.note && (
+            <div className="mt-2.5 pt-2 border-t border-border-subtle">
+              <p className="text-[10px] text-slate-600 leading-relaxed italic">{quality.reliability.note}</p>
             </div>
           )}
         </div>
@@ -175,7 +223,7 @@ function EvidenceBullet({ item }: { item: { description: string; direction: stri
 }
 
 export function SummaryTab({ result }: SummaryTabProps) {
-  const { analysis, confidence, supportResistance, validation, generatedAnalysis, decision } = result
+  const { analysis, confidence, supportResistance, validation, generatedAnalysis, decision, tradePlan } = result
   const { fullTrend, volumeContext, indicatorSummary } = analysis
 
   const nearestSupport    = supportResistance.nearestSupport
@@ -245,7 +293,7 @@ export function SummaryTab({ result }: SummaryTabProps) {
 
       {/* Trust + Breakdown */}
       <TrustPanel trust={confidence.trust} />
-      <BreakdownPanel breakdown={confidence.breakdown} penalties={confidence.penalties} />
+      <BreakdownPanel breakdown={confidence.breakdown} penalties={confidence.penalties} quality={confidence.analysisQuality} />
 
       {/* Q4: Suggested Approach (decision card — most actionable, shown early) */}
       {decision && (
@@ -338,6 +386,14 @@ export function SummaryTab({ result }: SummaryTabProps) {
             )}
           </div>
         </Card>
+      )}
+
+      {/* Patience / opportunity guidance from trade plan */}
+      {tradePlan.patienceMessage && (
+        <div className="flex items-start gap-2 px-3 py-2.5 rounded-lg bg-blue-400/5 border border-blue-400/15">
+          <Activity size={12} className="text-blue-400 flex-shrink-0 mt-0.5" />
+          <p className="text-xs text-slate-400 leading-relaxed">{tradePlan.patienceMessage}</p>
+        </div>
       )}
 
       {/* Q3: What would invalidate this view */}

@@ -4,7 +4,7 @@ import type {
   FullTrendLabel,
   EvidenceDirection,
 } from '../../analysis/types'
-import type { ConfidenceResult, ConfidenceGrade, ConfidenceBreakdown, TrustResult } from '../../confidence/types'
+import type { ConfidenceResult, ConfidenceGrade, ConfidenceBreakdown, TrustResult, AnalysisQuality } from '../../confidence/types'
 import type { WriterInput } from '../types'
 import {
   makeAnalysis as baseMakeAnalysis,
@@ -38,6 +38,17 @@ const DEFAULT_TRUST: TrustResult = {
   reductions: [],
 }
 
+const ZERO_ANALYSIS_QUALITY: AnalysisQuality = {
+  score: 0,
+  confluence: { score: 0, agreeing: [], disagreeing: [], agreementRatio: 0 },
+  evidenceQuality: {
+    trendQuality: 'poor', momentum: 'poor', volume: 'poor',
+    marketStructure: 'poor', srPositioning: 'poor',
+  },
+  contradictions: [],
+  reliability: { trendReliability: 5, oscillatorReliability: 5, volumeReliability: 5, note: 'Test default' },
+}
+
 export function makeConfidence(
   score: number,
   grade: ConfidenceGrade = 'moderate',
@@ -52,6 +63,7 @@ export function makeConfidence(
     penalties: [],
     warnings: [],
     breakdown: ZERO_BREAKDOWN,
+    analysisQuality: ZERO_ANALYSIS_QUALITY,
     trust: DEFAULT_TRUST,
     ...overrides,
   }

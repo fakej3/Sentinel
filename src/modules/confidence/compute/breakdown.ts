@@ -5,7 +5,8 @@ import { normalize } from './score'
 type BreakdownCategory = keyof Omit<ConfidenceBreakdown, 'contradictions'>
 
 // Maps each canonical factor name to its evidence category.
-const FACTOR_CATEGORY: Readonly<Record<string, BreakdownCategory>> = {
+// Exported so confluence and contradiction engines can reuse it without duplication.
+export const FACTOR_CATEGORY: Readonly<Record<string, BreakdownCategory>> = {
   // ── Trend Quality (EMA positioning + alignment) ─────────────────────────────
   'Price above EMA200':        'trendQuality',
   'Price above EMA100':        'trendQuality',
@@ -17,6 +18,7 @@ const FACTOR_CATEGORY: Readonly<Record<string, BreakdownCategory>> = {
   'Price below EMA20':         'trendQuality',
   'EMA bullish alignment':     'trendQuality',
   'EMA bearish alignment':     'trendQuality',
+  'EMA confluence zone':       'trendQuality',
 
   // ── Market Structure ─────────────────────────────────────────────────────────
   'Higher High confirmed':      'marketStructure',

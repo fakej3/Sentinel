@@ -1,4 +1,4 @@
-import { TrendingDown, TrendingUp, Activity } from 'lucide-react'
+import { TrendingDown, TrendingUp, Activity, Target, AlertTriangle, CheckCircle2 } from 'lucide-react'
 import { Card } from '../shared/Card'
 import { ProgressBar } from '../shared/ProgressBar'
 import { formatPrice, formatPercent } from '../../utils/format'
@@ -58,8 +58,30 @@ function ZoneBlock({ label, zone, color, distPct }: {
   )
 }
 
+function decisionColor(label: string) {
+  if (label === 'Strong Buy' || label === 'Buy') return 'text-emerald-400'
+  if (label === 'Cautious Buy') return 'text-emerald-300'
+  if (label === 'Strong Sell' || label === 'Sell') return 'text-red-400'
+  if (label === 'Cautious Sell') return 'text-red-300'
+  return 'text-slate-300'
+}
+
+function decisionBg(label: string) {
+  if (label === 'Strong Buy' || label === 'Buy') return 'bg-emerald-400/10 border-emerald-500/20'
+  if (label === 'Cautious Buy') return 'bg-emerald-400/5 border-emerald-500/15'
+  if (label === 'Strong Sell' || label === 'Sell') return 'bg-red-400/10 border-red-500/20'
+  if (label === 'Cautious Sell') return 'bg-red-400/5 border-red-500/15'
+  return 'bg-slate-600/10 border-border-subtle'
+}
+
+function riskBadgeColor(level: string) {
+  if (level === 'Low') return 'bg-emerald-400/10 text-emerald-400 border border-emerald-500/20'
+  if (level === 'High') return 'bg-red-400/10 text-red-400 border border-red-500/20'
+  return 'bg-amber-400/10 text-amber-400 border border-amber-500/20'
+}
+
 export function TradeTab({ result }: TradeTabProps) {
-  const { analysis, supportResistance, indicators, marketStructure, confidence } = result
+  const { analysis, supportResistance, indicators, marketStructure, confidence, decision, tradePlan } = result
   const { price, volumeContext, srContext } = analysis
 
   const nearestSupport    = supportResistance.nearestSupport
@@ -74,6 +96,74 @@ export function TradeTab({ result }: TradeTabProps) {
 
   return (
     <div className="p-4 space-y-4 animate-in max-w-3xl mx-auto">
+
+      {/* Sentinel's signal view */}
+      <Card className={`p-4 border ${decisionBg(decision.label)}`}>
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex-1">
+            <div className="flex items-center gap-2 mb-1">
+              <Activity size={12} className="text-slate-400" />
+              <p className="section-label">Sentinel's View</p>
+            </div>
+            <p className={`text-2xl font-bold leading-tight ${decisionColor(decision.label)}`}>
+              {decision.label}
+            </p>
+            {decision.reasons.length > 0 && (
+              <ul className="mt-2 space-y-1">
+                {decision.reasons.map((r, i) => (
+                  <li key={i} className="flex items-start gap-2">
+                    <CheckCircle2 size={10} className="text-slate-500 flex-shrink-0 mt-0.5" />
+                    <span className="text-xs text-slate-400 leading-relaxed">{r}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+          <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full flex-shrink-0 ${riskBadgeColor(decision.riskLevel)}`}>
+            {decision.riskLevel} Risk
+          </span>
+        </div>
+      </Card>
+
+      {/* Trade plan */}
+      {(tradePlan.entryZone || tradePlan.invalidationLevel || tradePlan.targetLevel) && (
+        <Card className="p-4">
+          <div className="flex items-center gap-1.5 mb-3">
+            <Target size={12} className="text-slate-400" />
+            <p className="section-label">Trade Plan</p>
+          </div>
+          <div className="space-y-0">
+            {tradePlan.entryZone && (
+              <DataRow label="Entry zone">
+                <span className="text-xs font-mono text-slate-300">
+                  {formatPrice(tradePlan.entryZone.lower)} – {formatPrice(tradePlan.entryZone.upper)}
+                </span>
+              </DataRow>
+            )}
+            {tradePlan.invalidationLevel !== null && (
+              <DataRow label="Invalidation">
+                <span className="text-xs font-mono text-red-400">{formatPrice(tradePlan.invalidationLevel)}</span>
+              </DataRow>
+            )}
+            {tradePlan.targetLevel !== null && (
+              <DataRow label="Target">
+                <span className="text-xs font-mono text-emerald-400">{formatPrice(tradePlan.targetLevel)}</span>
+              </DataRow>
+            )}
+            {tradePlan.riskRewardRatio !== null && (
+              <DataRow label="Risk / Reward">
+                <span className={`text-xs font-mono font-semibold ${tradePlan.riskRewardRatio >= 2 ? 'text-emerald-400' : tradePlan.riskRewardRatio >= 1 ? 'text-slate-300' : 'text-red-400'}`}>
+                  {tradePlan.riskRewardRatio.toFixed(2)} : 1
+                </span>
+              </DataRow>
+            )}
+          </div>
+          <div className="mt-2.5 pt-2 border-t border-border-subtle flex items-start gap-1.5">
+            <AlertTriangle size={10} className="text-amber-400 flex-shrink-0 mt-0.5" />
+            <p className="text-[10px] text-slate-500 leading-relaxed">{tradePlan.patienceMessage}</p>
+          </div>
+        </Card>
+      )}
 
       {/* Price snapshot */}
       <Card className="p-4">
