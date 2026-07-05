@@ -171,6 +171,105 @@ export interface TradePlan {
   patienceMessage: string
 }
 
+// ── Confidence Explanation ─────────────────────────────────────────────────────
+
+/** Structured explanation of what drove the confidence score. */
+export interface ConfidenceExplanation {
+  /** Top factors that pushed the score higher */
+  positiveContributors: Array<{ label: string; detail: string }>
+  /** Top factors that pushed the score lower */
+  negativeContributors: Array<{ label: string; detail: string }>
+  /** One-paragraph rationale tying score, penalties, and quality together */
+  rationale: string
+}
+
+// ── Market Story ───────────────────────────────────────────────────────────────
+
+/** Deterministic natural-language narrative of current market conditions. */
+export interface MarketStory {
+  /** Full paragraph joining all active sentences */
+  text: string
+  /** Individual sentences for layout control */
+  sentences: string[]
+}
+
+// ── Contradiction Intelligence ─────────────────────────────────────────────────
+
+export type ContradictionSeverity = 'none' | 'minor' | 'moderate' | 'major'
+
+/** Per-category summary of contradicting signals. */
+export interface ContradictionCategory {
+  /** Category name: Trend | Momentum | Volume | Structure | Support/Resistance | Validation */
+  category: string
+  severity: ContradictionSeverity
+  /** One-line explanation of the contradiction in this category */
+  detail: string
+}
+
+/** Aggregated contradiction analysis across all signal categories. */
+export interface ContradictionIntelligence {
+  categories: ContradictionCategory[]
+  overallSeverity: ContradictionSeverity
+  /** One-sentence human-readable summary */
+  summary: string
+}
+
+// ── Human Trader Review ────────────────────────────────────────────────────────
+
+export type TraderVerdict =
+  | 'Aggressive Buy'
+  | 'Conservative Buy'
+  | 'Wait'
+  | 'Reduce Position'
+  | 'Aggressive Sell'
+  | 'Conservative Sell'
+  | 'Avoid'
+
+/**
+ * A deterministic "professional trader" opinion layer.
+ * Does NOT replace TradeDecision — it is an additional perspective.
+ */
+export interface TraderReview {
+  verdict: TraderVerdict
+  /** 2–4 concise reasoning bullets */
+  reasoning: string[]
+}
+
+// ── Opportunity vs Market ──────────────────────────────────────────────────────
+
+export type QualityLevel = 'excellent' | 'good' | 'fair' | 'poor'
+
+/** Separates overall market quality from the current trading opportunity. */
+export interface OpportunityAssessment {
+  /** How good the market conditions are overall */
+  marketQuality: QualityLevel
+  marketQualityDetail: string
+  /** How good the trading opportunity is right now (none = no setup) */
+  tradingOpportunity: QualityLevel | 'none'
+  tradingOpportunityDetail: string
+  /** One-sentence synthesis comparing market vs opportunity */
+  combinedMessage: string
+}
+
+// ── Confidence Sanity Audit ────────────────────────────────────────────────────
+
+/** A single suspicious or inconsistent situation detected internally. */
+export interface SanityFlag {
+  /** Short identifier for the flag type */
+  type: string
+  /** Human-readable description of the inconsistency */
+  description: string
+}
+
+/** Internal diagnostic result — no score changes, pure observability. */
+export interface ConfidenceSanityResult {
+  flags: SanityFlag[]
+  hasIssues: boolean
+}
+
+// ── Calibration (Module 31 Part 7 — interfaces only, no persistence) ──────────
+// (see src/modules/calibration/types.ts)
+
 export type PipelineErrorCode =
   | 'fetch_failure'
   | 'insufficient_candles'
@@ -218,6 +317,13 @@ export interface PipelineResult {
   /** Concrete scenarios that would invalidate the current analysis */
   invalidationScenarios: InvalidationScenario[]
   generatedAnalysis: GeneratedAnalysis
+  /** Module 31 — intelligence calibration outputs */
+  confidenceExplanation: ConfidenceExplanation
+  marketStory: MarketStory
+  contradictionIntelligence: ContradictionIntelligence
+  traderReview: TraderReview
+  opportunityAssessment: OpportunityAssessment
+  sanityAudit: ConfidenceSanityResult
   metadata: PipelineMetadata
 }
 

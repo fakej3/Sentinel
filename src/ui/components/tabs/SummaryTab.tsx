@@ -1,12 +1,12 @@
 import { useState, useMemo } from 'react'
-import { TrendingUp, TrendingDown, Minus, ShieldCheck, AlertTriangle, Target, Zap, HelpCircle, Lightbulb, Activity, ChevronDown, ChevronUp, CheckCircle2, XCircle, Lock, GitMerge, BarChart3 } from 'lucide-react'
+import { TrendingUp, TrendingDown, Minus, ShieldCheck, AlertTriangle, Target, Zap, HelpCircle, Lightbulb, Activity, ChevronDown, ChevronUp, CheckCircle2, XCircle, Lock, GitMerge, BarChart3, Users, Layers, Info } from 'lucide-react'
 import { Card } from '../shared/Card'
 import { ConfidenceMeter } from '../shared/ConfidenceMeter'
 import { GradeBadge } from '../shared/Badge'
 import { formatPrice } from '../../utils/format'
 import { trendLabel, rsiLabel, vwapLabel, biasLabel, gradeLabel } from '../../utils/tradingLanguage'
 import { decisionColor, decisionBg, riskBadgeColor } from '../../utils/colors'
-import type { PipelineResult, ConfidenceBreakdown, TrustResult, AnalysisQuality } from '../../types'
+import type { PipelineResult, ConfidenceBreakdown, TrustResult, AnalysisQuality, TraderReview, ContradictionIntelligence, ConfidenceExplanation, OpportunityAssessment, ConfidenceSanityResult } from '../../types'
 
 interface SummaryTabProps {
   result: PipelineResult
@@ -302,8 +302,205 @@ function EvidenceBullet({ item }: { item: { description: string; direction: stri
   )
 }
 
+// ── Trader Review ─────────────────────────────────────────────────────────────
+
+function traderVerdictColor(verdict: TraderReview['verdict']): string {
+  if (verdict === 'Aggressive Buy' || verdict === 'Conservative Buy') return 'text-emerald-300'
+  if (verdict === 'Aggressive Sell' || verdict === 'Conservative Sell') return 'text-red-300'
+  if (verdict === 'Reduce Position') return 'text-orange-300'
+  if (verdict === 'Avoid') return 'text-red-400'
+  return 'text-slate-300'
+}
+
+function TraderReviewPanel({ review }: { review: TraderReview }) {
+  return (
+    <Card className="p-4">
+      <div className="flex items-center gap-1.5 mb-2">
+        <Users size={12} className="text-slate-400" />
+        <p className="section-label">Trader's Take</p>
+      </div>
+      <p className={`text-base font-bold leading-tight ${traderVerdictColor(review.verdict)}`}>
+        {review.verdict}
+      </p>
+      <ul className="mt-2 space-y-1">
+        {review.reasoning.map((r, i) => (
+          <li key={i} className="flex items-start gap-2">
+            <span className="text-slate-600 text-[10px] mt-0.5 flex-shrink-0">—</span>
+            <span className="text-xs text-slate-400 leading-relaxed">{r}</span>
+          </li>
+        ))}
+      </ul>
+    </Card>
+  )
+}
+
+// ── Opportunity Assessment ────────────────────────────────────────────────────
+
+function qualityLevelColor(level: string): string {
+  if (level === 'excellent') return 'text-emerald-400 border-emerald-500/30 bg-emerald-500/10'
+  if (level === 'good')      return 'text-blue-400 border-blue-500/30 bg-blue-500/10'
+  if (level === 'fair')      return 'text-amber-400 border-amber-500/30 bg-amber-500/10'
+  return 'text-slate-400 border-slate-600/30 bg-slate-700/20'
+}
+
+function OpportunityPanel({ assessment }: { assessment: OpportunityAssessment }) {
+  return (
+    <Card className="p-4">
+      <div className="flex items-center gap-1.5 mb-3">
+        <Layers size={12} className="text-slate-400" />
+        <p className="section-label">Market vs Opportunity</p>
+      </div>
+      <div className="grid grid-cols-2 gap-2 mb-3">
+        <div className="p-2.5 rounded-lg border border-border-subtle bg-surface-800">
+          <p className="text-[10px] text-slate-500 mb-1">Market Quality</p>
+          <span className={`text-xs font-semibold px-1.5 py-0.5 rounded border capitalize ${qualityLevelColor(assessment.marketQuality)}`}>
+            {assessment.marketQuality}
+          </span>
+          <p className="text-[10px] text-slate-500 mt-1.5 leading-relaxed">{assessment.marketQualityDetail}</p>
+        </div>
+        <div className="p-2.5 rounded-lg border border-border-subtle bg-surface-800">
+          <p className="text-[10px] text-slate-500 mb-1">Trading Opportunity</p>
+          <span className={`text-xs font-semibold px-1.5 py-0.5 rounded border capitalize ${assessment.tradingOpportunity === 'none' ? 'text-slate-500 border-slate-700/30 bg-slate-800/50' : qualityLevelColor(assessment.tradingOpportunity)}`}>
+            {assessment.tradingOpportunity === 'none' ? 'None' : assessment.tradingOpportunity}
+          </span>
+          <p className="text-[10px] text-slate-500 mt-1.5 leading-relaxed">{assessment.tradingOpportunityDetail}</p>
+        </div>
+      </div>
+      <p className="text-xs text-slate-400 leading-relaxed border-t border-border-subtle pt-2.5">
+        {assessment.combinedMessage}
+      </p>
+    </Card>
+  )
+}
+
+// ── Contradiction Intelligence ────────────────────────────────────────────────
+
+function contradictionSeverityColor(severity: string): string {
+  if (severity === 'major')    return 'text-red-400 bg-red-500/10 border-red-500/20'
+  if (severity === 'moderate') return 'text-amber-400 bg-amber-500/10 border-amber-500/20'
+  if (severity === 'minor')    return 'text-blue-400 bg-blue-500/10 border-blue-500/20'
+  return 'text-slate-600 bg-slate-700/20 border-slate-700/30'
+}
+
+function ContradictionPanel({ intelligence }: { intelligence: ContradictionIntelligence }) {
+  const [open, setOpen] = useState(false)
+  const hasAny = intelligence.overallSeverity !== 'none'
+  return (
+    <Card className="p-4">
+      <button
+        onClick={() => setOpen(o => !o)}
+        className="flex items-center justify-between w-full focus-visible:outline-none"
+      >
+        <div className="flex items-center gap-1.5">
+          <GitMerge size={12} className={hasAny ? 'text-amber-400' : 'text-slate-400'} />
+          <p className="section-label">Signal Contradictions</p>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className={`text-[10px] font-semibold px-2 py-0.5 rounded border capitalize ${contradictionSeverityColor(intelligence.overallSeverity)}`}>
+            {intelligence.overallSeverity}
+          </span>
+          {open ? <ChevronUp size={12} className="text-slate-500" /> : <ChevronDown size={12} className="text-slate-500" />}
+        </div>
+      </button>
+      <p className="text-[10px] text-slate-500 mt-1.5 leading-relaxed">{intelligence.summary}</p>
+      {open && (
+        <div className="mt-3 space-y-1.5 border-t border-border-subtle pt-3">
+          {intelligence.categories.map((cat, i) => (
+            <div key={i} className="flex items-center justify-between gap-2">
+              <span className="text-[11px] text-slate-400 w-28 flex-shrink-0">{cat.category}</span>
+              <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded border capitalize flex-shrink-0 ${contradictionSeverityColor(cat.severity)}`}>
+                {cat.severity}
+              </span>
+              <span className="text-[10px] text-slate-500 leading-relaxed text-right">{cat.detail}</span>
+            </div>
+          ))}
+        </div>
+      )}
+    </Card>
+  )
+}
+
+// ── Confidence Explanation ────────────────────────────────────────────────────
+
+function ConfidenceExplanationPanel({ explanation }: { explanation: ConfidenceExplanation }) {
+  const [open, setOpen] = useState(false)
+  return (
+    <Card className="p-4">
+      <button
+        onClick={() => setOpen(o => !o)}
+        className="flex items-center justify-between w-full focus-visible:outline-none"
+      >
+        <div className="flex items-center gap-1.5">
+          <Info size={12} className="text-slate-400" />
+          <p className="section-label">Why This Score?</p>
+        </div>
+        {open ? <ChevronUp size={12} className="text-slate-500" /> : <ChevronDown size={12} className="text-slate-500" />}
+      </button>
+      <p className="text-[10px] text-slate-500 mt-1.5 leading-relaxed">{explanation.rationale}</p>
+      {open && (
+        <div className="mt-3 border-t border-border-subtle pt-3 space-y-3">
+          {explanation.positiveContributors.length > 0 && (
+            <div>
+              <p className="text-[10px] text-emerald-400/70 font-medium mb-1.5">Positive Contributors</p>
+              <div className="space-y-1">
+                {explanation.positiveContributors.map((c, i) => (
+                  <div key={i} className="flex items-start gap-2">
+                    <span className="text-emerald-500/60 text-[10px] mt-0.5 flex-shrink-0">+</span>
+                    <span className="text-[11px] text-slate-300 leading-relaxed">{c.label}</span>
+                    <span className="text-[10px] text-slate-500 ml-auto flex-shrink-0">{c.detail}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+          {explanation.negativeContributors.length > 0 && (
+            <div>
+              <p className="text-[10px] text-red-400/70 font-medium mb-1.5">Negative Contributors</p>
+              <div className="space-y-1">
+                {explanation.negativeContributors.map((c, i) => (
+                  <div key={i} className="flex items-start gap-2">
+                    <span className="text-red-500/60 text-[10px] mt-0.5 flex-shrink-0">−</span>
+                    <span className="text-[11px] text-slate-300 leading-relaxed">{c.label}</span>
+                    <span className="text-[10px] text-slate-500 ml-auto flex-shrink-0">{c.detail}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+    </Card>
+  )
+}
+
+// ── Sanity Flags ──────────────────────────────────────────────────────────────
+
+function SanityFlagsPanel({ audit }: { audit: ConfidenceSanityResult }) {
+  if (!audit.hasIssues) return null
+  return (
+    <div className="space-y-1.5">
+      {audit.flags.map((flag, i) => (
+        <div key={i} className="flex items-start gap-2 px-3 py-2.5 rounded-lg bg-amber-400/5 border border-amber-400/15">
+          <AlertTriangle size={11} className="text-amber-400 flex-shrink-0 mt-0.5" />
+          <div>
+            <p className="text-[10px] font-semibold text-amber-400/80 capitalize mb-0.5">
+              {flag.type.replaceAll('_', ' ')}
+            </p>
+            <p className="text-[10px] text-slate-400 leading-relaxed">{flag.description}</p>
+          </div>
+        </div>
+      ))}
+    </div>
+  )
+}
+
 export function SummaryTab({ result }: SummaryTabProps) {
-  const { analysis, confidence, supportResistance, validation, generatedAnalysis, decision, tradePlan, invalidationScenarios } = result
+  const {
+    analysis, confidence, supportResistance, validation, generatedAnalysis,
+    decision, tradePlan, invalidationScenarios,
+    marketStory, traderReview, contradictionIntelligence, confidenceExplanation,
+    opportunityAssessment, sanityAudit,
+  } = result
   const { fullTrend, volumeContext, indicatorSummary } = analysis
 
   const nearestSupport    = supportResistance.nearestSupport
@@ -361,6 +558,15 @@ export function SummaryTab({ result }: SummaryTabProps) {
       <TrustPanel trust={confidence.trust} />
       <BreakdownPanel breakdown={confidence.breakdown} penalties={confidence.penalties} quality={confidence.analysisQuality} confidence={confidence} trend={fullTrend.trend} />
 
+      {/* Why This Score? (expandable) */}
+      <ConfidenceExplanationPanel explanation={confidenceExplanation} />
+
+      {/* Signal Contradictions (expandable per-category) */}
+      <ContradictionPanel intelligence={contradictionIntelligence} />
+
+      {/* Market vs Opportunity */}
+      <OpportunityPanel assessment={opportunityAssessment} />
+
       {/* Q4: Suggested Approach (decision card — most actionable, shown early) */}
       {decision && (
         <Card className={`p-4 border ${decisionBg(decision.label)}`}>
@@ -394,6 +600,9 @@ export function SummaryTab({ result }: SummaryTabProps) {
         </Card>
       )}
 
+      {/* Trader's Take (Module 31 — additional opinion layer) */}
+      <TraderReviewPanel review={traderReview} />
+
       {/* Q2: Why? — top evidence */}
       {topEvidence.length > 0 && (
         <Card className="p-4">
@@ -406,6 +615,12 @@ export function SummaryTab({ result }: SummaryTabProps) {
           </div>
         </Card>
       )}
+
+      {/* Market Story — deterministic narrative (Module 31) */}
+      <Card className="p-4">
+        <p className="section-label mb-2">Market Story</p>
+        <p className="text-sm text-slate-300 leading-relaxed">{marketStory.text}</p>
+      </Card>
 
       {/* Plain-English summary from Writer (when available) */}
       {generatedAnalysis?.summary && (
@@ -512,6 +727,9 @@ export function SummaryTab({ result }: SummaryTabProps) {
           </div>
         </div>
       </Card>
+
+      {/* Sanity Flags (Module 31 — diagnostic layer) */}
+      <SanityFlagsPanel audit={sanityAudit} />
 
       {/* Validation warning banner */}
       {!validation.passed && (

@@ -22,6 +22,12 @@ import { computeDecision } from './compute/decision'
 import { computeTradePlan } from './compute/trade-plan'
 import { computeMarketContext } from './compute/market-context'
 import { computeInvalidationScenarios } from './compute/invalidation'
+import { computeConfidenceExplanation } from './compute/confidence-explanation'
+import { computeMarketStory } from './compute/market-story'
+import { computeContradictionIntelligence } from './compute/contradiction-intelligence'
+import { computeTraderReview } from './compute/trader-review'
+import { computeOpportunityAssessment } from './compute/opportunity-assessment'
+import { computeSanityAudit } from './compute/sanity-audit'
 import { DEFAULT_PIPELINE_CONFIG, PIPELINE_VERSION } from './config'
 import type {
   PipelineOptions,
@@ -34,6 +40,12 @@ import type {
   TradePlan,
   MarketContext,
   InvalidationScenario,
+  ConfidenceExplanation,
+  MarketStory,
+  ContradictionIntelligence,
+  TraderReview,
+  OpportunityAssessment,
+  ConfidenceSanityResult,
 } from './types'
 
 export type {
@@ -56,6 +68,17 @@ export type {
   DecisionDimension,
   DecisionExplanation,
   DecisionQuality,
+  ConfidenceExplanation,
+  MarketStory,
+  ContradictionSeverity,
+  ContradictionCategory,
+  ContradictionIntelligence,
+  TraderVerdict,
+  TraderReview,
+  QualityLevel,
+  OpportunityAssessment,
+  SanityFlag,
+  ConfidenceSanityResult,
 } from './types'
 export { PIPELINE_VERSION, DEFAULT_PIPELINE_CONFIG } from './config'
 
@@ -217,11 +240,23 @@ export async function analyzeMarket(options: PipelineOptions): Promise<PipelineR
   let tradePlan!: TradePlan
   let marketContext!: MarketContext
   let invalidationScenarios!: InvalidationScenario[]
+  let confidenceExplanation!: ConfidenceExplanation
+  let marketStory!: MarketStory
+  let contradictionIntelligence!: ContradictionIntelligence
+  let traderReview!: TraderReview
+  let opportunityAssessment!: OpportunityAssessment
+  let sanityAudit!: ConfidenceSanityResult
   try {
-    decision              = computeDecision(analysis, confidence, validation)
-    tradePlan             = computeTradePlan(analysis, supportResistance, confidence, validation)
-    marketContext         = computeMarketContext(analysis)
-    invalidationScenarios = computeInvalidationScenarios(analysis, validation, tradePlan)
+    decision                  = computeDecision(analysis, confidence, validation)
+    tradePlan                 = computeTradePlan(analysis, supportResistance, confidence, validation)
+    marketContext             = computeMarketContext(analysis)
+    invalidationScenarios     = computeInvalidationScenarios(analysis, validation, tradePlan)
+    confidenceExplanation     = computeConfidenceExplanation(confidence, analysis)
+    marketStory               = computeMarketStory(analysis, confidence, marketContext)
+    contradictionIntelligence = computeContradictionIntelligence(confidence, validation)
+    traderReview              = computeTraderReview(analysis, confidence, decision, tradePlan, marketContext)
+    opportunityAssessment     = computeOpportunityAssessment(analysis, confidence, tradePlan, marketContext)
+    sanityAudit               = computeSanityAudit(analysis, confidence, decision)
   } catch (err) {
     throw new PipelineError('internal_module_failure', 'decision', String(err), err)
   }
@@ -297,6 +332,12 @@ export async function analyzeMarket(options: PipelineOptions): Promise<PipelineR
     marketContext,
     invalidationScenarios,
     generatedAnalysis,
+    confidenceExplanation,
+    marketStory,
+    contradictionIntelligence,
+    traderReview,
+    opportunityAssessment,
+    sanityAudit,
     metadata: {
       symbol: marketData.symbol,
       interval,

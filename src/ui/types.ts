@@ -6,6 +6,12 @@ export type {
   InvalidationSeverity, InvalidationType, InvalidationScenario,
   DecisionDimensionStatus, DecisionDimension, DecisionExplanation,
   DecisionQuality,
+  ConfidenceExplanation,
+  MarketStory,
+  ContradictionSeverity, ContradictionCategory, ContradictionIntelligence,
+  TraderVerdict, TraderReview,
+  QualityLevel, OpportunityAssessment,
+  SanityFlag, ConfidenceSanityResult,
 } from '../modules/pipeline/types'
 export type {
   MarketAnalysisResult,
