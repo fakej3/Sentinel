@@ -72,8 +72,9 @@ describe('scoreEvidence', () => {
     ]
     const result = scoreEvidence(evidence, cfg)
     expect(result.rawPoints).toBe(8)  // 15 - 15 + 8
-    expect(result.bullishRawPoints).toBe(23)  // 15 + 8
+    expect(result.bullishRawPoints).toBe(15)  // direction='bullish' only
     expect(result.bearishRawPoints).toBe(15)
+    expect(result.neutralContribution).toBe(8)  // ADX: direction='neutral', weight=+8
   })
 
   it('produces reasons with correct fields', () => {
@@ -301,12 +302,17 @@ describe('computeConfidence — directional confidence', () => {
     expect(result.score).toBeCloseTo(0)  // net = 0
   })
 
-  it('neutral factors contribute to bullishConfidence when weight is positive', () => {
-    // ADX above 25 has direction neutral but weight +8 → contributes to bullishRawPoints
+  it('neutral factors do not inflate directional sub-scores', () => {
+    // ADX above 25 is direction='neutral' — it confirms trend strength regardless of direction.
+    // It must not appear in bullishConfidence or bearishConfidence; those reflect
+    // only direction-tagged evidence. It still contributes to rawPoints and, in a
+    // directional market, to the final score via neutralStrengthFactor.
     const analysis = makeAnalysis([ev('ADX above 25', 'neutral')])
     const result = computeConfidence(analysis, cleanValidation())
-    expect(result.bullishConfidence).toBeCloseTo(norm(8))
-    expect(result.bearishConfidence).toBe(0)
+    expect(result.bullishConfidence).toBe(0)   // no bullish-direction items
+    expect(result.bearishConfidence).toBe(0)   // no bearish-direction items
+    // In a ranging market (makeAnalysis default) score = abs(rawPoints)/divisor = 8/10 = 0.8
+    expect(result.score).toBeCloseTo(0.8)
   })
 
   it('bearishConfidence is capped at 10 for very high negative weight totals', () => {
@@ -318,11 +324,11 @@ describe('computeConfidence — directional confidence', () => {
       ev('Strong resistance overhead', 'bearish'), // -5
       ev('Overbought RSI (>70)', 'bearish'),   // -10
       ev('RSI in 30–45 range', 'bearish'),     // -8
-      ev('Below average volume on move', 'neutral'), // -8
+      ev('Below average volume on move', 'neutral'), // -8 (neutral, goes to neutralContribution)
     ])
-    // Total negative points = 86, 86/10 = 8.6 → high but < 10
+    // bearishRawPoints = 15+15+15+10+5+10+8 = 78 (neutral item excluded)
     const result = computeConfidence(analysis, cleanValidation())
-    expect(result.bearishConfidence).toBeCloseTo(norm(86))
+    expect(result.bearishConfidence).toBeCloseTo(norm(78))
     expect(result.bearishConfidence).toBeLessThanOrEqual(10)
   })
 })
@@ -583,6 +589,7 @@ describe('computeConfidence — ENGINE_RULES.md §11 factor weights', () => {
     ['Price above EMA50',           'bullish',   7],
     ['Volume climax selling',       'bullish',   6],
     ['Bullish OBV trend',           'bullish',   6],
+    ['Bearish OBV trend',           'bearish',  -6],
     ['Price at Bollinger lower',    'bullish',   5],
     ['Price above EMA20',           'bullish',   5],
     ['StochRSI oversold',           'bullish',   5],
@@ -1056,5 +1063,198 @@ describe('computeTrust', () => {
     const t1 = computeTrust(analysis, cleanValidation())
     const t2 = computeTrust(analysis, cleanValidation())
     expect(t1).toEqual(t2)
+  })
+})
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Module 28 — Real Market Validation Scenarios
+// Purpose: ensure the engine produces mathematically sensible, non-zero scores
+// for realistic bearish, bullish, and ranging markets. These are regression
+// guards — if any scenario breaks, the confidence engine has regressed.
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('Module 28 — real market scenarios', () => {
+  // ── Scenario A: Classic strong bearish — all EMA positions + structure ──────
+  //
+  // Price below all EMAs (fully bearish stack), MACD bearish, clear lower-high
+  // lower-low structure, bearish OBV, bearish VWAP.  A clear bearish market
+  // should produce a HIGH confidence score (≥ 6.0) because Sentinel is very
+  // certain the bearish conclusion is correct.  Counter-signals (Bollinger lower,
+  // oversold RSI, oversold StochRSI) are bearish-reversal cues that contradict
+  // the trend and must reduce the score moderately — not drive it to 0.
+  it('strong bearish market: score ≥ 6.0, grade moderate or better', () => {
+    const evidence = [
+      // Core bearish — full EMA stack below price
+      ev('Price below EMA200', 'bearish'),         // -15
+      ev('Price below EMA100', 'bearish'),         // -10
+      ev('Price below EMA50', 'bearish'),          // -7
+      ev('Price below EMA20', 'bearish'),          // -5
+      ev('EMA bearish alignment', 'bearish'),      // -12
+      // Structure
+      ev('Lower High confirmed', 'bearish'),       // -15
+      ev('Lower Low confirmed', 'bearish'),        // -15
+      ev('Bearish BOS', 'bearish'),                // -10
+      // Momentum
+      ev('MACD bearish bias', 'bearish'),          // -10
+      ev('RSI supports bearish', 'bearish'),       // -7
+      // Volume confirms bearish
+      ev('Bearish OBV trend', 'bearish'),          // -6
+      ev('Price below VWAP', 'bearish'),           // -4
+      // Neutral: confirms trend strength (ADX), not a contradiction
+      ev('ADX above 25', 'neutral'),               // +8 neutral → ×0.5 = +4 to directed
+      // Counter-signals (reversal cues): these ARE contradictions but small
+      ev('Oversold RSI (<30)', 'bullish'),         // +8  ← contradiction
+      ev('Price at Bollinger lower', 'bullish'),   // +5  ← contradiction
+      ev('StochRSI oversold', 'bullish'),          // +5  ← contradiction
+    ]
+    // bearishRawPoints = 15+10+7+5+12+15+15+10+10+7+6+4 = 116
+    // bullishRawPoints = 8+5+5 = 18
+    // neutralContribution = +8
+    // directed = 116 + 8*0.5 = 120; contradiction = 18
+    // penalized = 120 - 18*0.3 = 114.6; score = min(10, 11.46) = 10
+    const result = computeConfidence(
+      makeDirectionalAnalysis('moderate bearish', evidence),
+      cleanValidation(),
+    )
+    expect(result.score).toBeGreaterThanOrEqual(6.0)
+    expect(['moderate', 'strong', 'very_strong']).toContain(result.grade)
+    expect(result.bearishConfidence).toBeGreaterThan(result.bullishConfidence)
+  })
+
+  // ── Scenario B: Bearish with heavy counter-signals (oversold bounce setup) ──
+  //
+  // Trend is bearish but RSI < 30, StochRSI oversold, price at Bollinger lower,
+  // volume climax selling — a market that LOOKS ready to bounce.  Confidence
+  // should be reduced from its "pure bearish" peak but still above 4.0 because
+  // the primary trend is clear.
+  it('bearish with strong oversold counter-signals: score still > 4.0', () => {
+    const evidence = [
+      ev('Price below EMA200', 'bearish'),     // -15
+      ev('Price below EMA100', 'bearish'),     // -10
+      ev('EMA bearish alignment', 'bearish'),  // -12
+      ev('Lower High confirmed', 'bearish'),   // -15
+      ev('MACD bearish bias', 'bearish'),      // -10
+      // Heavy counter-signals (bearish trend momentum reducers)
+      ev('Oversold RSI (<30)', 'bullish'),           // +8  contradiction
+      ev('Price at Bollinger lower', 'bullish'),     // +5  contradiction
+      ev('StochRSI oversold', 'bullish'),            // +5  contradiction
+      ev('Volume climax selling', 'bullish'),        // +6  contradiction
+      ev('RSI in 30–45 range', 'bearish'),           // -8  (confirms bearish but at low RSI)
+    ]
+    // bearishRawPoints = 15+10+12+15+10+8 = 70
+    // bullishRawPoints = 8+5+5+6 = 24
+    // neutralContribution = 0
+    // directed = 70; contradiction = 24; penalized = 70 - 24*0.3 = 62.8
+    // score = 6.28 → moderately reduced but well above 4.0
+    const result = computeConfidence(
+      makeDirectionalAnalysis('moderate bearish', evidence),
+      cleanValidation(),
+    )
+    expect(result.score).toBeGreaterThan(4.0)
+    expect(result.bearishConfidence).toBeGreaterThan(result.bullishConfidence)
+  })
+
+  // ── Scenario C: Strong bullish market — symmetric with Scenario A ───────────
+  it('strong bullish market: score ≥ 6.0, grade moderate or better', () => {
+    const evidence = [
+      ev('Price above EMA200', 'bullish'),        // +15
+      ev('Price above EMA100', 'bullish'),        // +10
+      ev('Price above EMA50', 'bullish'),         // +7
+      ev('Price above EMA20', 'bullish'),         // +5
+      ev('EMA bullish alignment', 'bullish'),     // +12
+      ev('Higher High confirmed', 'bullish'),     // +15
+      ev('Higher Low confirmed', 'bullish'),      // +15
+      ev('Bullish BOS', 'bullish'),               // +10
+      ev('MACD bullish bias', 'bullish'),         // +10
+      ev('RSI supports bullish', 'bullish'),      // +7
+      ev('Bullish OBV trend', 'bullish'),         // +6
+      ev('Price above VWAP', 'bullish'),          // +4
+      ev('ADX above 25', 'neutral'),              // +8 neutral
+      // Counter-signals
+      ev('Overbought RSI (>70)', 'bearish'),      // -10 contradiction
+      ev('Price at Bollinger upper', 'bearish'),  // -5  contradiction
+    ]
+    const result = computeConfidence(
+      makeDirectionalAnalysis('strong bullish', evidence),
+      cleanValidation(),
+    )
+    expect(result.score).toBeGreaterThanOrEqual(6.0)
+    expect(['moderate', 'strong', 'very_strong']).toContain(result.grade)
+    expect(result.bullishConfidence).toBeGreaterThan(result.bearishConfidence)
+  })
+
+  // ── Scenario D: Neutral / ranging market — equal opposing forces ─────────────
+  //
+  // Balanced bull and bear evidence with ADX below threshold (weak trend).
+  // Score should be low (≤ 3.0) since there's no clear directional conviction.
+  it('ranging market with balanced evidence: score ≤ 3.0', () => {
+    const evidence = [
+      ev('Price above EMA200', 'bullish'),     // +15
+      ev('Lower High confirmed', 'bearish'),   // -15
+      ev('MACD bullish bias', 'bullish'),      // +10
+      ev('MACD bearish bias', 'bearish'),      // -10  (contradicts MACD bullish in same items)
+      ev('ADX trend weak', 'neutral'),         // -4 neutral (confirms weak trend)
+      ev('Market in consolidation', 'neutral'),// -3 neutral
+    ]
+    // rawPoints = 15-15+10-10-4-3 = -7; abs(-7) = 7/10 = 0.7
+    const result = computeConfidence(
+      makeDirectionalAnalysis('ranging', evidence),
+      cleanValidation(),
+    )
+    expect(result.score).toBeLessThanOrEqual(3.0)
+  })
+
+  // ── Scenario E: ADX neutral should INCREASE bearish confidence, not reduce it ─
+  //
+  // This is the core regression guard for the neutral-bucketing fix (Module 28).
+  // In a bearish market, ADX above 25 (direction='neutral') confirms that the
+  // trend is strong — it must NOT appear as a bullish contradiction.
+  // Adding ADX to a pure-bearish scenario must increase (or maintain) the score.
+  it('ADX neutral increases bearish confidence vs. scenario without it', () => {
+    const baseEvidence = [
+      ev('Price below EMA200', 'bearish'),     // -15
+      ev('EMA bearish alignment', 'bearish'),  // -12
+      ev('Lower Low confirmed', 'bearish'),    // -15
+    ]
+    const withADX = [
+      ...baseEvidence,
+      ev('ADX above 25', 'neutral'),           // +8 neutral — confirms trend
+    ]
+    const pure = computeConfidence(makeDirectionalAnalysis('moderate bearish', baseEvidence), cleanValidation())
+    const adx  = computeConfidence(makeDirectionalAnalysis('moderate bearish', withADX), cleanValidation())
+    // ADX must increase (or not decrease) the score — it confirms the bearish trend
+    expect(adx.score).toBeGreaterThanOrEqual(pure.score)
+    // It must NOT appear as a contradiction (bullishConfidence must stay the same)
+    expect(adx.score).toBeGreaterThan(pure.score) // neutralStrengthFactor > 0
+  })
+
+  // ── Scenario F: Bearish OBV fix — OBV confirming bearish should NOT be bullish
+  //
+  // When OBV moves down and price moves down (confirming the bearish move),
+  // the engine should emit 'Bearish OBV trend' (-6, bearish) — not
+  // 'Bullish OBV trend' (+6, bullish). This verifies the evidence.ts OBV fix.
+  it('Bearish OBV trend contributes to bearishConfidence, not bullishConfidence', () => {
+    const evidence = [
+      ev('Bearish OBV trend', 'bearish'),  // -6 bearish (was wrongly +6 bullish before)
+    ]
+    const result = computeConfidence(
+      makeDirectionalAnalysis('moderate bearish', evidence),
+      cleanValidation(),
+    )
+    expect(result.bearishConfidence).toBeCloseTo(norm(6))
+    expect(result.bullishConfidence).toBe(0)
+    expect(result.reasons.find(r => r.factor === 'Bearish OBV trend')?.points).toBe(-6)
+  })
+
+  // ── Scenario G: neutralContribution field is correct ─────────────────────────
+  it('neutralContribution reflects signed sum of neutral evidence weights', () => {
+    const evidence = [
+      ev('ADX above 25', 'neutral'),           // +8
+      ev('High relative volume', 'neutral'),   // +3
+      ev('Market in consolidation', 'neutral'),// -3
+    ]
+    // neutralContribution = 8 + 3 - 3 = 8
+    const result = computeConfidence(makeDirectionalAnalysis('moderate bearish', evidence), cleanValidation())
+    expect(result.neutralContribution).toBe(8)
   })
 })

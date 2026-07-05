@@ -174,6 +174,14 @@ export interface ConfidenceResult {
   bullishConfidence: number
   /** Normalized 0–10 score for bearish-only evidence factors */
   bearishConfidence: number
+  /**
+   * Signed sum of neutral evidence weights.
+   * Positive values confirm trend strength (ADX, high relative volume);
+   * negative values reduce conviction (consolidation, failed breakout).
+   * Applied at half-strength (neutralStrengthFactor) to the directed score
+   * in bullish/bearish markets; included at full weight for ranging markets.
+   */
+  neutralContribution: number
   /** Evidence factors that matched a weight entry in ConfidenceConfig */
   reasons: ConfidenceReason[]
   /** Score reductions applied due to validation issues or contradictions */
@@ -236,4 +244,12 @@ export interface ConfidenceConfig {
    * Default: 0.3
    */
   contradictionPenaltyFactor: number
+  /**
+   * Fraction of neutral evidence weight that contributes to the directed score in
+   * directional markets. Neutral items (ADX, volume classification, consolidation)
+   * confirm or deny trend strength regardless of direction; a value of 0.5 means
+   * they contribute at half-strength.
+   * Default: 0.5
+   */
+  neutralStrengthFactor: number
 }

@@ -115,9 +115,19 @@ describe('groupContradictions', () => {
     expect(result[0].severity).toBe('strong')
   })
 
-  it('mild contradiction for small opposing points', () => {
-    const mildContradiction = [ev('ADX trend weak', 'neutral')] // -4 pts
-    const result = groupContradictions(mildContradiction, cfg, 'strong bullish')
+  it('neutral items do not appear as contradiction groups', () => {
+    // ADX trend weak has direction='neutral' — it weakens trend conviction but does NOT
+    // oppose the bullish direction.  It is handled via neutralContribution in scoring,
+    // not as a directional contradiction group.
+    const neutralOnly = [ev('ADX trend weak', 'neutral')] // -4 neutral
+    const result = groupContradictions(neutralOnly, cfg, 'strong bullish')
+    expect(result.length).toBe(0)
+  })
+
+  it('mild contradiction for small directional opposing points', () => {
+    const mildContradiction = [ev('Market in consolidation', 'neutral')] // neutral — also no group
+    const directional = [ev('Price below EMA20', 'bearish')] // -5 bearish, mild contradiction in bullish
+    const result = groupContradictions(directional, cfg, 'strong bullish')
     expect(result.length).toBeGreaterThan(0)
     expect(result[0].severity).toBe('mild')
   })

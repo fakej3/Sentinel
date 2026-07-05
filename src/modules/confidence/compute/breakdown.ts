@@ -61,6 +61,7 @@ export const FACTOR_CATEGORY: Readonly<Record<string, BreakdownCategory>> = {
   'Accumulation detected':              'volume',
   'Distribution detected':             'volume',
   'Bullish OBV trend':                 'volume',
+  'Bearish OBV trend':                 'volume',
   'OBV diverging from price':          'volume',
   'Volume climax selling':             'volume',
   'Volume climax buying':              'volume',

@@ -28,9 +28,10 @@ export function computeConfluence(
     if (weight === undefined) continue
     const category = FACTOR_CATEGORY[item.factor]
     if (category === undefined) continue
+    if (item.direction === 'neutral') continue  // neutral items don't pick a side
 
     const entry = cats.get(category) ?? { bullish: 0, bearish: 0 }
-    if (weight > 0) entry.bullish += weight
+    if (item.direction === 'bullish') entry.bullish += Math.abs(weight)
     else entry.bearish += Math.abs(weight)
     cats.set(category, entry)
   }

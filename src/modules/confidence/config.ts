@@ -90,6 +90,7 @@ export const DEFAULT_CONFIDENCE_CONFIG: ConfidenceConfig = {
     'Accumulation detected':       10,
     'Distribution detected':      -10,
     'Bullish OBV trend':            6,
+    'Bearish OBV trend':           -6,
     'OBV diverging from price':    -5,
     'Volume climax selling':        6,  // selling exhaustion = bullish reversal cue
     'Volume climax buying':        -6,  // buying exhaustion = bearish reversal cue
@@ -116,4 +117,6 @@ export const DEFAULT_CONFIDENCE_CONFIG: ConfidenceConfig = {
   },
 
   contradictionPenaltyFactor: 0.3,
+
+  neutralStrengthFactor: 0.5,
 }

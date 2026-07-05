@@ -31,8 +31,9 @@ export function groupContradictions(
     if (weight === undefined) continue
     const category = FACTOR_CATEGORY[item.factor]
     if (category === undefined) continue
+    if (item.direction === 'neutral') continue  // neutral items don't contradict any trend
 
-    const isContradicting = isBullish ? weight < 0 : weight > 0
+    const isContradicting = isBullish ? item.direction === 'bearish' : item.direction === 'bullish'
     if (!isContradicting) continue
 
     const entry = byCategory.get(category) ?? { factors: [], totalPoints: 0 }

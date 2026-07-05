@@ -4,10 +4,12 @@ import type { ConfidenceConfig, ConfidenceReason } from '../types'
 export interface ScoreBreakdown {
   /** Sum of all matched positive and negative weights */
   rawPoints: number
-  /** Sum of positive weights only */
+  /** Sum of weights for direction='bullish' items only */
   bullishRawPoints: number
-  /** Sum of absolute values of negative weights only */
+  /** Sum of absolute weights for direction='bearish' items only */
   bearishRawPoints: number
+  /** Signed sum of weights for direction='neutral' items (positive confirms trend, negative weakens it) */
+  neutralContribution: number
   reasons: ConfidenceReason[]
 }
 
@@ -23,6 +25,7 @@ export function scoreEvidence(
   let rawPoints = 0
   let bullishRawPoints = 0
   let bearishRawPoints = 0
+  let neutralContribution = 0
   const reasons: ConfidenceReason[] = []
 
   for (const item of evidence) {
@@ -30,10 +33,13 @@ export function scoreEvidence(
     if (weight === undefined) continue
 
     rawPoints += weight
-    if (weight > 0) {
-      bullishRawPoints += weight
-    } else {
+
+    if (item.direction === 'bullish') {
+      bullishRawPoints += Math.abs(weight)
+    } else if (item.direction === 'bearish') {
       bearishRawPoints += Math.abs(weight)
+    } else {
+      neutralContribution += weight
     }
 
     reasons.push({
@@ -43,7 +49,7 @@ export function scoreEvidence(
     })
   }
 
-  return { rawPoints, bullishRawPoints, bearishRawPoints, reasons }
+  return { rawPoints, bullishRawPoints, bearishRawPoints, neutralContribution, reasons }
 }
 
 export function normalize(rawPoints: number, divisor: number): number {

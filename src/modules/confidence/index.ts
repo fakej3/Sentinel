@@ -40,28 +40,30 @@ export function computeConfidence(
 
   // ── Step 1: Score evidence items ──────────────────────────────────────────
 
-  const { rawPoints, bullishRawPoints, bearishRawPoints, reasons } =
+  const { rawPoints, bullishRawPoints, bearishRawPoints, neutralContribution, reasons } =
     scoreEvidence(analysis.evidence, cfg)
 
   // ── Step 2: Direction-aware normalization ─────────────────────────────────
   //
-  // For bullish trends: score = dominant (bullish) evidence minus
-  //   a fraction of contradicting (bearish) evidence.
-  // For bearish trends: symmetric — bearish is dominant, bullish contradicts.
-  // For ranging: preserve the original abs(net) behaviour so existing tests
-  //   and calibration remain unchanged.
+  // For bullish/bearish trends: the dominant-side evidence drives the score;
+  //   neutral items (ADX, volume classification, consolidation) add at half
+  //   strength because they confirm trend conviction regardless of direction.
+  //   Opposing directional evidence applies a configurable contradiction penalty.
+  // For ranging: preserve the original abs(net) behaviour (rawPoints already
+  //   includes neutral weights) so existing calibration remains unchanged.
 
   const trend = analysis.fullTrend.trend
   const penaltyFactor = cfg.contradictionPenaltyFactor
+  const neutralFactor = cfg.neutralStrengthFactor
 
   let directedPoints: number
   let contradictionPoints: number
 
   if (trend.includes('bullish')) {
-    directedPoints = bullishRawPoints
+    directedPoints = bullishRawPoints + neutralContribution * neutralFactor
     contradictionPoints = bearishRawPoints
   } else if (trend.includes('bearish')) {
-    directedPoints = bearishRawPoints
+    directedPoints = bearishRawPoints + neutralContribution * neutralFactor
     contradictionPoints = bullishRawPoints
   } else {
     directedPoints = Math.abs(rawPoints)
@@ -143,6 +145,7 @@ export function computeConfidence(
     grade,
     bullishConfidence,
     bearishConfidence,
+    neutralContribution,
     reasons,
     penalties,
     warnings,

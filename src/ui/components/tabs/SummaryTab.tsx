@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react'
-import { TrendingUp, TrendingDown, Minus, ShieldCheck, AlertTriangle, Target, Zap, HelpCircle, Lightbulb, Activity, ChevronDown, ChevronUp, CheckCircle2, XCircle, Lock, GitMerge } from 'lucide-react'
+import { TrendingUp, TrendingDown, Minus, ShieldCheck, AlertTriangle, Target, Zap, HelpCircle, Lightbulb, Activity, ChevronDown, ChevronUp, CheckCircle2, XCircle, Lock, GitMerge, BarChart3 } from 'lucide-react'
 import { Card } from '../shared/Card'
 import { ConfidenceMeter } from '../shared/ConfidenceMeter'
 import { GradeBadge } from '../shared/Badge'
@@ -103,16 +103,106 @@ function ConfluenceChip({ label, isAgreeing }: { label: string; isAgreeing: bool
   )
 }
 
+// ── Directional Balance bar ───────────────────────────────────────────────────
+
+function DirectionalBalance({
+  bullishPts,
+  bearishPts,
+  neutralPts,
+  trend,
+}: {
+  bullishPts: number
+  bearishPts: number
+  neutralPts: number
+  trend: string
+}) {
+  const total = bullishPts + bearishPts + Math.abs(neutralPts)
+  if (total === 0) return null
+  const bullPct  = Math.round((bullishPts / total) * 100)
+  const bearPct  = Math.round((bearishPts / total) * 100)
+  const neutralAbs = Math.abs(neutralPts)
+  const isBullish = trend.includes('bullish')
+  const isBearish = trend.includes('bearish')
+
+  return (
+    <div className="space-y-2">
+      <div className="flex items-center gap-1.5 mb-1">
+        <BarChart3 size={10} className="text-slate-500" />
+        <p className="text-[10px] text-slate-500 font-medium">Evidence Balance</p>
+      </div>
+
+      {/* Visual stacked bar */}
+      <div className="flex h-2 rounded-full overflow-hidden gap-px">
+        {bullishPts > 0 && (
+          <div
+            className={`h-full rounded-l-full ${isBearish ? 'bg-red-500/40' : 'bg-emerald-500/70'}`}
+            style={{ width: `${bullPct}%` }}
+            title={`Bull: ${bullishPts} pts`}
+          />
+        )}
+        {neutralAbs > 0 && (
+          <div
+            className="h-full bg-slate-500/50"
+            style={{ width: `${Math.round((neutralAbs / total) * 100)}%` }}
+            title={`Neutral: ${neutralPts > 0 ? '+' : ''}${neutralPts} pts`}
+          />
+        )}
+        {bearishPts > 0 && (
+          <div
+            className={`h-full rounded-r-full ${isBullish ? 'bg-emerald-500/30' : 'bg-red-500/70'}`}
+            style={{ width: `${bearPct}%` }}
+            title={`Bear: ${bearishPts} pts`}
+          />
+        )}
+      </div>
+
+      {/* Legend */}
+      <div className="flex items-center gap-3 flex-wrap">
+        <div className="flex items-center gap-1">
+          <span className="w-2 h-2 rounded-sm bg-emerald-500/70 flex-shrink-0" />
+          <span className="text-[10px] text-slate-400">Bull <span className="font-mono text-slate-300">{bullishPts}</span></span>
+        </div>
+        <div className="flex items-center gap-1">
+          <span className="w-2 h-2 rounded-sm bg-slate-500/50 flex-shrink-0" />
+          <span className="text-[10px] text-slate-400">
+            Neutral <span className="font-mono text-slate-300">{neutralPts > 0 ? '+' : ''}{neutralPts}</span>
+            <span className="text-slate-600 ml-0.5">(×½)</span>
+          </span>
+        </div>
+        <div className="flex items-center gap-1">
+          <span className="w-2 h-2 rounded-sm bg-red-500/70 flex-shrink-0" />
+          <span className="text-[10px] text-slate-400">Bear <span className="font-mono text-slate-300">{bearishPts}</span></span>
+        </div>
+        {isBearish && bullishPts > 0 && (
+          <span className="text-[10px] text-red-400/60 ml-auto">Bull pts = counter-signals</span>
+        )}
+        {isBullish && bearishPts > 0 && (
+          <span className="text-[10px] text-emerald-400/60 ml-auto">Bear pts = counter-signals</span>
+        )}
+      </div>
+    </div>
+  )
+}
+
 function BreakdownPanel({
   breakdown,
   penalties,
   quality,
+  confidence,
+  trend,
 }: {
   breakdown: ConfidenceBreakdown
   penalties: PipelineResult['confidence']['penalties']
   quality: AnalysisQuality
+  confidence: PipelineResult['confidence']
+  trend: string
 }) {
   const [open, setOpen] = useState(true)
+
+  // Recover raw point totals from normalized sub-scores (divisor=10)
+  const bullishPts = Math.round(confidence.bullishConfidence * 10)
+  const bearishPts = Math.round(confidence.bearishConfidence * 10)
+  const neutralPts = confidence.neutralContribution
 
   const reductionLines: string[] = [
     ...penalties.map(p => p.description),
@@ -132,18 +222,29 @@ function BreakdownPanel({
       </button>
 
       {open && (
-        <div className="mt-3 space-y-2">
-          {(Object.keys(BREAKDOWN_LABELS) as Array<keyof ConfidenceBreakdown>).map(key => (
-            <BreakdownBar
-              key={key}
-              label={BREAKDOWN_LABELS[key]}
-              value={breakdown[key]}
-              isContradiction={key === 'contradictions'}
-            />
-          ))}
+        <div className="mt-3 space-y-3">
+          {/* Evidence balance */}
+          <DirectionalBalance
+            bullishPts={bullishPts}
+            bearishPts={bearishPts}
+            neutralPts={neutralPts}
+            trend={trend}
+          />
+
+          {/* Category bars */}
+          <div className="pt-2.5 border-t border-border-subtle space-y-2">
+            {(Object.keys(BREAKDOWN_LABELS) as Array<keyof ConfidenceBreakdown>).map(key => (
+              <BreakdownBar
+                key={key}
+                label={BREAKDOWN_LABELS[key]}
+                value={breakdown[key]}
+                isContradiction={key === 'contradictions'}
+              />
+            ))}
+          </div>
 
           {hasConfluence && (
-            <div className="mt-3 pt-2.5 border-t border-border-subtle">
+            <div className="pt-2.5 border-t border-border-subtle">
               <div className="flex items-center gap-1.5 mb-1.5">
                 <GitMerge size={10} className="text-slate-500" />
                 <p className="text-[10px] text-slate-500 font-medium">
@@ -162,7 +263,7 @@ function BreakdownPanel({
           )}
 
           {reductionLines.length > 0 && (
-            <div className="mt-3 pt-2.5 border-t border-border-subtle space-y-1">
+            <div className="pt-2.5 border-t border-border-subtle space-y-1">
               <p className="text-[10px] text-slate-500 font-medium mb-1">Why not maximum confidence?</p>
               {reductionLines.map((line, i) => (
                 <div key={i} className="flex items-start gap-1.5">
@@ -174,7 +275,7 @@ function BreakdownPanel({
           )}
 
           {quality.reliability.note && (
-            <div className="mt-2.5 pt-2 border-t border-border-subtle">
+            <div className="pt-2 border-t border-border-subtle">
               <p className="text-[10px] text-slate-600 leading-relaxed italic">{quality.reliability.note}</p>
             </div>
           )}
@@ -258,7 +359,7 @@ export function SummaryTab({ result }: SummaryTabProps) {
 
       {/* Trust + Breakdown */}
       <TrustPanel trust={confidence.trust} />
-      <BreakdownPanel breakdown={confidence.breakdown} penalties={confidence.penalties} quality={confidence.analysisQuality} />
+      <BreakdownPanel breakdown={confidence.breakdown} penalties={confidence.penalties} quality={confidence.analysisQuality} confidence={confidence} trend={fullTrend.trend} />
 
       {/* Q4: Suggested Approach (decision card — most actionable, shown early) */}
       {decision && (
