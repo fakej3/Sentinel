@@ -35,18 +35,6 @@ export function createRouter(analyzeFn: AnalyzeFn): Router {
           config: config as Partial<PipelineConfig>,
         })
 
-        // Module 28 forensic trace — log what we're about to send to the frontend
-        console.log('[api:routes] /analyze RESPONSE confidence:', JSON.stringify({
-          score: result.confidence?.score,
-          grade: result.confidence?.grade,
-          bullishConfidence: result.confidence?.bullishConfidence,
-          bearishConfidence: result.confidence?.bearishConfidence,
-          neutralContribution: result.confidence?.neutralContribution,
-          reasonsCount: result.confidence?.reasons?.length,
-          penaltiesCount: result.confidence?.penalties?.length,
-          trend: result.analysis?.fullTrend?.trend,
-        }, null, 2))
-
         res.json(result)
       } catch (err) {
         next(err)
