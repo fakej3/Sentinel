@@ -59,6 +59,7 @@ export function makeConfidence(
     grade,
     bullishConfidence: score * 0.6,
     bearishConfidence: score * 0.2,
+    neutralContribution: 0,
     reasons: [],
     penalties: [],
     warnings: [],

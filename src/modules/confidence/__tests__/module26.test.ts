@@ -125,7 +125,6 @@ describe('groupContradictions', () => {
   })
 
   it('mild contradiction for small directional opposing points', () => {
-    const mildContradiction = [ev('Market in consolidation', 'neutral')] // neutral — also no group
     const directional = [ev('Price below EMA20', 'bearish')] // -5 bearish, mild contradiction in bullish
     const result = groupContradictions(directional, cfg, 'strong bullish')
     expect(result.length).toBeGreaterThan(0)

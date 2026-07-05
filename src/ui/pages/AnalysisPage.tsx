@@ -82,7 +82,7 @@ export function AnalysisPage({ data, loading, onAnalyze, symbol }: AnalysisPageP
           {activeTab === 'volume'     && <VolumeTab     result={data} />}
           {activeTab === 'validation' && <ValidationTab result={data} />}
           {activeTab === 'writer'     && <WriterTab     result={data} />}
-          {activeTab === 'benchmark'  && <BenchmarkTab />}
+          {activeTab === 'benchmark'  && <BenchmarkTab result={data} />}
         </TabPanel>
       </Suspense>
     </div>
