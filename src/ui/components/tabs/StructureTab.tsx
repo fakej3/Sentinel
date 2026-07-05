@@ -61,7 +61,7 @@ export function StructureTab({ result }: StructureTabProps) {
   return (
     <div className="p-4 space-y-4 animate-in">
       {/* Trend + Strength */}
-      <div className="grid grid-cols-3 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
         <Card className="p-4 col-span-1">
           <p className="section-label mb-2">Structure Bias</p>
           <Badge dot className={`${trendBg(marketStructure.trend)} border text-sm`}>
@@ -147,7 +147,7 @@ export function StructureTab({ result }: StructureTabProps) {
       </div>
 
       {/* Consolidation + Breakout + Pullback */}
-      <div className="grid grid-cols-3 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
         <Card className="p-3">
           <p className="section-label mb-2">Consolidation</p>
           <div className={clsx('w-2 h-2 rounded-full mb-2', consolidation.detected ? 'bg-amber-400' : 'bg-slate-600')} />

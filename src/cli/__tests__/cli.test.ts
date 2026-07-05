@@ -16,6 +16,8 @@ function makeMockResult(report = '## Analysis\nBullish outlook.'): PipelineResul
     confidence: {} as PipelineResult['confidence'],
     decision: {} as PipelineResult['decision'],
     tradePlan: {} as PipelineResult['tradePlan'],
+    marketContext: {} as PipelineResult['marketContext'],
+    invalidationScenarios: [] as PipelineResult['invalidationScenarios'],
     generatedAnalysis: {
       sections: {},
       fullReport: report,

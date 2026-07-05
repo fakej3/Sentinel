@@ -1,5 +1,12 @@
 // Re-export engine types used by the UI layer
-export type { PipelineResult, PipelineMetadata, PipelineTimings, TradeDecision, TradeDecisionLabel } from '../modules/pipeline/types'
+export type {
+  PipelineResult, PipelineMetadata, PipelineTimings,
+  TradeDecision, TradeDecisionLabel,
+  MarketPhase, MarketContext,
+  InvalidationSeverity, InvalidationType, InvalidationScenario,
+  DecisionDimensionStatus, DecisionDimension, DecisionExplanation,
+  DecisionQuality,
+} from '../modules/pipeline/types'
 export type {
   MarketAnalysisResult,
   PriceSummary,

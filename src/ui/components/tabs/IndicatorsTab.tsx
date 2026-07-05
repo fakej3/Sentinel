@@ -309,7 +309,7 @@ export function IndicatorsTab({ result }: IndicatorsTabProps) {
       </IndicatorCard>
 
       {/* MFI + CCI + OBV row */}
-      <div className="md:col-span-2 grid grid-cols-3 gap-3">
+      <div className="md:col-span-2 grid grid-cols-1 sm:grid-cols-3 gap-3">
         <Card className="p-3">
           <p className="section-label mb-2">MFI</p>
           {indicators.mfi !== null ? (

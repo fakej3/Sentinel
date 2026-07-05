@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { FileText, Hash, AlignLeft, List, BookOpen, X, Sparkles } from 'lucide-react'
 import { Card } from '../shared/Card'
 import { CopyButton } from '../shared/CopyButton'
@@ -91,7 +91,10 @@ export function WriterTab({ result }: WriterTabProps) {
     generatedAnalysis.metadata.template,
   )
 
-  const content = buildTemplateContent(generatedAnalysis, activeTemplate)
+  const content = useMemo(
+    () => buildTemplateContent(generatedAnalysis, activeTemplate),
+    [generatedAnalysis, activeTemplate],
+  )
   const isGenerated = activeTemplate === generatedAnalysis.metadata.template
 
   return (
@@ -174,7 +177,7 @@ export function WriterTab({ result }: WriterTabProps) {
       {/* Metadata */}
       <Card className="p-3">
         <p className="section-label mb-2">Writer Metadata</p>
-        <div className="grid grid-cols-3 gap-3 text-[11px]">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-[11px]">
           <div><span className="text-slate-500">Template</span><p className="font-mono text-slate-300 mt-0.5">{generatedAnalysis.metadata.template}</p></div>
           <div><span className="text-slate-500">Evidence</span><p className="font-mono text-slate-300 mt-0.5">{generatedAnalysis.metadata.evidenceCount}</p></div>
           <div><span className="text-slate-500">Bull factors</span><p className="font-mono text-emerald-400 mt-0.5">{generatedAnalysis.metadata.bullishFactorCount}</p></div>

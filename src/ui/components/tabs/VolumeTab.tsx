@@ -50,7 +50,7 @@ export function VolumeTab({ result }: VolumeTabProps) {
   return (
     <div className="p-4 space-y-4 animate-in">
       {/* Gauge + Confirmation row */}
-      <div className="grid grid-cols-3 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
         <Card className="p-4 flex items-center justify-center col-span-1">
           <VolumeGauge strength={volumeAnalysis.overallStrength} />
         </Card>
@@ -272,7 +272,7 @@ export function VolumeTab({ result }: VolumeTabProps) {
           <BarChart2 size={13} className="text-slate-500" />
           <p className="section-label">VWAP Analysis</p>
         </div>
-        <div className="grid grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <div>
             <p className="text-[10px] text-slate-500 mb-0.5">Position</p>
             <p className={`text-sm font-semibold ${vwapAnalysis.above ? 'text-emerald-400' : 'text-red-400'}`}>

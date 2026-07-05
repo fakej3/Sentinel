@@ -20,6 +20,8 @@ function makePipelineResult(symbol = 'BTCUSDT', interval = '1h'): PipelineResult
     confidence: {} as PipelineResult['confidence'],
     decision: {} as PipelineResult['decision'],
     tradePlan: {} as PipelineResult['tradePlan'],
+    marketContext: {} as PipelineResult['marketContext'],
+    invalidationScenarios: [] as PipelineResult['invalidationScenarios'],
     generatedAnalysis: {} as PipelineResult['generatedAnalysis'],
     metadata: {
       symbol,

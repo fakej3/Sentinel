@@ -2,6 +2,8 @@ import type { MarketAnalysisResult } from '../../analysis/types'
 import type { ConfidenceResult } from '../../confidence/types'
 import type { ValidationResult } from '../../validation/types'
 import type { TradeDecision } from '../types'
+import { computeDecisionExplanation } from './decision-explanation'
+import { computeDecisionQuality } from './decision-quality'
 
 /**
  * Derive a human-readable trade decision from trend, confidence, and validation.
@@ -126,5 +128,7 @@ export function computeDecision(
     reasons: reasons.slice(0, 5),
     riskLevel,
     confidence: score,
+    explanation: computeDecisionExplanation(analysis, confidence, validation),
+    quality:     computeDecisionQuality(analysis, confidence, validation),
   }
 }

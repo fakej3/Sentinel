@@ -102,3 +102,25 @@ export function severityBg(severity: string): string {
   if (severity === 'warning') return 'bg-amber-400/10 text-amber-400 border-amber-400/20'
   return 'bg-blue-400/10 text-blue-400 border-blue-400/20'
 }
+
+export function decisionColor(label: string): string {
+  if (label === 'Strong Buy' || label === 'Buy') return 'text-emerald-400'
+  if (label === 'Cautious Buy') return 'text-emerald-300'
+  if (label === 'Strong Sell' || label === 'Sell') return 'text-red-400'
+  if (label === 'Cautious Sell') return 'text-red-300'
+  return 'text-slate-300'
+}
+
+export function decisionBg(label: string): string {
+  if (label === 'Strong Buy' || label === 'Buy') return 'bg-emerald-400/10 border-emerald-500/20'
+  if (label === 'Cautious Buy') return 'bg-emerald-400/5 border-emerald-500/15'
+  if (label === 'Strong Sell' || label === 'Sell') return 'bg-red-400/10 border-red-500/20'
+  if (label === 'Cautious Sell') return 'bg-red-400/5 border-red-500/15'
+  return 'bg-slate-600/10 border-border-subtle'
+}
+
+export function riskBadgeColor(level: string): string {
+  if (level === 'Low') return 'bg-emerald-400/10 text-emerald-400 border border-emerald-500/20'
+  if (level === 'High') return 'bg-red-400/10 text-red-400 border border-red-500/20'
+  return 'bg-amber-400/10 text-amber-400 border border-amber-500/20'
+}

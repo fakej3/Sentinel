@@ -20,6 +20,8 @@ import { createAIProvider } from '../ai/index'
 import type { AIConfig } from '../ai/types'
 import { computeDecision } from './compute/decision'
 import { computeTradePlan } from './compute/trade-plan'
+import { computeMarketContext } from './compute/market-context'
+import { computeInvalidationScenarios } from './compute/invalidation'
 import { DEFAULT_PIPELINE_CONFIG, PIPELINE_VERSION } from './config'
 import type {
   PipelineOptions,
@@ -30,6 +32,8 @@ import type {
   FetchFn,
   TradeDecision,
   TradePlan,
+  MarketContext,
+  InvalidationScenario,
 } from './types'
 
 export type {
@@ -42,6 +46,15 @@ export type {
   TradeDecision,
   TradeDecisionLabel,
   TradePlan,
+  MarketPhase,
+  MarketContext,
+  InvalidationSeverity,
+  InvalidationType,
+  InvalidationScenario,
+  DecisionDimensionStatus,
+  DecisionDimension,
+  DecisionExplanation,
+  DecisionQuality,
 } from './types'
 export { PIPELINE_VERSION, DEFAULT_PIPELINE_CONFIG } from './config'
 
@@ -198,12 +211,16 @@ export async function analyzeMarket(options: PipelineOptions): Promise<PipelineR
   }
   const confidenceTime = Date.now() - t7
 
-  // ── Stage 9: Trade Decision + Trade Plan ───────────────────────────────────
+  // ── Stage 9: Trade Decision + Trade Plan + Market Context + Invalidation ────
   let decision!: TradeDecision
   let tradePlan!: TradePlan
+  let marketContext!: MarketContext
+  let invalidationScenarios!: InvalidationScenario[]
   try {
-    decision  = computeDecision(analysis, confidence, validation)
-    tradePlan = computeTradePlan(analysis, supportResistance, confidence)
+    decision              = computeDecision(analysis, confidence, validation)
+    tradePlan             = computeTradePlan(analysis, supportResistance, confidence)
+    marketContext         = computeMarketContext(analysis)
+    invalidationScenarios = computeInvalidationScenarios(analysis, validation, tradePlan)
   } catch (err) {
     throw new PipelineError('internal_module_failure', 'decision', String(err), err)
   }
@@ -276,6 +293,8 @@ export async function analyzeMarket(options: PipelineOptions): Promise<PipelineR
     confidence,
     decision,
     tradePlan,
+    marketContext,
+    invalidationScenarios,
     generatedAnalysis,
     metadata: {
       symbol: marketData.symbol,

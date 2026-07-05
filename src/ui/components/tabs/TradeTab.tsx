@@ -2,7 +2,7 @@ import { TrendingDown, TrendingUp, Activity, Target, AlertTriangle, CheckCircle2
 import { Card } from '../shared/Card'
 import { ProgressBar } from '../shared/ProgressBar'
 import { formatPrice, formatPercent } from '../../utils/format'
-import { changeColor } from '../../utils/colors'
+import { changeColor, decisionColor, decisionBg, riskBadgeColor } from '../../utils/colors'
 import type { PipelineResult } from '../../types'
 
 interface TradeTabProps {
@@ -56,28 +56,6 @@ function ZoneBlock({ label, zone, color, distPct }: {
       />
     </div>
   )
-}
-
-function decisionColor(label: string) {
-  if (label === 'Strong Buy' || label === 'Buy') return 'text-emerald-400'
-  if (label === 'Cautious Buy') return 'text-emerald-300'
-  if (label === 'Strong Sell' || label === 'Sell') return 'text-red-400'
-  if (label === 'Cautious Sell') return 'text-red-300'
-  return 'text-slate-300'
-}
-
-function decisionBg(label: string) {
-  if (label === 'Strong Buy' || label === 'Buy') return 'bg-emerald-400/10 border-emerald-500/20'
-  if (label === 'Cautious Buy') return 'bg-emerald-400/5 border-emerald-500/15'
-  if (label === 'Strong Sell' || label === 'Sell') return 'bg-red-400/10 border-red-500/20'
-  if (label === 'Cautious Sell') return 'bg-red-400/5 border-red-500/15'
-  return 'bg-slate-600/10 border-border-subtle'
-}
-
-function riskBadgeColor(level: string) {
-  if (level === 'Low') return 'bg-emerald-400/10 text-emerald-400 border border-emerald-500/20'
-  if (level === 'High') return 'bg-red-400/10 text-red-400 border border-red-500/20'
-  return 'bg-amber-400/10 text-amber-400 border border-amber-500/20'
 }
 
 export function TradeTab({ result }: TradeTabProps) {

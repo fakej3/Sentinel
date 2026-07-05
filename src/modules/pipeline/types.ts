@@ -9,6 +9,104 @@ import type { ConfidenceResult, ConfidenceConfig } from '../confidence/types'
 import type { GeneratedAnalysis, WriterConfig } from '../writer/types'
 import type { AIConfig } from '../ai/types'
 
+// ── Market Context ─────────────────────────────────────────────────────────────
+
+export type MarketPhase =
+  | 'trending_bullish'
+  | 'trending_bearish'
+  | 'ranging'
+  | 'consolidation'
+  | 'breakout'
+  | 'pullback'
+  | 'reversal_attempt'
+  | 'distribution'
+  | 'accumulation'
+
+/**
+ * Classifies the current market phase and volatility environment.
+ * Reusable by the writer, trade plan, and any UI component.
+ */
+export interface MarketContext {
+  /** Primary phase classification */
+  phase: MarketPhase
+  /** Additional phases that also apply (e.g. high_volatility overlapping trending_bullish) */
+  secondaryPhases: MarketPhase[]
+  /** One-sentence description for display */
+  description: string
+  /** ATR + Bollinger-based volatility tier */
+  volatility: 'high' | 'normal' | 'low'
+  /** Whether price is in a directional trend (not ranging or consolidating) */
+  isTrending: boolean
+}
+
+// ── Invalidation Scenarios ────────────────────────────────────────────────────
+
+export type InvalidationSeverity = 'critical' | 'major' | 'minor'
+export type InvalidationType = 'price_level' | 'structure' | 'indicator' | 'volume' | 'validation'
+
+/**
+ * A concrete scenario that would prove the current analysis wrong.
+ * Data-driven from existing analysis outputs — never generic boilerplate.
+ */
+export interface InvalidationScenario {
+  type: InvalidationType
+  severity: InvalidationSeverity
+  description: string
+}
+
+// ── Decision Explanation ──────────────────────────────────────────────────────
+
+export type DecisionDimensionStatus =
+  | 'strongly_supports'
+  | 'supports'
+  | 'neutral'
+  | 'opposes'
+  | 'strongly_opposes'
+
+/** Assessment of a single analytical dimension that contributed to the decision. */
+export interface DecisionDimension {
+  name: string
+  status: DecisionDimensionStatus
+  detail: string
+}
+
+/**
+ * Structured explanation of why a decision was made and what would change it.
+ * Reusable by the writer, UI, and any future output layer.
+ */
+export interface DecisionExplanation {
+  /** Per-dimension status breakdown */
+  dimensions: DecisionDimension[]
+  /** Conditions that would shift the decision to neutral/ranging */
+  flipToNeutral: string[]
+  /** Conditions that would flip the decision to the opposite direction */
+  flipToOpposite: string[]
+}
+
+// ── Decision Quality ──────────────────────────────────────────────────────────
+
+/**
+ * Internal quality score for the trade decision.
+ * Evaluates clarity, agreement, contradictions, risk, and signal cleanliness.
+ * NOT intended for direct UI display — used to improve recommendation quality.
+ */
+export interface DecisionQuality {
+  /** 0–10 composite quality score */
+  score: number
+  /** How clear the directional signal is (0–10) */
+  clarity: number
+  /** Multi-category agreement strength from confluence engine (0–10) */
+  agreement: number
+  /** Penalty from opposing evidence (0–10; higher = more contradictions) */
+  contradictionPenalty: number
+  /** Penalty from validation issues (0–10) */
+  riskPenalty: number
+  /** Indicator signal cleanliness — penalised for extremes and unavailable data (0–10) */
+  signalCleanliness: number
+}
+
+// ── Trade Decision ─────────────────────────────────────────────────────────────
+
 export type TradeDecisionLabel =
   | 'Strong Buy'
   | 'Buy'
@@ -26,6 +124,10 @@ export interface TradeDecision {
   riskLevel: 'Low' | 'Medium' | 'High'
   /** Mirrors confidence.score for convenience */
   confidence: number
+  /** Structured per-dimension explanation and flip scenarios */
+  explanation: DecisionExplanation
+  /** Internal quality score — not for direct display */
+  quality: DecisionQuality
 }
 
 /**
@@ -87,6 +189,10 @@ export interface PipelineResult {
   confidence: ConfidenceResult
   decision: TradeDecision
   tradePlan: TradePlan
+  /** Current market phase and volatility classification */
+  marketContext: MarketContext
+  /** Concrete scenarios that would invalidate the current analysis */
+  invalidationScenarios: InvalidationScenario[]
   generatedAnalysis: GeneratedAnalysis
   metadata: PipelineMetadata
 }

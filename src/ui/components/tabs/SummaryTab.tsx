@@ -1,10 +1,11 @@
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { TrendingUp, TrendingDown, Minus, ShieldCheck, AlertTriangle, Target, Zap, HelpCircle, Lightbulb, Activity, ChevronDown, ChevronUp, CheckCircle2, XCircle, Lock, GitMerge } from 'lucide-react'
 import { Card } from '../shared/Card'
 import { ConfidenceMeter } from '../shared/ConfidenceMeter'
 import { GradeBadge } from '../shared/Badge'
 import { formatPrice } from '../../utils/format'
 import { trendLabel, rsiLabel, vwapLabel, biasLabel, gradeLabel } from '../../utils/tradingLanguage'
+import { decisionColor, decisionBg, riskBadgeColor } from '../../utils/colors'
 import type { PipelineResult, ConfidenceBreakdown, TrustResult, AnalysisQuality } from '../../types'
 
 interface SummaryTabProps {
@@ -21,28 +22,6 @@ function trendTextColor(trend: string) {
   if (trend.includes('bullish')) return 'text-emerald-400'
   if (trend.includes('bearish')) return 'text-red-400'
   return 'text-slate-400'
-}
-
-function decisionColor(label: string) {
-  if (label === 'Strong Buy' || label === 'Buy') return 'text-emerald-400'
-  if (label === 'Cautious Buy') return 'text-emerald-300'
-  if (label === 'Strong Sell' || label === 'Sell') return 'text-red-400'
-  if (label === 'Cautious Sell') return 'text-red-300'
-  return 'text-slate-300'
-}
-
-function decisionBg(label: string) {
-  if (label === 'Strong Buy' || label === 'Buy') return 'bg-emerald-400/10 border-emerald-500/20'
-  if (label === 'Cautious Buy') return 'bg-emerald-400/5 border-emerald-500/15'
-  if (label === 'Strong Sell' || label === 'Sell') return 'bg-red-400/10 border-red-500/20'
-  if (label === 'Cautious Sell') return 'bg-red-400/5 border-red-500/15'
-  return 'bg-slate-600/10 border-border-subtle'
-}
-
-function riskBadgeColor(level: string) {
-  if (level === 'Low') return 'bg-emerald-400/10 text-emerald-400 border border-emerald-500/20'
-  if (level === 'High') return 'bg-red-400/10 text-red-400 border border-red-500/20'
-  return 'bg-amber-400/10 text-amber-400 border border-amber-500/20'
 }
 
 // ── Trust panel ──────────────────────────────────────────────────────────────
@@ -223,7 +202,7 @@ function EvidenceBullet({ item }: { item: { description: string; direction: stri
 }
 
 export function SummaryTab({ result }: SummaryTabProps) {
-  const { analysis, confidence, supportResistance, validation, generatedAnalysis, decision, tradePlan } = result
+  const { analysis, confidence, supportResistance, validation, generatedAnalysis, decision, tradePlan, invalidationScenarios } = result
   const { fullTrend, volumeContext, indicatorSummary } = analysis
 
   const nearestSupport    = supportResistance.nearestSupport
@@ -231,29 +210,15 @@ export function SummaryTab({ result }: SummaryTabProps) {
 
   const bias = biasLabel(fullTrend.trend, confidence.score)
 
-  // Top evidence bullets: pick the 5 most impactful items
-  const topEvidence = analysis.evidence
-    .filter(e => e.direction !== 'neutral' || e.impact === 'high')
-    .slice(0, 5)
+  const topEvidence = useMemo(
+    () => analysis.evidence.filter(e => e.direction !== 'neutral' || e.impact === 'high').slice(0, 5),
+    [analysis.evidence],
+  )
 
-  // Invalidation scenarios: validation issues + opposing structure signals
-  const invalidationPoints: string[] = []
-  if (validation.issues.filter(i => i.severity === 'critical').length > 0) {
-    invalidationPoints.push(`${validation.criticalCount} critical data quality issue${validation.criticalCount > 1 ? 's' : ''} flagged`)
-  }
-  if (fullTrend.trend.includes('bullish') && fullTrend.bearishConditionsMet >= 2) {
-    invalidationPoints.push(`${fullTrend.bearishConditionsMet} bearish conditions still active — momentum could reverse`)
-  }
-  if (fullTrend.trend.includes('bearish') && fullTrend.bullishConditionsMet >= 2) {
-    invalidationPoints.push(`${fullTrend.bullishConditionsMet} bullish conditions still active — watch for reversal`)
-  }
-  if (nearestResistance && fullTrend.trend.includes('bullish') && analysis.srContext.nearestResistanceDistance !== null && analysis.srContext.nearestResistanceDistance < 3) {
-    invalidationPoints.push(`Resistance ${analysis.srContext.nearestResistanceDistance.toFixed(1)}% above — rejection here would invalidate bullish case`)
-  }
-  if (nearestSupport && fullTrend.trend.includes('bearish') && analysis.srContext.nearestSupportDistance !== null && Math.abs(analysis.srContext.nearestSupportDistance) < 3) {
-    invalidationPoints.push(`Support ${Math.abs(analysis.srContext.nearestSupportDistance).toFixed(1)}% below — hold here would invalidate bearish case`)
-  }
-  validation.issues.filter(i => i.severity === 'warning').slice(0, 2).forEach(i => invalidationPoints.push(i.message))
+  const invalidationPoints = useMemo(
+    () => invalidationScenarios.slice(0, 4).map(s => s.description),
+    [invalidationScenarios],
+  )
 
   return (
     <div className="p-4 space-y-4 animate-in max-w-3xl mx-auto">
