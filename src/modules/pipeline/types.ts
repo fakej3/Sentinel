@@ -131,6 +131,19 @@ export interface TradeDecision {
 }
 
 /**
+ * Overall quality assessment of the trade setup.
+ * Determines whether Sentinel presents actionable levels or a "no trade" message.
+ *
+ * excellent — RR ≥ 2.0, confidence ≥ 7.5, trust ≥ 70 — all conditions met
+ * good      — RR ≥ 1.5, confidence ≥ 5.0
+ * average   — RR ≥ 1.5 but lower confidence — marginal, proceed with care
+ * poor      — confidence or trust too low for a clear setup
+ * avoid     — RR < 1.5 or geometry invalid — not actionable
+ * no_setup  — insufficient S/R data to compute a plan
+ */
+export type TradeSetupQuality = 'excellent' | 'good' | 'average' | 'poor' | 'avoid' | 'no_setup'
+
+/**
  * Actionable trade plan derived from S/R context, trend, and confidence.
  * All price levels are in the same currency unit as the market data.
  */
@@ -141,9 +154,20 @@ export interface TradePlan {
   invalidationLevel: number | null
   /** Price target level (nearest S/R on the opposite side) */
   targetLevel: number | null
-  /** Estimated risk/reward ratio (reward ÷ risk) — null when either level is missing */
+  /**
+   * Risk/reward ratio computed from the entry zone midpoint, not current price.
+   * risk   = |entryMid − invalidationLevel|
+   * reward = |targetLevel − entryMid|
+   * null when entry, stop, or target are unavailable.
+   */
   riskRewardRatio: number | null
-  /** Patient guidance message based on trend strength and confidence */
+  /** Setup quality classification — governs whether levels are displayed */
+  setupQuality: TradeSetupQuality
+  /** Human-readable explanation of why this quality was assigned */
+  setupQualityReason: string
+  /** True when the setup meets minimum quality to present actionable levels */
+  actionable: boolean
+  /** Contextual guidance — always shown, even when not actionable */
   patienceMessage: string
 }
 

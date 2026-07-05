@@ -164,6 +164,9 @@ function makeTradePlan(invalidationLevel: number | null = 48000): TradePlan {
     invalidationLevel,
     targetLevel: 52000,
     riskRewardRatio: 4,
+    setupQuality: 'good',
+    setupQualityReason: 'Good setup: RR 4.00, confidence 7.5',
+    actionable: true,
     patienceMessage: 'Wait for pullback to entry zone',
   }
 }

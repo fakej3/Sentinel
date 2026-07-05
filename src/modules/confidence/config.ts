@@ -67,6 +67,8 @@ export const DEFAULT_CONFIDENCE_CONFIG: ConfidenceConfig = {
     'ADX trend weak':             -4,
 
     // ── Bollinger Bands ──────────────────────────────────────────────────────
+    'Bollinger squeeze':           3,  // neutral — volatility contraction; breakout approaching
+    'Bollinger expansion':         4,  // neutral — volatility expansion confirms trend acceleration
     'Price at Bollinger lower':    5,
     'Price at Bollinger upper':   -5,
 
@@ -82,6 +84,11 @@ export const DEFAULT_CONFIDENCE_CONFIG: ConfidenceConfig = {
     'Active support zone':         3,
     'Strong resistance overhead':  -5,
 
+    // ── EMA / RSI neutrals ───────────────────────────────────────────────────
+    'EMA confluence zone':         2,   // neutral — clustered EMAs form a dynamic S/R level
+    'RSI neutral':                 1,   // neutral — RSI in mid-zone, no directional signal
+    'RSI in neutral overlap zone': 1,   // neutral — RSI satisfies both bull/bear thresholds
+
     // ── Volume ───────────────────────────────────────────────────────────────
     'Strong volume confirmation':  12,   // neutral / ranging markets
     'Strong bullish volume confirmation': 12,  // volume confirms bullish move
@@ -94,6 +101,7 @@ export const DEFAULT_CONFIDENCE_CONFIG: ConfidenceConfig = {
     'OBV diverging from price':    -5,
     'Volume climax selling':        6,  // selling exhaustion = bullish reversal cue
     'Volume climax buying':        -6,  // buying exhaustion = bearish reversal cue
+    'Volume exhaustion':           -2,  // neutral — high volume small body; indecision
     'Price above VWAP':             4,
     'Price below VWAP':            -4,
     'High relative volume':         3,

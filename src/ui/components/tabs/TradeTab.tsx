@@ -1,9 +1,10 @@
-import { TrendingDown, TrendingUp, Activity, Target, AlertTriangle, CheckCircle2 } from 'lucide-react'
+import { TrendingDown, TrendingUp, Activity, Target, AlertTriangle, CheckCircle2, Ban } from 'lucide-react'
 import { Card } from '../shared/Card'
 import { ProgressBar } from '../shared/ProgressBar'
 import { formatPrice, formatPercent } from '../../utils/format'
 import { changeColor, decisionColor, decisionBg, riskBadgeColor } from '../../utils/colors'
 import type { PipelineResult } from '../../types'
+import type { TradeSetupQuality } from '../../types'
 
 interface TradeTabProps {
   result: PipelineResult
@@ -58,6 +59,28 @@ function ZoneBlock({ label, zone, color, distPct }: {
   )
 }
 
+function qualityBadgeStyle(q: TradeSetupQuality): string {
+  switch (q) {
+    case 'excellent': return 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
+    case 'good':      return 'bg-blue-500/20 text-blue-300 border border-blue-500/30'
+    case 'average':   return 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
+    case 'poor':      return 'bg-orange-500/20 text-orange-300 border border-orange-500/30'
+    case 'avoid':     return 'bg-red-500/20 text-red-300 border border-red-500/30'
+    case 'no_setup':  return 'bg-slate-700/50 text-slate-400 border border-slate-600/30'
+  }
+}
+
+function qualityLabel(q: TradeSetupQuality): string {
+  switch (q) {
+    case 'excellent': return 'Excellent Setup'
+    case 'good':      return 'Good Setup'
+    case 'average':   return 'Marginal Setup'
+    case 'poor':      return 'Poor Setup'
+    case 'avoid':     return 'Avoid'
+    case 'no_setup':  return 'No Setup'
+  }
+}
+
 export function TradeTab({ result }: TradeTabProps) {
   const { analysis, supportResistance, indicators, marketStructure, confidence, decision, tradePlan } = result
   const { price, volumeContext, srContext } = analysis
@@ -104,12 +127,18 @@ export function TradeTab({ result }: TradeTabProps) {
       </Card>
 
       {/* Trade plan */}
-      {(tradePlan.entryZone || tradePlan.invalidationLevel || tradePlan.targetLevel) && (
-        <Card className="p-4">
-          <div className="flex items-center gap-1.5 mb-3">
+      <Card className="p-4">
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center gap-1.5">
             <Target size={12} className="text-slate-400" />
-            <p className="section-label">Trade Plan</p>
+            <p className="section-label">Trading Opportunity</p>
           </div>
+          <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${qualityBadgeStyle(tradePlan.setupQuality)}`}>
+            {qualityLabel(tradePlan.setupQuality)}
+          </span>
+        </div>
+
+        {tradePlan.actionable ? (
           <div className="space-y-0">
             {tradePlan.entryZone && (
               <DataRow label="Entry zone">
@@ -130,18 +159,24 @@ export function TradeTab({ result }: TradeTabProps) {
             )}
             {tradePlan.riskRewardRatio !== null && (
               <DataRow label="Risk / Reward">
-                <span className={`text-xs font-mono font-semibold ${tradePlan.riskRewardRatio >= 2 ? 'text-emerald-400' : tradePlan.riskRewardRatio >= 1 ? 'text-slate-300' : 'text-red-400'}`}>
+                <span className={`text-xs font-mono font-semibold ${tradePlan.riskRewardRatio >= 2 ? 'text-emerald-400' : tradePlan.riskRewardRatio >= 1.5 ? 'text-slate-300' : 'text-amber-400'}`}>
                   {tradePlan.riskRewardRatio.toFixed(2)} : 1
                 </span>
               </DataRow>
             )}
           </div>
-          <div className="mt-2.5 pt-2 border-t border-border-subtle flex items-start gap-1.5">
-            <AlertTriangle size={10} className="text-amber-400 flex-shrink-0 mt-0.5" />
-            <p className="text-[10px] text-slate-500 leading-relaxed">{tradePlan.patienceMessage}</p>
+        ) : (
+          <div className="flex items-start gap-2 py-2">
+            <Ban size={14} className="text-slate-500 flex-shrink-0 mt-0.5" />
+            <p className="text-xs text-slate-400 leading-relaxed">No high-quality trade setup currently exists.</p>
           </div>
-        </Card>
-      )}
+        )}
+
+        <div className="mt-2.5 pt-2 border-t border-border-subtle flex items-start gap-1.5">
+          <AlertTriangle size={10} className="text-amber-400 flex-shrink-0 mt-0.5" />
+          <p className="text-[10px] text-slate-500 leading-relaxed">{tradePlan.patienceMessage}</p>
+        </div>
+      </Card>
 
       {/* Price snapshot */}
       <Card className="p-4">

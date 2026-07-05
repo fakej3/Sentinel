@@ -85,7 +85,7 @@ export type {
   WriterTemplate,
 } from '../modules/writer/types'
 export type { IndicatorResult } from '../modules/indicators/types'
-export type { TradePlan } from '../modules/pipeline/types'
+export type { TradePlan, TradeSetupQuality } from '../modules/pipeline/types'
 
 // ── UI-specific types ──────────────────────────────────────────────────────────
 

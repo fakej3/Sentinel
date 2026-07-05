@@ -42,11 +42,8 @@ export function createRouter(analyzeFn: AnalyzeFn): Router {
     },
   )
 
-  // ── Module 28 Debug Endpoint ────────────────────────────────────────────────
-  // Runs computeConfidence() directly with a known mock bearish analysis.
-  // Bypasses Binance fetch. Use to verify the engine returns non-zero scores
-  // for bearish markets independently of live data.
-  // TEMPORARY — remove after forensic investigation is complete.
+  // ── Debug Endpoints (SENTINEL_DEBUG=true only) ──────────────────────────────
+  if (process.env.SENTINEL_DEBUG === 'true') {
   router.get('/debug-confidence', (_req: Request, res: Response) => {
     const mockEvidence: EvidenceItem[] = [
       { factor: 'Price below EMA20',      direction: 'bearish', impact: 'high',   description: 'Mock: price below EMA20',  source: 'indicators' },
@@ -149,39 +146,20 @@ export function createRouter(analyzeFn: AnalyzeFn): Router {
       summary: 'Debug mock: all checks passed',
     }
 
-    console.log('[api:routes] /debug-confidence: calling computeConfidence with mock bearish data')
-    console.log('[api:routes] mockEvidence:', JSON.stringify(mockEvidence, null, 2))
-    console.log('[api:routes] trend:', mockAnalysis.fullTrend.trend)
-
     const confidence = computeConfidence(mockAnalysis, mockValidation)
 
-    const response = {
+    res.json({
       _debug: {
         source: 'GET /api/debug-confidence',
-        note: 'Mock moderate bearish analysis. Intermediate values logged to server console.',
+        note: 'Mock moderate bearish analysis.',
         trend: mockAnalysis.fullTrend.trend,
         evidenceCount: mockEvidence.length,
         factors: mockEvidence.map(e => `${e.direction}:${e.factor}`),
       },
       confidence,
-    }
-
-    console.log('[api:routes] /debug-confidence RESULT:', JSON.stringify({
-      score: confidence.score,
-      grade: confidence.grade,
-      bullishConfidence: confidence.bullishConfidence,
-      bearishConfidence: confidence.bearishConfidence,
-      neutralContribution: confidence.neutralContribution,
-      reasonsCount: confidence.reasons.length,
-    }, null, 2))
-
-    res.json(response)
+    })
   })
 
-  // ── Module 28 Full-Pipeline Debug Endpoint ─────────────────────────────────
-  // Runs all 11 pipeline stages with synthetic bearish candle data.
-  // No Binance API needed. Proves the full chain works end-to-end.
-  // TEMPORARY — remove after forensic investigation is complete.
   router.get('/debug-pipeline', async (_req: Request, res: Response, next: NextFunction) => {
     try {
       const COUNT = 250
@@ -235,26 +213,11 @@ export function createRouter(analyzeFn: AnalyzeFn): Router {
         openInterest: null,
       })
 
-      console.log('[api:routes] /debug-pipeline: running full 11-stage pipeline with synthetic bearish candles')
-
       const result = await analyzeMarket({
         symbol: 'BTCUSDT_MOCK',
         interval: '1h',
         fetchImpl: mockFetch,
       })
-
-      console.log('[api:routes] /debug-pipeline RESULT:', JSON.stringify({
-        trend: result.analysis.fullTrend.trend,
-        bullishConditions: result.analysis.fullTrend.bullishConditionsMet,
-        bearishConditions: result.analysis.fullTrend.bearishConditionsMet,
-        evidenceCount: result.analysis.evidence.length,
-        confidenceScore: result.confidence.score,
-        confidenceGrade: result.confidence.grade,
-        bullishConfidence: result.confidence.bullishConfidence,
-        bearishConfidence: result.confidence.bearishConfidence,
-        neutralContribution: result.confidence.neutralContribution,
-        reasonsCount: result.confidence.reasons.length,
-      }, null, 2))
 
       res.json({
         _debug: {
@@ -276,6 +239,7 @@ export function createRouter(analyzeFn: AnalyzeFn): Router {
       next(err)
     }
   })
+  } // end SENTINEL_DEBUG block
 
   return router
 }
