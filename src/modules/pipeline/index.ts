@@ -211,6 +211,17 @@ export async function analyzeMarket(options: PipelineOptions): Promise<PipelineR
   }
   const confidenceTime = Date.now() - t7
 
+  // ── Module 28 forensic trace ────────────────────────────────────────────────
+  console.log('[pipeline:analyzeMarket] STAGE 8 RESULT assigned to PipelineResult.confidence:', JSON.stringify({
+    score: confidence.score,
+    grade: confidence.grade,
+    bullishConfidence: confidence.bullishConfidence,
+    bearishConfidence: confidence.bearishConfidence,
+    neutralContribution: confidence.neutralContribution,
+    reasonsCount: confidence.reasons.length,
+    penaltiesCount: confidence.penalties.length,
+  }, null, 2))
+
   // ── Stage 9: Trade Decision + Trade Plan + Market Context + Invalidation ────
   let decision!: TradeDecision
   let tradePlan!: TradePlan

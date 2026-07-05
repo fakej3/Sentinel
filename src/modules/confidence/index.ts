@@ -140,7 +140,7 @@ export function computeConfidence(
   const analysisQuality = computeAnalysisQuality(analysis, cfg)
   const trust           = computeTrust(analysis, validation)
 
-  return {
+  const result: ConfidenceResult = {
     score,
     grade,
     bullishConfidence,
@@ -153,6 +153,26 @@ export function computeConfidence(
     analysisQuality,
     trust,
   }
+
+  // ── Module 28 forensic trace ──────────────────────────────────────────────
+  console.log('[confidence:computeConfidence] STAGE 8 OUTPUT', JSON.stringify({
+    trend,
+    rawPoints,
+    bullishRawPoints,
+    bearishRawPoints,
+    neutralContribution,
+    directedPoints,
+    contradictionPoints,
+    penalizedPoints,
+    score: result.score,
+    grade: result.grade,
+    bullishConfidence: result.bullishConfidence,
+    bearishConfidence: result.bearishConfidence,
+    reasonsCount: result.reasons.length,
+    penaltiesCount: result.penalties.length,
+  }, null, 2))
+
+  return result
 }
 
 export type {
