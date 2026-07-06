@@ -142,10 +142,11 @@ export interface TrustResult {
 }
 
 /**
- * A score adjustment applied because of a validation issue or contradiction.
+ * A score adjustment applied because of a validation issue, contradiction,
+ * or data-trust deficit.
  */
 export interface ConfidencePenalty {
-  source: 'validation_warning' | 'validation_critical' | 'contradiction'
+  source: 'validation_warning' | 'validation_critical' | 'contradiction' | 'trust_low' | 'trust_medium'
   description: string
   /** Reduction applied to the normalized 0–10 score */
   scoreReduction: number
@@ -252,4 +253,22 @@ export interface ConfidenceConfig {
    * Default: 0.5
    */
   neutralStrengthFactor: number
+  /**
+   * Score threshold above which trust-level penalties apply.
+   * Only overconfident scores (high raw evidence) are penalised for low data trust —
+   * low scores already express uncertainty.
+   * Default: 8.0
+   */
+  overconfidenceThreshold: number
+  /**
+   * Score reduction when trust is 'low' AND score > overconfidenceThreshold.
+   * Calibrated so score 10.0 with low trust falls to ~8.5 (strong, not very_strong).
+   * Default: 1.5
+   */
+  trustPenaltyLow: number
+  /**
+   * Score reduction when trust is 'medium' AND score > overconfidenceThreshold.
+   * Default: 0.75
+   */
+  trustPenaltyMedium: number
 }

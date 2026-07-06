@@ -209,8 +209,12 @@ describe('computeConfidence — core scoring', () => {
     expect(result.grade).toBe('mixed')
   })
 
-  it('clamps to 10 when raw points exceed 100', () => {
-    // A strong bullish market easily exceeds 100 raw points → score clamps at 10
+  it('clamps to 10 when raw points exceed 100, then trust penalty applies', () => {
+    // Raw 138 pts / 10 = 13.8 → clamped to 10.0 before trust penalty.
+    // makeAnalysis stub: ranging trend (Factor 1 fails) + null EMA alignment (Factor 4 fails)
+    // + volume not confirming (Factor 3 fails) → 4/7 = 57% = medium trust.
+    // trustPenaltyMedium (0.75) fires since score (10.0) > overconfidenceThreshold (8.0).
+    // Final expected: 10.0 − 0.75 = 9.25.
     const analysis = makeAnalysis([
       ev('Price above EMA200', 'bullish'),        // +15
       ev('EMA bullish alignment', 'bullish'),      // +12
@@ -227,9 +231,11 @@ describe('computeConfidence — core scoring', () => {
       ev('Price above EMA20', 'bullish'),          // +5
       ev('StochRSI oversold', 'bullish'),          // +5
     ])
-    // Sum = 138 raw points, 138/10 = 13.8 → clamped to 10
     const result = computeConfidence(analysis, cleanValidation())
-    expect(result.score).toBeCloseTo(10)
+    expect(result.score).toBeCloseTo(9.25)
+    const trustPenalty = result.penalties.find(p => p.source === 'trust_medium')
+    expect(trustPenalty).toBeDefined()
+    expect(trustPenalty?.scoreReduction).toBeCloseTo(0.75)
   })
 
   it('produces grade that matches score', () => {

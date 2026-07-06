@@ -76,7 +76,11 @@ export function computeConfidence(
   const bullishConfidence = normalize(bullishRawPoints, cfg.normalizationDivisor)
   const bearishConfidence = normalize(bearishRawPoints, cfg.normalizationDivisor)
 
-  // ── Step 3: Apply validation penalties + contradiction penalty ────────────
+  // ── Step 3: Compute trust (before penalties so we can use trust level) ────
+
+  const trust = computeTrust(analysis, validation)
+
+  // ── Step 4: Apply validation penalties, contradiction penalty, and trust penalty ──
 
   const penalties: ConfidencePenalty[] = []
   const warnings: ConfidenceWarning[] = []
@@ -128,17 +132,44 @@ export function computeConfidence(
     })
   }
 
-  // ── Step 4: Clamp and grade ───────────────────────────────────────────────
+  // Trust-based overconfidence penalty (Module 32 Part 7).
+  // Only fires when score > overconfidenceThreshold (default 8.0) because lower
+  // scores already signal uncertainty. Empirically confirmed: without this, a market
+  // with only 3/7 trust factors (43%) still produces score 10.0.
+  if (score > cfg.overconfidenceThreshold) {
+    if (trust.level === 'low') {
+      const reduction = cfg.trustPenaltyLow
+      score = Math.max(0, score - reduction)
+      penalties.push({
+        source: 'trust_low',
+        description: `Low data trust (${trust.score.toFixed(0)}% of quality checks passed) — score reduced by ${reduction.toFixed(2)} to prevent overstatement`,
+        scoreReduction: reduction,
+      })
+      warnings.push({
+        message: `Data trust is low (${trust.score.toFixed(0)}%) — fewer quality checks passed than expected; treat this score with caution`,
+        source: 'data_quality',
+      })
+    } else if (trust.level === 'medium') {
+      const reduction = cfg.trustPenaltyMedium
+      score = Math.max(0, score - reduction)
+      penalties.push({
+        source: 'trust_medium',
+        description: `Medium data trust (${trust.score.toFixed(0)}% of quality checks passed) — score reduced by ${reduction.toFixed(2)}`,
+        scoreReduction: reduction,
+      })
+    }
+  }
+
+  // ── Step 5: Clamp and grade ───────────────────────────────────────────────
 
   score = Math.min(10, Math.max(0, score))
 
   const grade = scoreToGrade(score, cfg)
 
-  // ── Step 5: Breakdown, quality, and trust ────────────────────────────────
+  // ── Step 6: Breakdown and quality ────────────────────────────────────────
 
   const breakdown       = computeBreakdown(analysis.evidence, cfg, contradictionPoints)
   const analysisQuality = computeAnalysisQuality(analysis, cfg)
-  const trust           = computeTrust(analysis, validation)
 
   const result: ConfidenceResult = {
     score,

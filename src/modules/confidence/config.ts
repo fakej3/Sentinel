@@ -127,4 +127,10 @@ export const DEFAULT_CONFIDENCE_CONFIG: ConfidenceConfig = {
   contradictionPenaltyFactor: 0.3,
 
   neutralStrengthFactor: 0.5,
+
+  overconfidenceThreshold: 8.0,
+
+  trustPenaltyLow: 1.5,
+
+  trustPenaltyMedium: 0.75,
 }
