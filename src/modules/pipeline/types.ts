@@ -267,6 +267,38 @@ export interface ConfidenceSanityResult {
   hasIssues: boolean
 }
 
+// ── Multi-Timeframe Agreement (Module 32 Part 5) ──────────────────────────────
+
+export type MTFAgreementLabel = 'aligned' | 'mostly_aligned' | 'mixed' | 'strong_conflict'
+
+/** Single-timeframe input for the MTF agreement computation. */
+export interface MTFTimeframeInput {
+  /** Display label, e.g. '15m', '1h', '4h', '1d' */
+  label: string
+  /** Dominant directional signal for this timeframe */
+  direction: 'bullish' | 'bearish' | 'neutral'
+  grade: import('../confidence/types').ConfidenceGrade
+  /** 0–10 confidence score for this timeframe */
+  score: number
+}
+
+/**
+ * Deterministic multi-timeframe agreement result.
+ * Computed from direction + grade, NOT from score averages.
+ */
+export interface MultiTimeframeAgreement {
+  /** Qualitative agreement label */
+  agreement: MTFAgreementLabel
+  /** 0–10 agreement strength score */
+  agreementScore: number
+  /** Input timeframes passed through for display */
+  timeframes: MTFTimeframeInput[]
+  /** The direction that the majority of timeframes agree on */
+  dominantDirection: 'bullish' | 'bearish' | 'neutral'
+  /** Count of timeframes whose direction directly opposes the dominant direction */
+  conflictingCount: number
+}
+
 // ── Calibration (Module 31 Part 7 — interfaces only, no persistence) ──────────
 // (see src/modules/calibration/types.ts)
 
@@ -324,6 +356,12 @@ export interface PipelineResult {
   traderReview: TraderReview
   opportunityAssessment: OpportunityAssessment
   sanityAudit: ConfidenceSanityResult
+  /**
+   * Module 32 Part 5 — multi-timeframe agreement.
+   * Only populated when the caller provides multiple timeframe results via
+   * computeMTFAgreement(). Undefined in single-timeframe pipeline runs.
+   */
+  multiTimeframeAgreement?: MultiTimeframeAgreement
   metadata: PipelineMetadata
 }
 

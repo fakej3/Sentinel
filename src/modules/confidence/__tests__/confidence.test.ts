@@ -1264,3 +1264,169 @@ describe('Module 28 — real market scenarios', () => {
     expect(result.neutralContribution).toBe(8)
   })
 })
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Module 32 Part 8 — Calibration regression tests
+// ─────────────────────────────────────────────────────────────────────────────
+// These tests guard against future regressions in the calibration fixes made
+// during Module 32. Each test documents a specific empirically-confirmed
+// property of the confidence engine.
+
+describe('computeConfidence — Module 32 calibration regression', () => {
+  // ── R1: Bull/Bear Symmetry ────────────────────────────────────────────────
+  it('strong bullish and strong bearish evidence produce the same score (symmetry)', () => {
+    const bullEvidence = [
+      ev('Price above EMA200', 'bullish'),        // +15
+      ev('Higher High confirmed', 'bullish'),      // +15
+      ev('Higher Low confirmed', 'bullish'),       // +15
+      ev('EMA bullish alignment', 'bullish'),      // +12
+      ev('MACD bullish bias', 'bullish'),          // +10
+    ]
+    const bearEvidence = [
+      ev('Price below EMA200', 'bearish'),         // -15
+      ev('Lower High confirmed', 'bearish'),        // -15
+      ev('Lower Low confirmed', 'bearish'),         // -15
+      ev('EMA bearish alignment', 'bearish'),       // -12
+      ev('MACD bearish bias', 'bearish'),           // -10
+    ]
+    const bullResult = computeConfidence(makeDirectionalAnalysis('strong bullish', bullEvidence), cleanValidation())
+    const bearResult = computeConfidence(makeDirectionalAnalysis('strong bearish', bearEvidence), cleanValidation())
+    // Both sides have identical evidence weights and identical trust level → same score
+    expect(bullResult.score).toBeCloseTo(bearResult.score, 1)
+  })
+
+  // ── R2: Score range 0–10 ─────────────────────────────────────────────────
+  it('score is always in the range [0, 10]', () => {
+    const cases = [
+      makeDirectionalAnalysis('strong bullish', [
+        ev('Price above EMA200', 'bullish'), ev('Higher High confirmed', 'bullish'),
+        ev('Higher Low confirmed', 'bullish'), ev('EMA bullish alignment', 'bullish'),
+      ]),
+      makeDirectionalAnalysis('ranging', []),
+      makeDirectionalAnalysis('strong bearish', [
+        ev('Price below EMA200', 'bearish'), ev('Lower High confirmed', 'bearish'),
+      ]),
+      makeAnalysis([]),
+    ]
+    for (const analysis of cases) {
+      const result = computeConfidence(analysis, cleanValidation())
+      expect(result.score).toBeGreaterThanOrEqual(0)
+      expect(result.score).toBeLessThanOrEqual(10)
+    }
+  })
+
+  // ── R3: Trust penalty fires when score > 8 and trust is low ──────────────
+  it('trust penalty reduces score when trust is low and score > overconfidenceThreshold', () => {
+    // makeAnalysis uses ranging trend: Factor 1 fails, Factor 3 fails (no volume confirm),
+    // Factor 4 fails (EMA alignment unavailable) → 4/7 = 57% → medium trust.
+    // 138 raw pts / 10 = 13.8 → clamped to 10.0 → trust penalty (0.75) fires.
+    const analysis = makeAnalysis([
+      ev('Price above EMA200', 'bullish'),        // +15
+      ev('EMA bullish alignment', 'bullish'),      // +12
+      ev('Higher High confirmed', 'bullish'),      // +15
+      ev('Higher Low confirmed', 'bullish'),       // +15
+      ev('Strong volume confirmation', 'neutral'), // +12
+      ev('MACD bullish bias', 'bullish'),          // +10
+      ev('Accumulation detected', 'bullish'),      // +10
+      ev('Bullish BOS', 'bullish'),                // +10
+      ev('RSI in 55–70 range', 'bullish'),         // +8
+      ev('ADX above 25', 'neutral'),               // +8
+      ev('Price above EMA50', 'bullish'),          // +7
+      ev('Bullish OBV trend', 'bullish'),          // +6
+      ev('Price above EMA20', 'bullish'),          // +5
+      ev('StochRSI oversold', 'bullish'),          // +5
+    ])
+    const result = computeConfidence(analysis, cleanValidation())
+    expect(result.score).toBeLessThan(10)
+    const hasTrustPenalty = result.penalties.some(p => p.source === 'trust_low' || p.source === 'trust_medium')
+    expect(hasTrustPenalty).toBe(true)
+  })
+
+  // ── R4: Trust penalty does NOT fire when score <= overconfidenceThreshold ─
+  it('trust penalty does not fire when score is below overconfidenceThreshold', () => {
+    // Weak evidence set → low score → trust penalty should not trigger
+    const analysis = makeAnalysis([
+      ev('High relative volume', 'neutral'), // +3 → score = 0.3 (well below 8.0)
+    ])
+    const result = computeConfidence(analysis, cleanValidation())
+    expect(result.score).toBeLessThanOrEqual(cfg.overconfidenceThreshold)
+    const hasTrustPenalty = result.penalties.some(p => p.source === 'trust_low' || p.source === 'trust_medium')
+    expect(hasTrustPenalty).toBe(false)
+  })
+
+  // ── R5: Contradiction penalty is still applied ────────────────────────────
+  it('contradiction penalty is applied in directional markets', () => {
+    const evidence = [
+      ev('Price above EMA200', 'bullish'),    // +15 — drives score
+      ev('Price below EMA200', 'bearish'),    // -15 — contradicts
+    ]
+    const resultWithContra = computeConfidence(makeDirectionalAnalysis('strong bullish', evidence), cleanValidation())
+    const resultWithout = computeConfidence(makeDirectionalAnalysis('strong bullish', [ev('Price above EMA200', 'bullish')]), cleanValidation())
+    // Contradiction should reduce score
+    expect(resultWithContra.score).toBeLessThan(resultWithout.score)
+    const hasContradictionPenalty = resultWithContra.penalties.some(p => p.source === 'contradiction')
+    expect(hasContradictionPenalty).toBe(true)
+  })
+
+  // ── R6: Validation penalties stack with trust penalty ────────────────────
+  it('validation warning penalty stacks with trust penalty when both apply', () => {
+    // Same large evidence set: score starts at 10.0 (clamped), warnings reduce
+    // it to 9.0, which is still above overconfidenceThreshold (8.0), so trust penalty fires too.
+    const analysis = makeAnalysis([
+      ev('Price above EMA200', 'bullish'),        // +15
+      ev('EMA bullish alignment', 'bullish'),      // +12
+      ev('Higher High confirmed', 'bullish'),      // +15
+      ev('Higher Low confirmed', 'bullish'),       // +15
+      ev('Strong volume confirmation', 'neutral'), // +12
+      ev('MACD bullish bias', 'bullish'),          // +10
+      ev('Accumulation detected', 'bullish'),      // +10
+      ev('Bullish BOS', 'bullish'),                // +10
+      ev('RSI in 55–70 range', 'bullish'),         // +8
+      ev('ADX above 25', 'neutral'),               // +8
+      ev('Price above EMA50', 'bullish'),          // +7
+    ])
+    const withWarnings = computeConfidence(analysis, validationWithWarnings(2))
+    const withoutWarnings = computeConfidence(analysis, cleanValidation())
+    expect(withWarnings.score).toBeLessThan(withoutWarnings.score)
+    const hasBoth =
+      withWarnings.penalties.some(p => p.source === 'validation_warning') &&
+      withWarnings.penalties.some(p => p.source === 'trust_low' || p.source === 'trust_medium')
+    expect(hasBoth).toBe(true)
+  })
+
+  // ── R7: Trust penalty amount is configurable ─────────────────────────────
+  it('trust penalty can be adjusted via config', () => {
+    const analysis = makeAnalysis([
+      ev('Price above EMA200', 'bullish'),    // +15
+      ev('Higher High confirmed', 'bullish'), // +15
+      ev('Higher Low confirmed', 'bullish'),  // +15
+    ])
+    const defaultResult = computeConfidence(analysis, cleanValidation())
+    const customResult = computeConfidence(analysis, cleanValidation(), {
+      trustPenaltyMedium: 0.0,
+      trustPenaltyLow: 0.0,
+    })
+    // With zero penalty, score should be higher (no trust reduction)
+    expect(customResult.score).toBeGreaterThanOrEqual(defaultResult.score)
+  })
+
+  // ── R8: Trust penalty source appears in penalties array ──────────────────
+  it('trust penalty is recorded in the penalties array with description and reduction', () => {
+    // Need score > 8.0 to trigger trust penalty. Use full evidence set.
+    const analysis = makeAnalysis([
+      ev('Price above EMA200', 'bullish'),        // +15
+      ev('EMA bullish alignment', 'bullish'),      // +12
+      ev('Higher High confirmed', 'bullish'),      // +15
+      ev('Higher Low confirmed', 'bullish'),       // +15
+      ev('Strong volume confirmation', 'neutral'), // +12
+      ev('MACD bullish bias', 'bullish'),          // +10
+      ev('Accumulation detected', 'bullish'),      // +10
+      ev('Bullish BOS', 'bullish'),                // +10
+    ])
+    const result = computeConfidence(analysis, cleanValidation())
+    const trustPenalty = result.penalties.find(p => p.source === 'trust_low' || p.source === 'trust_medium')
+    expect(trustPenalty).toBeDefined()
+    expect(trustPenalty!.description).toBeTruthy()
+    expect(trustPenalty!.scoreReduction).toBeGreaterThan(0)
+  })
+})

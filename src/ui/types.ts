@@ -12,6 +12,7 @@ export type {
   TraderVerdict, TraderReview,
   QualityLevel, OpportunityAssessment,
   SanityFlag, ConfidenceSanityResult,
+  MTFAgreementLabel, MTFTimeframeInput, MultiTimeframeAgreement,
 } from '../modules/pipeline/types'
 export type {
   MarketAnalysisResult,

@@ -79,7 +79,11 @@ export type {
   OpportunityAssessment,
   SanityFlag,
   ConfidenceSanityResult,
+  MTFAgreementLabel,
+  MTFTimeframeInput,
+  MultiTimeframeAgreement,
 } from './types'
+export { computeMTFAgreement } from './compute/mtf-agreement'
 export { PIPELINE_VERSION, DEFAULT_PIPELINE_CONFIG } from './config'
 
 export class PipelineError extends Error {
