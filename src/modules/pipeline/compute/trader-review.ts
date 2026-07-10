@@ -22,8 +22,9 @@ export function computeTraderReview(
 
   const majorContradictions = confidence.analysisQuality.contradictions.filter(c => c.severity === 'strong')
   const hasMajorContradiction = majorContradictions.length > 0
-  const overbought = indicatorSummary.rsi.value >= 70
-  const oversold = indicatorSummary.rsi.value <= 30
+  const rsiv = indicatorSummary.rsi.value
+  const overbought = rsiv !== null && rsiv >= 70
+  const oversold = rsiv !== null && rsiv <= 30
   const weakADX = indicatorSummary.adx.trendStrength === 'weak'
   const volumeConfirms = volumeContext.confirmsCurrentMove
   const rrGood = riskRewardRatio !== null && riskRewardRatio >= 2.0

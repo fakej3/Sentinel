@@ -28,11 +28,14 @@ export function computeMTFAgreement(timeframes: MTFTimeframeInput[]): MultiTimef
   const { dominant, opposite } = findDominantAndOpposite(timeframes)
 
   const dominantCount = timeframes.filter(tf => tf.direction === dominant).length
-  const conflictingCount = timeframes.filter(tf => tf.direction === opposite).length
+  // When dominant === opposite (all-neutral case), avoid counting all TFs as conflicting.
+  const conflictingCount = dominant !== opposite
+    ? timeframes.filter(tf => tf.direction === opposite).length
+    : 0
   const total = timeframes.length
 
-  const agreement = classifyAgreement(dominantCount, conflictingCount, total)
-  const agreementScore = computeAgreementScore(agreement, dominantCount, conflictingCount, total, timeframes)
+  const agreement = classifyAgreement(dominant, dominantCount, conflictingCount, total)
+  const agreementScore = computeAgreementScore(agreement, dominant, total, timeframes)
 
   return {
     agreement,
@@ -64,10 +67,14 @@ function findDominantAndOpposite(
 }
 
 function classifyAgreement(
+  dominant: 'bullish' | 'bearish' | 'neutral',
   dominantCount: number,
   conflictingCount: number,
   total: number,
 ): MTFAgreementLabel {
+  // All timeframes neutral — no directional alignment
+  if (dominant === 'neutral') return 'mixed'
+
   const dominantRatio = dominantCount / total
 
   if (dominantRatio >= 1.0) return 'aligned'
@@ -79,8 +86,7 @@ function classifyAgreement(
 
 function computeAgreementScore(
   agreement: MTFAgreementLabel,
-  dominantCount: number,
-  conflictingCount: number,
+  dominant: 'bullish' | 'bearish' | 'neutral',
   total: number,
   timeframes: MTFTimeframeInput[],
 ): number {
@@ -96,23 +102,19 @@ function computeAgreementScore(
 
   // Bonus: high-grade dominant timeframes push the score toward 10
   const dominantGradeBonus = timeframes
-    .filter(tf => tf.direction === dominantCount > 0 ? getDominantDir(timeframes) : 'neutral')
+    .filter(tf => tf.direction === dominant)
     .reduce((sum, tf) => sum + gradeWeight(tf.grade), 0) / Math.max(1, total)
 
   score += dominantGradeBonus * 0.5
 
   // Penalty: conflicting timeframes with strong grades pull it down
   const conflictPenalty = timeframes
-    .filter(tf => tf.direction !== getDominantDir(timeframes) && tf.direction !== 'neutral')
+    .filter(tf => tf.direction !== dominant && tf.direction !== 'neutral')
     .reduce((sum, tf) => sum + gradeWeight(tf.grade), 0) / Math.max(1, total)
 
   score -= conflictPenalty * 0.5
 
   return Math.min(10, Math.max(0, parseFloat(score.toFixed(2))))
-}
-
-function getDominantDir(timeframes: MTFTimeframeInput[]): 'bullish' | 'bearish' | 'neutral' {
-  return findDominantAndOpposite(timeframes).dominant
 }
 
 function gradeWeight(grade: MTFTimeframeInput['grade']): number {
