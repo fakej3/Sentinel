@@ -11,14 +11,7 @@ import {
   buildTradePlanReport,
   buildPostValidationReport,
 } from './reports'
-
-function avg(arr: number[]): number {
-  return arr.length > 0 ? arr.reduce((s, v) => s + v, 0) / arr.length : 0
-}
-
-function avgOrNull(arr: number[]): number | null {
-  return arr.length > 0 ? avg(arr) : null
-}
+import { avg, avgOrNull } from './math'
 
 /**
  * Aggregate all validation records into a calibration dashboard.

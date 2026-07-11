@@ -1,3 +1,11 @@
+/**
+ * Benchmark Engine — replays a BenchmarkDataset through the live pipeline and
+ * compares the output field-by-field against known-good expected values.
+ *
+ * Inputs:  BenchmarkDataset (candles + expected output fields)
+ * Outputs: BenchmarkResult (comparisons[], metrics, passed, score, summary)
+ * Deps:    pipeline (full stack)
+ */
 import { replayDataset } from './replay'
 import { compareOutputs } from './compare'
 import { computeMetrics } from './metrics'

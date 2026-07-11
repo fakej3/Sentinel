@@ -14,16 +14,7 @@ import type {
 import { buildBinancePost } from '../writer/binance-post'
 import type { BinancePostInput } from '../writer/binance-post'
 import type { TradeSetupQuality } from '../pipeline/types'
-
-// ── Shared helpers ─────────────────────────────────────────────────────────────
-
-function avgOrNull(arr: number[]): number | null {
-  return arr.length > 0 ? arr.reduce((s, v) => s + v, 0) / arr.length : null
-}
-
-function avg(arr: number[]): number {
-  return arr.length > 0 ? arr.reduce((s, v) => s + v, 0) / arr.length : 0
-}
+import { avg, avgOrNull } from './math'
 
 // ── Confidence Calibration ────────────────────────────────────────────────────
 

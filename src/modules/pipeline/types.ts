@@ -299,9 +299,6 @@ export interface MultiTimeframeAgreement {
   conflictingCount: number
 }
 
-// ── Calibration (Module 31 Part 7 — interfaces only, no persistence) ──────────
-// (see src/modules/calibration/types.ts)
-
 export type PipelineErrorCode =
   | 'fetch_failure'
   | 'insufficient_candles'

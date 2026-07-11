@@ -10,83 +10,82 @@ The system separates data collection, mathematical analysis, reasoning, validati
 
 ## Analysis Pipeline
 
+> For the stage-by-stage breakdown with exact file paths, inputs, and outputs
+> see [Pipeline.md](Pipeline.md).
+
 ```
 Official Binance API
         │
         ▼
-MODULE 1 — Binance Data Engine
+src/modules/binance/            — fetchMarketData()
   Raw market data (OHLC, price, volume, 24H stats, funding rate, OI)
         │
         ▼
-MODULE 2 — Technical Indicator Engine
+src/modules/indicators/         — computeIndicators()
   Mathematically calculated indicators (RSI, MACD, EMA, ATR, etc.)
         │
         ▼
-MODULE 3 — Market Structure Engine
+src/modules/market-structure/   — computeMarketStructure()
   Deterministic structure detection (HH/HL/LH/LL, BOS, CHOCH)
         │
         ▼
-MODULE 4 — Support & Resistance Engine
-  Static levels, dynamic EMA levels, pivot zones, swing levels
+src/modules/support-resistance/ — computeSupportResistance()
+  Price zones from swing points — touch count, interactions, strength
         │
         ▼
-MODULE 5 — Volume Analysis Engine
-  Relative volume, trend, spikes, buy/sell pressure
+src/modules/volume-analysis/    — computeVolumeAnalysis()
+  Relative volume, trend, climax, buy/sell pressure, A/D, OBV, VWAP
         │
         ▼
-MODULE 6 — Analysis Engine
+src/modules/analysis/           — computeAnalysis()
   Full trend synthesis, EMA/indicator/S&R/volume context, evidence collection
         │
         ▼
-MODULE 7 — Validation Engine
-  Rejects any unsupported, incorrect, or contradictory claims
+src/modules/validation/         — validateAnalysis()
+  Rejects unsupported, incorrect, or contradictory claims
         │
         ▼
-MODULE 8 — Confidence Engine
-  Calculates evidence-weighted Confidence Score (0–10)
+src/modules/confidence/         — computeConfidence()
+  Evidence-weighted Confidence Score (0–10) + grade + trust
         │
         ▼
-MODULE 9 — AI Writing Engine
-  Receives validated JSON only — writes, never invents
+src/modules/pipeline/           — computeDecision() + computeTradePlan() + …
+  Trade decision, trade plan, market context, contradiction intelligence, etc.
         │
         ▼
-MODULE 10 — Analysis Pipeline Orchestrator
-  Single public entry point — orchestrates Modules 1–9
+src/modules/writer/             — generateAnalysis()
+  Deterministic report generation from structured data
         │
         ▼
-MODULE 12 — API Layer
-  REST API transport wrapping analyzeMarket() — no analysis logic
+src/modules/ai/                 — provider.enhance()  [optional]
+  LLM enhancement of summary/conclusion (falls back if unsafe or unavailable)
         │
         ▼
-MODULE 13 — CLI
-  Command-line interface wrapping analyzeMarket() — no analysis logic
-        │
-        ▼
-Binance Square Ready Post
+PipelineResult  →  src/api/routes.ts  /  src/cli/  /  src/ui/
 ```
 
 ---
 
 ## Module Responsibilities
 
-### MODULE 1 — Binance Data Engine
+### `src/modules/binance/` — Binance Data Engine
 - Source of truth for all market data.
 - Only fetches. Never transforms. Never infers.
 - All data comes directly from the official Binance REST API.
 - Outputs raw, structured data objects.
 
-### MODULE 2 — Technical Indicator Engine
+### `src/modules/indicators/` — Technical Indicator Engine
 - Pure mathematical calculations.
 - No AI. No interpretation. No decisions.
 - Each indicator is independently calculable from raw candle data.
 - Outputs typed numerical results.
 
-### MODULE 3 — Market Structure Engine
+### `src/modules/market-structure/` — Market Structure Engine
 - Applies predefined deterministic rules to detect market structure.
 - Rules are documented in `ENGINE_RULES.md`.
 - Outputs structured labels (e.g. `"trend": "bullish"`, `"structure": "HH-HL"`).
 
-### MODULE 4 — Support & Resistance Engine
+### `src/modules/support-resistance/` — Support & Resistance Engine
 - Detects price zones (not lines) from swing points in the candle series.
 - Every zone has a center, width derived from ATR, touch count, reaction history, and lifecycle state.
 - Nearby zones are merged to avoid redundant overlapping signals.
@@ -94,7 +93,7 @@ Binance Square Ready Post
 - Rules documented in `ENGINE_RULES.md §12`.
 - See also: "Price Zone Architecture" section below.
 
-### MODULE 5 — Volume Analysis Engine
+### `src/modules/volume-analysis/` — Volume Analysis Engine
 - Classifies volume against historical averages (relative volume: very_low → very_high).
 - Determines volume trend direction and confidence from OLS linear regression over a configurable window.
 - Computes buy/sell pressure from Binance taker trade data (`takerBuyVolume` / `takerSellVolume`).
@@ -106,7 +105,7 @@ Binance Square Ready Post
 - Rules documented in `ENGINE_RULES.md §13`.
 - No AI, no ML, no probability guessing. Fully deterministic and configurable.
 
-### MODULE 6 — Analysis Engine
+### `src/modules/analysis/` — Analysis Engine
 - **Synthesis layer**: first module to see all 5 upstream outputs simultaneously.
 - Determines the **full trend** (`FullTrendResult`) by evaluating 5 bullish + 5 bearish + 4 neutral conditions per ENGINE_RULES.md §1. This is authoritative; `MarketStructureResult.trend` (Module 3) is structural bias only.
 - Computes `EMAContextResult`: stack alignment (bullish/bearish/mixed), confluence zones.
@@ -119,7 +118,7 @@ Binance Square Ready Post
 - Rules documented in `ENGINE_RULES.md §14`. ADRs: 016–019.
 - 115 tests passing across 8 test files.
 
-### MODULE 7 — Validation Engine
+### `src/modules/validation/` — Validation Engine
 - **Gatekeeper layer**: Runs after Module 6 and before Module 8. Validates the complete `MarketAnalysisResult` produced by Module 6 against the raw upstream data embedded in that result.
 - Performs four independent validation categories:
   - **Completeness** (`checkCompleteness`): price > 0, non-empty symbol, minimum evidence count, valid condition-met ranges.
@@ -132,7 +131,7 @@ Binance Square Ready Post
 - Rules documented in `VALIDATION_RULES.md` and `ENGINE_RULES.md §15`.
 - 84 tests passing across 5 test files. ADR: ADR-020.
 
-### MODULE 8 — Confidence Engine
+### `src/modules/confidence/` — Confidence Engine
 - **Evidence-weighted scoring layer**: Reads `MarketAnalysisResult.evidence` (assembled by Module 6) and sums point weights assigned to each canonical factor name (ENGINE_RULES.md §11).
 - Raw points normalized to 0–10: `score = min(10, max(0, rawPoints / 10.6))`.
 - Computes separate `bullishConfidence` and `bearishConfidence` sub-scores from positive and negative weight totals respectively.
@@ -143,7 +142,7 @@ Binance Square Ready Post
 - Public API: `computeConfidence(analysis: MarketAnalysisResult, validation: ValidationResult, config?)`.
 - Rules documented in `ENGINE_RULES.md §11`. 80 tests passing (2 test files).
 
-### MODULE 9 — AI Writing Engine
+### `src/modules/writer/` — Writer Engine
 - **Template engine**, not an LLM. Pure TypeScript, no AI API calls, no network requests, no randomness, no timestamps.
 - Accepts `WriterInput` containing `MarketAnalysisResult` (Module 6), `ValidationResult` (Module 7), and `ConfidenceResult` (Module 8). Never reads raw candles.
 - Produces `GeneratedAnalysis`: 11 named section fields + `fullReport` + `WriterMetadata`.
@@ -158,7 +157,7 @@ Binance Square Ready Post
 - 131 tests passing (1 test file). Pure, deterministic, independently testable.
 - Source: `src/modules/writer/`. Files: `types.ts`, `config.ts`, `sections.ts`, `compose.ts`, `index.ts`.
 
-### MODULE 10 — Analysis Pipeline Orchestrator
+### `src/modules/pipeline/` — Pipeline Orchestrator
 - **Single public entry point** for the entire Sentinel analysis stack.
 - Orchestrates Modules 1–9 in strict sequential order with no out-of-order execution.
 - Accepts `PipelineOptions`: `symbol`, `interval`, `candleLimit`, per-module config overrides, and an optional `fetchImpl` for dependency injection (testing without network).
@@ -173,7 +172,7 @@ Binance Square Ready Post
 - Source: `src/modules/pipeline/`. Files: `types.ts`, `config.ts`, `index.ts`.
 - 33 tests passing (1 test file). Version `0.11.0`.
 
-### MODULE 11 — Historical Replay & Benchmark Engine
+### `src/modules/benchmark/` — Benchmark Engine
 - **Deterministic validation framework** for the analysis engine — not a trading strategy backtester.
 - Answers the question: "Did the same market data produce the same analysis as before?"
 - Accepts a `BenchmarkDataset` (symbol, interval, candles) and an `ExpectedOutput` (dot-notation paths → expected values).
@@ -189,7 +188,7 @@ Binance Square Ready Post
 - Source: `src/modules/benchmark/`. Files: `types.ts`, `config.ts`, `compare.ts`, `metrics.ts`, `replay.ts`, `report.ts`, `index.ts`.
 - 62 tests passing (1 test file). Dataset fixtures in `test-fixtures/`. Documentation in `docs/BENCHMARKING.md`.
 
-### MODULE 14 — React Dashboard
+### `src/ui/` — React Dashboard
 - **Presentation layer only** — zero analysis logic, zero pipeline calls, zero data transformations.
 - Renders `PipelineResult` returned by the API across 8 tab views: Overview, Evidence, Indicators, Structure, Volume, Validation, Writer, Benchmark.
 - Key components: `TradingViewChart` (embeds TradingView widget), `PriceHeader`, `LeftSidebar`, `RightPanel`, tab content components.
@@ -197,7 +196,7 @@ Binance Square Ready Post
 - Utility modules: `src/ui/utils/format.ts` (number/price/time formatting), `src/ui/utils/colors.ts` (grade and direction color helpers), `src/ui/utils/timeframes.ts` (timeframe constants).
 - Source: `src/ui/`. React 18, TypeScript, Vite, TailwindCSS v3.4.
 
-### MODULE 15 — UI Integration
+### `src/ui/api.ts` — UI API Client
 - **Client API layer** — `src/ui/api.ts` centralizes all HTTP communication with the backend.
 - `SentinelApiError` class: `kind: 'network' | 'timeout' | 'http' | 'parse' | 'abort'`, plus `friendly`, `detail`, `status`, `code` fields.
 - `analyze(symbol, interval, options?, signal?)` — `POST /analyze`, AbortController support.
@@ -207,7 +206,7 @@ Binance Square Ready Post
 - `useAnalyze()` hook manages loading state, AbortController lifecycle, friendly error messages.
 - 21 unit tests (mocked `fetch`).
 
-### MODULE 16 — UX Foundation
+### `src/ui/components/layout/` — Layout & UX Foundation
 - **Layout and interaction layer** — global header, collapsible sidebar, resizable panels, keyboard accessibility.
 - `Header` component: sidebar toggle, symbol input, 10 timeframe quick-buttons + 5-item overflow `<select>`, analyze button.
 - `LeftSidebar` collapses via CSS width transition (`transition-[width] duration-200`, `w-0` → `w-52`). Watchlist and recent-analysis items are keyboard navigable.
@@ -218,7 +217,7 @@ Binance Square Ready Post
 - `:focus-visible` keyboard focus rings (2px blue-500).
 - Semantic color utilities: `.text-success`, `.text-warning`, `.text-error`, `.text-info`.
 
-### MODULE 17 — Premium UX Polish
+### `src/ui/components/` — UI Polish & Information Density
 - **Information-density pass** — reduces visual noise, improves hierarchy, eliminates wasted space. Zero analysis logic changes.
 - `MarketSummaryBar` (56px): single always-visible bar replacing the old conditional PriceHeader. Shows symbol, interval, price, 24h change, trend badge, confidence, last analysis time, execution time, and `ApiDot` status. `ApiDot` consumes `useApiStatus()` — API status migrated here from Header.
 - `useResizablePanel` constants updated: `CHART_HEIGHT_DEFAULT` 560px (was 320), `CHART_HEIGHT_MIN` 300px (was 150), `CHART_HEIGHT_MAX` 900px (was 600). Chart dominates at default.
@@ -228,7 +227,7 @@ Binance Square Ready Post
 - All transitions 120–180ms (Tailwind `duration-150`); `prefers-reduced-motion` suppresses all via `index.css`.
 - 17 pure-logic tests for `clampSize`, chart height bounds, and timeframe completeness.
 
-### MODULE 12 — API Layer
+### `src/api/` — REST API Layer
 - **Transport layer only** — zero analysis logic, zero indicator calculations, zero pipeline duplication.
 - Wraps `analyzeMarket()` (Module 10) in a production-ready Express REST API.
 - Three endpoints:
@@ -244,7 +243,7 @@ Binance Square Ready Post
 - Source: `src/api/`. Files: `types.ts`, `config.ts`, `routes.ts`, `server.ts`, `middleware/validation.ts`, `middleware/error-handler.ts`.
 - 41 tests passing (1 test file).
 
-### MODULE 13 — CLI
+### `src/cli/` — CLI Tool
 - **Transport layer only** — zero analysis logic, zero indicator calculations, zero pipeline duplication.
 - Wraps `analyzeMarket()` (Module 10) in a production-ready command-line interface.
 - Entry point: `createCli(analyzeFn?, io?)` factory — fully dependency-injected for testing.

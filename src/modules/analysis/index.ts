@@ -1,3 +1,13 @@
+/**
+ * Analysis Engine — synthesizes all upstream module outputs into a single
+ * MarketAnalysisResult used by confidence scoring, validation, and the writer.
+ *
+ * Inputs:  MarketData, IndicatorResult, MarketStructureResult,
+ *          SupportResistanceResult, VolumeAnalysisResult
+ * Outputs: MarketAnalysisResult (price, fullTrend, emaContext, indicatorSummary,
+ *          srContext, volumeContext, evidence)
+ * Deps:    binance, indicators, market-structure, support-resistance, volume-analysis
+ */
 import type { MarketData } from '../binance/types'
 import type { IndicatorResult } from '../indicators/types'
 import type { MarketStructureResult } from '../market-structure/types'

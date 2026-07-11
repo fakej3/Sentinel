@@ -1,3 +1,13 @@
+/**
+ * Technical Indicator Engine — computes all indicators from raw OHLCV candles.
+ * Pure mathematical calculations; no interpretation, no decisions.
+ * Individual indicators return null when insufficient data is available.
+ *
+ * Inputs:  Candle[] (200+ recommended for EMA200 accuracy)
+ * Outputs: IndicatorResult (RSI, MACD, EMA, ATR, ADX, VWAP, Bollinger, StochRSI,
+ *          OBV, MFI, CCI, VolumeMA, etc.)
+ * Deps:    binance (Candle type only)
+ */
 import type { Candle } from '../binance'
 import type { IndicatorResult } from './types'
 import { computeEma } from './compute/ema'

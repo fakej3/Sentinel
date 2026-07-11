@@ -1,3 +1,13 @@
+/**
+ * Support & Resistance Engine — builds price zones from swing points, scores
+ * their strength via candle interactions, and classifies the current price
+ * relative to those zones.
+ *
+ * Inputs:  Candle[], MarketStructureResult, SupportResistanceConfig
+ * Outputs: SupportResistanceResult (zones[], activeSupport[], activeResistance[],
+ *          nearestSupport, nearestResistance, currentZone)
+ * Deps:    binance, market-structure, indicators (ATR)
+ */
 import type { Candle } from '../binance/types'
 import type { MarketStructureResult } from '../market-structure/types'
 import type { PriceZone, SupportResistanceConfig, SupportResistanceResult } from './types'

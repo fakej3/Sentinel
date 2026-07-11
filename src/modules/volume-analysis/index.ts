@@ -1,3 +1,14 @@
+/**
+ * Volume Analysis Engine — synthesizes nine volume sub-analyses into a single
+ * result that feeds the Analysis Engine's volume context and evidence.
+ *
+ * Inputs:  Candle[], IndicatorResult, MarketStructureResult,
+ *          SupportResistanceResult, VolumeAnalysisConfig
+ * Outputs: VolumeAnalysisResult (relativeVolume, volumeTrend, buySellPressure,
+ *          volumeConfirmation, climax, accumulationDistribution,
+ *          obvAnalysis, vwapAnalysis, overallStrength, evidence[])
+ * Deps:    binance, indicators, market-structure, support-resistance
+ */
 import type { Candle } from '../binance/types'
 import type { IndicatorResult } from '../indicators/types'
 import type { MarketStructureResult } from '../market-structure/types'

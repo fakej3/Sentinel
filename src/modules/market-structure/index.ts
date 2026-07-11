@@ -1,3 +1,12 @@
+/**
+ * Market Structure Engine — detects swing points, labels HH/HL/LH/LL patterns,
+ * identifies BOS/CHoCH events, consolidation, breakouts, and pullbacks.
+ *
+ * Inputs:  Candle[], MarketStructureConfig
+ * Outputs: MarketStructureResult (trend, strength, swings[], bos, choch,
+ *          consolidation, breakout, pullback, confidence, evidence[])
+ * Deps:    binance (Candle type only)
+ */
 import type { Candle } from '../binance'
 import type { MarketStructureConfig, MarketStructureResult } from './types'
 import { DEFAULT_CONFIG } from './config'

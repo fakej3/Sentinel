@@ -1,3 +1,11 @@
+/**
+ * Binance Data Engine — fetches raw OHLCV candles and market data from the
+ * official Binance REST API. Only fetches; never transforms or infers.
+ *
+ * Inputs:  symbol (e.g. "BTCUSDT"), timeframe (e.g. "1h"), FetchOptions
+ * Outputs: MarketData (candles[], ticker, fundingRate?, openInterest?)
+ * Deps:    Binance REST API (external)
+ */
 import { BinanceApiError } from './client'
 import { fetchCandles, fetchTicker24h, fetchFundingRate, fetchOpenInterest } from './endpoints'
 import { VALID_TIMEFRAMES, DEFAULT_CANDLE_LIMIT } from './constants'

@@ -1,3 +1,12 @@
+/**
+ * Validation Engine — runs four independent checkers against MarketAnalysisResult
+ * to surface completeness gaps, internal inconsistencies, contradictions, and
+ * structural anomalies before confidence scoring.
+ *
+ * Inputs:  MarketAnalysisResult
+ * Outputs: ValidationResult (passed, clean, issues[], criticalCount, warningCount)
+ * Deps:    analysis
+ */
 import type { MarketAnalysisResult } from '../analysis/types'
 import type { ValidationResult, ValidationConfig } from './types'
 import { DEFAULT_VALIDATION_CONFIG } from './config'

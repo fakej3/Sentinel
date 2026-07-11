@@ -1,3 +1,13 @@
+/**
+ * Historical Validation Engine — walk-forward backtesting over a candle history.
+ * Runs the full production pipeline at every step, simulates trade outcomes
+ * (TP/SL hit, MFE/MAE), and produces a CalibrationDashboard.
+ *
+ * Inputs:  Candle[] (full history), symbol, interval, WalkConfig
+ * Outputs: CalibrationDashboard (confidence calibration, trust validation,
+ *          evidence, trade-plan, and post-traceability reports)
+ * Deps:    binance, pipeline (full stack), writer, benchmark
+ */
 import type { Candle, Timeframe } from '../binance/types'
 import type { WalkConfig, CalibrationDashboard } from './types'
 import { DEFAULT_WALK_CONFIG } from './types'
