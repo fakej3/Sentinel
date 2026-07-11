@@ -145,8 +145,8 @@ function buildVolumeSentence(volumeContext: MarketAnalysisResult['volumeContext'
 
   if (!volDesc) return null
 
-  const accDesc = accDistState === 'accumulating' ? ', with accumulation signs visible'
-    : accDistState === 'distributing' ? ', with distribution patterns active'
+  const accDesc = accDistState === 'accumulation' ? ', with accumulation signs visible'
+    : accDistState === 'distribution' ? ', with distribution patterns active'
     : ''
 
   return `${volDesc}${accDesc}.`
