@@ -2,7 +2,7 @@ import type { MarketAnalysisResult } from '../../analysis/types'
 import type { SupportResistanceResult } from '../../support-resistance/types'
 import type { ConfidenceResult } from '../../confidence/types'
 import type { ValidationResult } from '../../validation/types'
-import type { TradePlan, TradeSetupQuality } from '../types'
+import type { TradePlan, TradeSetupQuality, MultiTimeframeAgreement } from '../types'
 
 const CLEAN_VALIDATION: ValidationResult = {
   passed: true, clean: true, issues: [],
@@ -24,6 +24,7 @@ export function computeTradePlan(
   supportResistance: SupportResistanceResult,
   confidence: ConfidenceResult,
   validation: ValidationResult = CLEAN_VALIDATION,
+  mtfAgreement?: MultiTimeframeAgreement,
 ): TradePlan {
   const { fullTrend, srContext, price } = analysis
   const trend = fullTrend.trend
@@ -86,7 +87,7 @@ export function computeTradePlan(
   const { setupQuality, setupQualityReason } = classifySetupQuality(
     entryZone, invalidationLevel, targetLevel,
     geometryValid, riskRewardRatio,
-    confidence, validation,
+    confidence, validation, mtfAgreement,
   )
 
   // excellent / good / average are actionable; poor / avoid / no_setup are not
@@ -95,6 +96,7 @@ export function computeTradePlan(
   // ── Patience message ──────────────────────────────────────────────────────
   const patienceMessage = buildPatienceMessage(
     setupQuality, trend, confidence, srContext, riskRewardRatio, validation,
+    entryZone, invalidationLevel, targetLevel,
   )
 
   // price is referenced here only to satisfy the linter — the variable is
@@ -123,6 +125,7 @@ function classifySetupQuality(
   riskRewardRatio: number | null,
   confidence: ConfidenceResult,
   validation: ValidationResult,
+  mtfAgreement?: MultiTimeframeAgreement,
 ): { setupQuality: TradeSetupQuality; setupQualityReason: string } {
   // 1. Insufficient S/R data — no trade levels available
   if (entryZone === null || invalidationLevel === null || targetLevel === null) {
@@ -169,8 +172,19 @@ function classifySetupQuality(
     }
   }
 
+  const mtfConflict = mtfAgreement?.agreement === 'strong_conflict'
+  const mtfNote = mtfConflict
+    ? ` — MTF conflict: ${mtfAgreement!.conflictingCount} opposing timeframe(s) reduce quality`
+    : ''
+
   // 5. Excellent: RR ≥ 2.0, confidence ≥ 7.5, trust ≥ 70 — all conditions met
   if (riskRewardRatio >= 2.0 && confidence.score >= 7.5 && confidence.trust.score >= 70) {
+    if (mtfConflict) {
+      return {
+        setupQuality: 'good',
+        setupQualityReason: `Excellent setup degraded by multi-timeframe conflict: RR ${riskRewardRatio.toFixed(2)}, confidence ${confidence.score.toFixed(1)}${mtfNote}`,
+      }
+    }
     return {
       setupQuality: 'excellent',
       setupQualityReason: `Excellent setup: RR ${riskRewardRatio.toFixed(2)}, confidence ${confidence.score.toFixed(1)}, trust ${confidence.trust.score}%`,
@@ -179,6 +193,12 @@ function classifySetupQuality(
 
   // 6. Good: RR ≥ 1.5 and confidence ≥ 5.0
   if (confidence.score >= 5.0) {
+    if (mtfConflict) {
+      return {
+        setupQuality: 'average',
+        setupQualityReason: `Good setup degraded by multi-timeframe conflict: RR ${riskRewardRatio.toFixed(2)}, confidence ${confidence.score.toFixed(1)}${mtfNote}`,
+      }
+    }
     return {
       setupQuality: 'good',
       setupQualityReason: `Good setup: RR ${riskRewardRatio.toFixed(2)}, confidence ${confidence.score.toFixed(1)}`,
@@ -188,8 +208,15 @@ function classifySetupQuality(
   // 7. Average: RR meets threshold but confidence is below 5.0 — marginal
   return {
     setupQuality: 'average',
-    setupQualityReason: `Marginal setup: RR ${riskRewardRatio.toFixed(2)} meets threshold but confidence ${confidence.score.toFixed(1)} is below optimal`,
+    setupQualityReason: `Marginal setup: RR ${riskRewardRatio.toFixed(2)} meets threshold but confidence ${confidence.score.toFixed(1)} is below optimal${mtfNote}`,
   }
+}
+
+function fmtPrice(price: number): string {
+  if (price >= 10_000) return price.toFixed(0)
+  if (price >= 100)    return price.toFixed(2)
+  if (price >= 1)      return price.toFixed(4)
+  return price.toFixed(6)
 }
 
 function buildPatienceMessage(
@@ -199,6 +226,9 @@ function buildPatienceMessage(
   srContext: MarketAnalysisResult['srContext'],
   riskRewardRatio: number | null,
   validation: ValidationResult,
+  entryZone: TradePlan['entryZone'],
+  invalidationLevel: number | null,
+  targetLevel: number | null,
 ): string {
   switch (setupQuality) {
     case 'no_setup':
@@ -207,32 +237,51 @@ function buildPatienceMessage(
     case 'avoid':
       if (riskRewardRatio !== null && riskRewardRatio < 1.5) {
         return confidence.score >= 6.0
-          ? 'Confidence is high but risk/reward is unfavorable — wait for price to pull back to a better entry zone'
-          : 'Risk/reward is unfavorable — wait for price to approach a higher-probability entry zone'
+          ? `Confidence is high but risk/reward is ${riskRewardRatio.toFixed(2)}:1 (minimum 1.5:1) — wait for a better entry zone`
+          : `Risk/reward is ${riskRewardRatio.toFixed(2)}:1 — below minimum 1.5:1; wait for price to approach a higher-probability zone`
       }
-      return 'Trade geometry is invalid — stop, entry, and target levels cannot be trusted; wait for structure to clarify'
+      return 'Trade geometry is invalid — stop, entry, and target are not in the correct order; wait for structure to clarify'
 
     case 'poor':
       if (validation.criticalCount > 0) {
         return 'Critical data quality issues are present — avoid trading until the analysis clears'
       }
       if (confidence.score < 4.0) {
-        return 'Signal confidence too low — wait for a clearer directional move before committing capital'
+        return `Signal confidence is ${confidence.score.toFixed(1)}/10 — too low for a reliable setup; wait for a clearer directional move`
       }
       return 'Data quality is insufficient for a reliable setup — wait for more price history to accumulate'
 
-    case 'excellent':
+    case 'excellent': {
+      if (entryZone !== null && invalidationLevel !== null && targetLevel !== null) {
+        const mid = fmtPrice((entryZone.lower + entryZone.upper) / 2)
+        const stop = fmtPrice(invalidationLevel)
+        const target = fmtPrice(targetLevel)
+        const rrStr = riskRewardRatio !== null ? `, RR ${riskRewardRatio.toFixed(2)}:1` : ''
+        return `High-quality setup — enter near ${mid}, stop at ${stop}, target ${target}${rrStr}`
+      }
       return trend.includes('strong')
         ? 'High-quality setup in a strong trend — enter at the zone boundary with a defined stop and target'
         : 'High-quality setup — enter on approach to the entry zone with disciplined risk management'
+    }
 
-    case 'good':
+    case 'good': {
+      if (entryZone !== null && invalidationLevel !== null && targetLevel !== null) {
+        const mid = fmtPrice((entryZone.lower + entryZone.upper) / 2)
+        const stop = fmtPrice(invalidationLevel)
+        const target = fmtPrice(targetLevel)
+        const rrStr = riskRewardRatio !== null ? `, RR ${riskRewardRatio.toFixed(2)}:1` : ''
+        if (srContext.approachingSupport || srContext.approachingResistance) {
+          return `Good setup near a key level — wait for a reaction, then enter near ${mid} with stop at ${stop}, target ${target}${rrStr}`
+        }
+        return `Good setup — enter near ${mid}, stop at ${stop}, target ${target}${rrStr}`
+      }
       if (srContext.approachingSupport || srContext.approachingResistance) {
         return 'Good setup approaching a key level — wait for a reaction here before entering'
       }
       return trend.includes('moderate')
         ? 'Good setup in a moderate trend — wait for price to reach the entry zone before committing'
         : 'Good setup — enter at the entry zone with a clearly defined stop loss'
+    }
 
     case 'average':
       return 'Marginal setup — if entering, use reduced size and strict risk management; wait for confirmation if possible'

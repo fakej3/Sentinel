@@ -81,6 +81,34 @@ export interface GeneratedAnalysis {
   aiEnhanced?: boolean
 }
 
+// ─── Binance Post ────────────────────────────────────────────────────────────
+
+/**
+ * Mode 1 output — concise professional post suitable for Binance Square or
+ * similar social/trading platforms.
+ *
+ * Every claim in `text` derives from a concrete computed field.
+ * `evidenceCoverage` is always 100 because the template is fully deterministic —
+ * it never invents facts.
+ */
+export interface BinancePost {
+  /** Complete formatted post text ready for publication */
+  text: string
+  /** False when a blocking condition prevents safe publication */
+  publishable: boolean
+  /** Reason publication is blocked; null when publishable */
+  blockReason: string | null
+  /** Directional bias for this post */
+  bias: 'bullish' | 'bearish' | 'neutral'
+  /** Confidence score shown in the post */
+  confidenceScore: number
+  /**
+   * Evidence coverage percentage.
+   * Always 100 for this deterministic template — every claim maps to a computed field.
+   */
+  evidenceCoverage: 100
+}
+
 // ─── Config ───────────────────────────────────────────────────────────────────
 
 export interface WriterConfig {

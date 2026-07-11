@@ -86,8 +86,8 @@ function buildPhaseSentence(phase: string, volatility: string): string {
 
   switch (phase) {
     case 'breakout':           return `A breakout is underway${volNote}, which often leads to accelerated directional moves.`
-    case 'reversal_attempt':   return `The market is attempting a reversal${volNote} — confirmation is still needed before committing.`
-    case 'consolidation':      return `Price is consolidating${volNote}, building energy for the next directional move.`
+    case 'reversal_attempt':   return `The market is attempting a reversal${volNote} — price structure has not yet confirmed the new direction.`
+    case 'consolidation':      return `Price is consolidating${volNote} — a directional breakout is the expected next move.`
     case 'pullback':           return `The current move is a pullback${volNote} within the broader trend.`
     case 'trending_bullish':   return `The market is in an established uptrend${volNote}.`
     case 'trending_bearish':   return `The market is in an established downtrend${volNote}.`

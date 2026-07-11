@@ -6,7 +6,9 @@ import { DEFAULT_WRITER_CONFIG } from './config'
 import { buildCriticalStubs } from './sections'
 import { buildAllSections, composeReport } from './compose'
 
-export type { WriterTemplate, WriterVerbosity, WriterInput, WriterConfig, WriterMetadata, GeneratedAnalysis } from './types'
+export type { WriterTemplate, WriterVerbosity, WriterInput, WriterConfig, WriterMetadata, GeneratedAnalysis, BinancePost } from './types'
+export { buildBinancePost } from './binance-post'
+export type { BinancePostInput } from './binance-post'
 
 // ─── Public API ───────────────────────────────────────────────────────────────
 

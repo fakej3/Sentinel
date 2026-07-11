@@ -293,11 +293,20 @@ export async function analyzeMarket(options: PipelineOptions): Promise<PipelineR
           confidenceScore: confidence.score,
           confidenceGrade: confidence.grade,
         })
-        generatedAnalysis = {
-          ...generatedAnalysis,
-          summary: enhancement.summary,
-          conclusion: enhancement.conclusion,
-          aiEnhanced: true,
+        // Safety check: AI output must not introduce unsupported hedging language.
+        // If found, silently revert to the deterministic output — AI is always optional.
+        const PROHIBITED = ['probably', 'maybe', 'looks like', 'appears to', 'might suggest', 'seems like']
+        const hasUnsupported = PROHIBITED.some(
+          phrase => enhancement.summary.toLowerCase().includes(phrase)
+            || enhancement.conclusion.toLowerCase().includes(phrase),
+        )
+        if (!hasUnsupported) {
+          generatedAnalysis = {
+            ...generatedAnalysis,
+            summary: enhancement.summary,
+            conclusion: enhancement.conclusion,
+            aiEnhanced: true,
+          }
         }
       }
     } catch {

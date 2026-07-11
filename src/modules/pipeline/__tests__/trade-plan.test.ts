@@ -3,6 +3,7 @@ import { computeTradePlan } from '../compute/trade-plan'
 import type { MarketAnalysisResult } from '../../analysis/types'
 import type { SupportResistanceResult } from '../../support-resistance/types'
 import type { ConfidenceResult } from '../../confidence/types'
+import type { MultiTimeframeAgreement } from '../types'
 import type { Timeframe } from '../../binance/types'
 
 // ─── Stubs ────────────────────────────────────────────────────────────────────
@@ -122,5 +123,92 @@ describe('computeTradePlan', () => {
     const p1 = computeTradePlan(analysis, sr, confidence)
     const p2 = computeTradePlan(analysis, sr, confidence)
     expect(p1).toEqual(p2)
+  })
+})
+
+// ─────────────────────────────────────────────────────────────────────────────
+// MTF Agreement integration
+// ─────────────────────────────────────────────────────────────────────────────
+
+function makeMTFConflict(): MultiTimeframeAgreement {
+  return {
+    agreement: 'strong_conflict',
+    agreementScore: 1.5,
+    timeframes: [],
+    dominantDirection: 'bullish',
+    conflictingCount: 2,
+  }
+}
+
+function makeMTFAligned(): MultiTimeframeAgreement {
+  return {
+    agreement: 'aligned',
+    agreementScore: 9.0,
+    timeframes: [],
+    dominantDirection: 'bullish',
+    conflictingCount: 0,
+  }
+}
+
+describe('computeTradePlan — MTF agreement', () => {
+  const SR_EXCELLENT = makeSR(
+    { lower: 95, upper: 97, center: 96 },
+    { lower: 110, upper: 112, center: 111 },
+  )
+
+  it('MTF strong_conflict degrades excellent → good', () => {
+    const plan = computeTradePlan(
+      makeAnalysis('strong bullish', 100),
+      SR_EXCELLENT,
+      makeConfidence(8.0) as ConfidenceResult,
+      undefined,
+      makeMTFConflict(),
+    )
+    expect(plan.setupQuality).toBe('good')
+  })
+
+  it('MTF strong_conflict degrades good → average', () => {
+    // confidence 5.5 → good base, but MTF conflict drops to average
+    const plan = computeTradePlan(
+      makeAnalysis('strong bullish', 100),
+      SR_EXCELLENT,
+      makeConfidence(5.5) as ConfidenceResult,
+      undefined,
+      makeMTFConflict(),
+    )
+    expect(plan.setupQuality).toBe('average')
+  })
+
+  it('MTF aligned does not change quality', () => {
+    const withoutMTF = computeTradePlan(
+      makeAnalysis('strong bullish', 100),
+      SR_EXCELLENT,
+      makeConfidence(8.0) as ConfidenceResult,
+    )
+    const withAligned = computeTradePlan(
+      makeAnalysis('strong bullish', 100),
+      SR_EXCELLENT,
+      makeConfidence(8.0) as ConfidenceResult,
+      undefined,
+      makeMTFAligned(),
+    )
+    expect(withAligned.setupQuality).toBe(withoutMTF.setupQuality)
+    expect(withAligned.setupQuality).toBe('excellent')
+  })
+
+  it('MTF undefined behaves identically to no MTF argument', () => {
+    const withUndefined = computeTradePlan(
+      makeAnalysis('strong bullish', 100),
+      SR_EXCELLENT,
+      makeConfidence(8.0) as ConfidenceResult,
+      undefined,
+      undefined,
+    )
+    const withoutArg = computeTradePlan(
+      makeAnalysis('strong bullish', 100),
+      SR_EXCELLENT,
+      makeConfidence(8.0) as ConfidenceResult,
+    )
+    expect(withUndefined.setupQuality).toBe(withoutArg.setupQuality)
   })
 })
