@@ -73,7 +73,7 @@ describe('synthesizeFullTrend', () => {
     expect(result.trend).toBe('ranging')
   })
 
-  it('returns weak bullish when exactly 1 bullish condition met', () => {
+  it('returns weak bullish when exactly 2 bullish conditions met (RSI=50 below rsiBullishMin=55)', () => {
     const ind = indicators({
       ema20: 95, ema50: 90, ema100: 85, ema200: 80,
       rsi: 50,
@@ -81,10 +81,11 @@ describe('synthesizeFullTrend', () => {
     })
     const structure = emptyStructure()
     const result = synthesizeFullTrend(100, ind, structure, cfg)
-    // priceAboveAllEMAs=true, emaInBullishOrder=true(95>90>85>80), hasHHHL=false, rsiSupportsBullish=true(50>=45), macdBullish=false
-    // bullish = 3 => moderate bullish
-    expect(result.bullishConditionsMet).toBe(3)
-    expect(result.trend).toBe('moderate bullish')
+    // priceAboveAllEMAs=true, emaInBullishOrder=true(95>90>85>80), hasHHHL=false,
+    // rsiSupportsBullish=false(50<55=rsiBullishMin), macdBullish=false
+    // bullish = 2 => weak bullish
+    expect(result.bullishConditionsMet).toBe(2)
+    expect(result.trend).toBe('weak bullish')
   })
 
   it('exposes all 5 bullish condition booleans correctly', () => {

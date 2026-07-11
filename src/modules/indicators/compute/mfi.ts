@@ -24,6 +24,7 @@ export function computeMfi(
     else if (tps[i] < tps[i - 1]) negativeFlow += rawFlow
   }
 
+  if (positiveFlow === 0 && negativeFlow === 0) return 50
   if (negativeFlow === 0) return 100
   return 100 - 100 / (1 + positiveFlow / negativeFlow)
 }

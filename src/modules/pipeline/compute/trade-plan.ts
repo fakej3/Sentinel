@@ -33,31 +33,38 @@ export function computeTradePlan(
 
   const nearestSupport    = supportResistance.nearestSupport
   const nearestResistance = supportResistance.nearestResistance
+  const currentZone       = supportResistance.currentZone
+
+  // When price is AT a zone, nearestSupport/nearestResistance is null (filtered out).
+  // Fall back to currentZone so we can still establish trade levels.
+  const effectiveSupport    = nearestSupport    ?? (currentZone?.type === 'support'    ? currentZone : null)
+  const effectiveResistance = nearestResistance ?? (currentZone?.type === 'resistance' ? currentZone : null)
 
   // ── Entry zone ────────────────────────────────────────────────────────────
   let entryZone: TradePlan['entryZone'] = null
-  if (isBullish && nearestSupport) {
-    entryZone = { lower: nearestSupport.lower, upper: nearestSupport.upper }
-  } else if (isBearish && nearestResistance) {
-    entryZone = { lower: nearestResistance.lower, upper: nearestResistance.upper }
+  if (isBullish && effectiveSupport) {
+    entryZone = { lower: effectiveSupport.lower, upper: effectiveSupport.upper }
+  } else if (isBearish && effectiveResistance) {
+    entryZone = { lower: effectiveResistance.lower, upper: effectiveResistance.upper }
   }
 
   // ── Invalidation level ────────────────────────────────────────────────────
   // Bullish: a close below support breaks the thesis.
   // Bearish: a close above resistance breaks the thesis.
   let invalidationLevel: number | null = null
-  if (isBullish && nearestSupport) {
-    invalidationLevel = Math.round(nearestSupport.lower * 0.995 * 100) / 100
-  } else if (isBearish && nearestResistance) {
-    invalidationLevel = Math.round(nearestResistance.upper * 1.005 * 100) / 100
+  if (isBullish && effectiveSupport) {
+    invalidationLevel = Math.round(effectiveSupport.lower * 0.995 * 100) / 100
+  } else if (isBearish && effectiveResistance) {
+    invalidationLevel = Math.round(effectiveResistance.upper * 1.005 * 100) / 100
   }
 
   // ── Target level ──────────────────────────────────────────────────────────
+  // Use zone boundary (not center) to avoid inflating RR with an optimistic midpoint target.
   let targetLevel: number | null = null
   if (isBullish && nearestResistance) {
-    targetLevel = nearestResistance.center
+    targetLevel = nearestResistance.lower
   } else if (isBearish && nearestSupport) {
-    targetLevel = nearestSupport.center
+    targetLevel = nearestSupport.upper
   }
 
   // ── Geometry validation ───────────────────────────────────────────────────
@@ -206,9 +213,15 @@ function classifySetupQuality(
   }
 
   // 7. Average: RR meets threshold but confidence is below 5.0 — marginal
+  if (mtfConflict) {
+    return {
+      setupQuality: 'poor',
+      setupQualityReason: `Marginal setup degraded by multi-timeframe conflict: RR ${riskRewardRatio.toFixed(2)}, confidence ${confidence.score.toFixed(1)}${mtfNote}`,
+    }
+  }
   return {
     setupQuality: 'average',
-    setupQualityReason: `Marginal setup: RR ${riskRewardRatio.toFixed(2)} meets threshold but confidence ${confidence.score.toFixed(1)} is below optimal${mtfNote}`,
+    setupQualityReason: `Marginal setup: RR ${riskRewardRatio.toFixed(2)} meets threshold but confidence ${confidence.score.toFixed(1)} is below optimal`,
   }
 }
 

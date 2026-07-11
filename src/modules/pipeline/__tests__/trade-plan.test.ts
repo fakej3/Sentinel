@@ -92,13 +92,14 @@ describe('computeTradePlan', () => {
     expect(plan.invalidationLevel!).toBeLessThan(95)
   })
 
-  it('bullish trend with resistance → target at resistance', () => {
+  it('bullish trend with resistance → target at resistance lower edge (conservative boundary)', () => {
     const sr = makeSR(
       { lower: 95, upper: 97, center: 96 },
       { lower: 110, upper: 112, center: 111 },
     )
     const plan = computeTradePlan(makeAnalysis('strong bullish', 100), sr, makeConfidence() as ConfidenceResult)
-    expect(plan.targetLevel).toBeCloseTo(111, 0)
+    // Target uses zone lower boundary (not center) to avoid inflating RR
+    expect(plan.targetLevel).toBeCloseTo(110, 0)
   })
 
   it('computes R/R ratio when both invalidation and target are known', () => {

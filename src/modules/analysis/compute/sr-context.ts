@@ -10,12 +10,12 @@ export function deriveSRContext(
 
   const nearestSupportDistance =
     nearestSupport !== null
-      ? ((price - nearestSupport.center) / price) * 100
+      ? ((price - nearestSupport.upper) / price) * 100
       : null
 
   const nearestResistanceDistance =
     nearestResistance !== null
-      ? ((nearestResistance.center - price) / price) * 100
+      ? ((nearestResistance.lower - price) / price) * 100
       : null
 
   const insideSupport = currentZone !== null && currentZone.type === 'support'

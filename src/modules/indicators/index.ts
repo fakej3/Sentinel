@@ -62,7 +62,7 @@ export function computeIndicators(candles: Candle[]): IndicatorResult {
     rsi: computeRsi(closes),
     macd: computeMacd(closes),
     atr,
-    atrPercent: atr !== null ? (atr / lastClose) * 100 : null,
+    atrPercent: atr !== null && lastClose > 0 ? (atr / lastClose) * 100 : null,
     adx: computeAdx(highs, lows, closes),
     vwap: computeVwap(highs, lows, closes, volumes),
     bollingerBands: computeBollinger(closes),

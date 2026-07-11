@@ -31,8 +31,9 @@ export function computeVolumeConfirmation(
   const current = candles[candles.length - 1]
   const candleDir = current.close > current.open ? 'bullish'
     : current.close < current.open ? 'bearish' : 'neutral'
-  // Counter-trend candle direction voids confirmation; neutral (doji) candles are allowed
+  // Counter-trend or doji candles void trend confirmation; only directional candles qualify
   const supportsTrend = confirmed
+    && candleDir !== 'neutral'
     && !(marketStructure.trend.includes('bullish') && candleDir === 'bearish')
     && !(marketStructure.trend.includes('bearish') && candleDir === 'bullish')
     && marketStructure.trend !== 'ranging'

@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { computeVolumeConfirmation } from '../compute/volume-confirmation'
 import { DEFAULT_CONFIG } from '../config'
-import { flatCandles, emptyStructure } from './helpers'
+import { candle, flatCandles, emptyStructure } from './helpers'
 import type { RelativeVolumeResult } from '../types'
 
 function relVol(ratio: number): RelativeVolumeResult {
@@ -31,12 +31,20 @@ describe('computeVolumeConfirmation', () => {
     expect(result.reason.length).toBeGreaterThan(0)
   })
 
-  it('supportsTrend is true when confirmed and trend is not ranging', () => {
+  it('supportsTrend is true when confirmed, trend is not ranging, and candle is directional', () => {
+    const structure = { ...emptyStructure(), trend: 'bullish' as const }
+    // Bullish candle: open=99, close=100 (close > open)
+    const bullishCandles = [candle({ open: 99, close: 100, high: 101, low: 98, volume: 1500 })]
+    const result = computeVolumeConfirmation(bullishCandles, relVol(1.5), structure, DEFAULT_CONFIG)
+    expect(result.supportsTrend).toBe(true)
+  })
+
+  it('supportsTrend is false when candle is neutral (doji)', () => {
     const structure = { ...emptyStructure(), trend: 'bullish' as const }
     const result = computeVolumeConfirmation(
       flatCandles(5, 100), relVol(1.5), structure, DEFAULT_CONFIG,
     )
-    expect(result.supportsTrend).toBe(true)
+    expect(result.supportsTrend).toBe(false)
   })
 
   it('supportsTrend is false when trend is ranging', () => {

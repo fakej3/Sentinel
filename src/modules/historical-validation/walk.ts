@@ -38,7 +38,7 @@ export async function walkCandles(
 
   const records: ValidationRecord[] = []
 
-  for (let i = cfg.minCandleCount; i <= allCandles.length; i += cfg.stepSize) {
+  for (let i = cfg.minCandleCount; i <= allCandles.length - cfg.forwardLookBars; i += cfg.stepSize) {
     const snapshotCandles = allCandles.slice(0, i)
     const forwardCandles  = allCandles.slice(i, i + cfg.forwardLookBars)
     const lastCandle      = snapshotCandles[snapshotCandles.length - 1]

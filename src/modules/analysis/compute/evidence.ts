@@ -138,8 +138,16 @@ export function collectEvidence(
   }
 
   // ── RSI evidence ──────────────────────────────────────────────────────────
+  // Overbought/oversold take priority — they subsume the bullish/bearish support signals
+  // to prevent double-counting (e.g. RSI=75 simultaneously emitting +7 and -10).
   if (indicatorSummary.rsi.value !== null) {
-    if (conditions.rsiSupportsBullish && conditions.rsiSupportsBearish) {
+    if (indicatorSummary.rsi.classification === 'overbought') {
+      items.push(item('Overbought RSI (>70)', 'medium',
+        `RSI ${indicatorSummary.rsi.value.toFixed(1)} is overbought — potential exhaustion risk`, 'indicators', 'bearish'))
+    } else if (indicatorSummary.rsi.classification === 'oversold') {
+      items.push(item('Oversold RSI (<30)', 'medium',
+        `RSI ${indicatorSummary.rsi.value.toFixed(1)} is oversold — potential reversal setup`, 'indicators', 'bullish'))
+    } else if (conditions.rsiSupportsBullish && conditions.rsiSupportsBearish) {
       items.push(item('RSI in neutral overlap zone', 'medium',
         `RSI ${indicatorSummary.rsi.value.toFixed(1)} satisfies both bullish (≥${cfg.rsiBullishMin}) and bearish (≤${cfg.rsiBearishMax}) thresholds — momentum is neutral and contributes one point to each direction`,
         'indicators', 'neutral'))
@@ -153,14 +161,6 @@ export function collectEvidence(
       items.push(item('RSI neutral', 'low',
         `RSI ${indicatorSummary.rsi.value.toFixed(1)} — neutral momentum`, 'indicators', 'neutral'))
     }
-  }
-  if (indicatorSummary.rsi.classification === 'overbought') {
-    items.push(item('Overbought RSI (>70)', 'medium',
-      `RSI ${indicatorSummary.rsi.value?.toFixed(1)} is overbought — potential exhaustion risk`, 'indicators', 'bearish'))
-  }
-  if (indicatorSummary.rsi.classification === 'oversold') {
-    items.push(item('Oversold RSI (<30)', 'medium',
-      `RSI ${indicatorSummary.rsi.value?.toFixed(1)} is oversold — potential reversal setup`, 'indicators', 'bullish'))
   }
 
   // ── MACD evidence ─────────────────────────────────────────────────────────

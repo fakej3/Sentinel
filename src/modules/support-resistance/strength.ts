@@ -2,13 +2,14 @@ import type { PriceZone, ZoneState } from './types'
 
 /** ENGINE_RULES.md §12.6 */
 export function computeStrength(zone: PriceZone, strengthDecayAge: number): number {
+  const ageSinceLastInteraction = zone.age - (zone.lastInteractionIndex - zone.firstDetectedIndex)
   const score =
     20 +
     Math.max(0, Math.min(zone.touchCount - 1, 5)) * 10 +
     Math.min(zone.successfulReactions, 4) * 5 -
     Math.min(zone.failedReactions, 2) * 10 +
     (zone.retested ? 5 : 0) -
-    Math.max(0, zone.age - strengthDecayAge) * 0.2
+    Math.max(0, ageSinceLastInteraction - strengthDecayAge) * 0.2
 
   return Math.min(10, Math.max(0, score / 10))
 }

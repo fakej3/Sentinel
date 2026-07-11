@@ -131,7 +131,7 @@ export const DEFAULT_CONFIDENCE_CONFIG: ConfidenceConfig = {
 
   overconfidenceThreshold: 8.0,
 
-  trustPenaltyLow: 1.5,
+  trustPenaltyLow: 1.6,
 
   trustPenaltyMedium: 0.75,
 }

@@ -36,11 +36,13 @@ export function applyInteractions(zone: PriceZone, candles: Candle[]): PriceZone
       if (z.type === 'resistance') {
         if (c.close < z.lower) {
           // Closed below zone bottom — potential bounce (successful reaction)
-          const nextConfirms = i + 1 < candles.length ? candles[i + 1].high < z.lower : false
-          if (nextConfirms) {
+          const nextCandle = i + 1 < candles.length ? candles[i + 1] : null
+          // Failed only when the next candle closes back at or above the zone (bounce reversed).
+          // No next candle means no evidence of failure; re-entry that closes below is a retest that held.
+          const failed = nextCandle !== null && nextCandle.close >= z.lower
+          if (!failed) {
             z = { ...z, successfulReactions: z.successfulReactions + 1 }
           } else {
-            // Next candle re-entered or no next candle — ambiguous; count as failed
             z = { ...z, failedReactions: z.failedReactions + 1 }
           }
         } else if (c.close > z.upper) {
@@ -57,8 +59,10 @@ export function applyInteractions(zone: PriceZone, candles: Candle[]): PriceZone
         // support zone
         if (c.close > z.upper) {
           // Closed above zone top — bounce (successful reaction for support)
-          const nextConfirms = i + 1 < candles.length ? candles[i + 1].low > z.upper : false
-          if (nextConfirms) {
+          const nextCandle = i + 1 < candles.length ? candles[i + 1] : null
+          // Failed only when the next candle closes back at or below the zone (bounce reversed).
+          const failed = nextCandle !== null && nextCandle.close <= z.upper
+          if (!failed) {
             z = { ...z, successfulReactions: z.successfulReactions + 1 }
           } else {
             z = { ...z, failedReactions: z.failedReactions + 1 }

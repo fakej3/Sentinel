@@ -211,7 +211,7 @@ export function buildEvidenceReport(records: ValidationRecord[]): EvidenceReport
       losses,
       winRate:         resolved > 0 ? wins / resolved : null,
       averageRR:       avgOrNull(winRRs),
-      falsePositiveRate: trades.length > 0 ? losses / trades.length : null,
+      falsePositiveRate: resolved > 0 ? losses / resolved : null,
     })
   }
 

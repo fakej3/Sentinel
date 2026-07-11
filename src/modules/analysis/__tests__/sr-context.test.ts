@@ -12,28 +12,28 @@ describe('deriveSRContext', () => {
     expect(result.nearestResistanceDistance).toBeNull()
   })
 
-  it('computes nearestSupportDistance as percentage below price', () => {
-    const support = priceZone('support', 95)
+  it('computes nearestSupportDistance as percentage from price to zone upper edge', () => {
+    const support = priceZone('support', 95)  // center=95, upper=96, lower=94
     const sr = {
       ...emptySupportResistance(),
       nearestSupport: support,
       activeSupport: [support],
     }
     const result = deriveSRContext(100, sr, cfg)
-    // (100 - 95) / 100 * 100 = 5%
-    expect(result.nearestSupportDistance).toBeCloseTo(5, 5)
+    // (100 - 96) / 100 * 100 = 4% (distance to zone top edge, not center)
+    expect(result.nearestSupportDistance).toBeCloseTo(4, 5)
   })
 
-  it('computes nearestResistanceDistance as percentage above price', () => {
-    const resistance = priceZone('resistance', 105)
+  it('computes nearestResistanceDistance as percentage from zone lower edge to price', () => {
+    const resistance = priceZone('resistance', 105)  // center=105, upper=106, lower=104
     const sr = {
       ...emptySupportResistance(),
       nearestResistance: resistance,
       activeResistance: [resistance],
     }
     const result = deriveSRContext(100, sr, cfg)
-    // (105 - 100) / 100 * 100 = 5%
-    expect(result.nearestResistanceDistance).toBeCloseTo(5, 5)
+    // (104 - 100) / 100 * 100 = 4% (distance to zone bottom edge, not center)
+    expect(result.nearestResistanceDistance).toBeCloseTo(4, 5)
   })
 
   it('sets insideSupport when currentZone is a support zone', () => {
