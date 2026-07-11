@@ -73,9 +73,6 @@ function buildTrendSentence(
     return `The market is ${strengthAdverb} bearish ${alignNote}.`
   }
   // Ranging / neutral
-  if (emaAlignment === 'compressed' || emaAlignment === 'tangled') {
-    return 'Price is moving sideways with compressed EMAs, indicating a period of consolidation.'
-  }
   return 'The market is in a neutral, ranging state with no clear directional momentum.'
 }
 

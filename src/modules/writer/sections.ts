@@ -469,12 +469,20 @@ export function buildRiskSection(
     risks.push(`High volatility: ATR is ${analysis.price.atrPercent.toFixed(2)}% of price.`)
   }
 
-  // Bearish evidence risk factors from confidence reasons
-  const bearishReasons = confidence.reasons
-    .filter(r => r.direction === 'bearish')
-    .slice(0, cfg.maxRiskFactors)
-  for (const r of bearishReasons) {
-    risks.push(`${r.factor} detected (bearish signal).`)
+  // Counter-signal risk factors — signals opposing the current trend direction only.
+  // Bearish signals in a bullish trend are risks; bullish signals in a bearish trend are risks.
+  // Signals that agree with the trend are supporting evidence, not risks.
+  const trend = analysis.fullTrend.trend
+  const opposingDirection = trend.includes('bullish') ? 'bearish'
+    : trend.includes('bearish') ? 'bullish'
+    : null  // ranging: no directional counter-signals to label
+  if (opposingDirection !== null) {
+    const counterSignals = confidence.reasons
+      .filter(r => r.direction === opposingDirection)
+      .slice(0, cfg.maxRiskFactors)
+    for (const r of counterSignals) {
+      risks.push(`${r.factor} detected (${opposingDirection} counter-signal).`)
+    }
   }
 
   // Validation-derived risks

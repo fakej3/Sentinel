@@ -327,10 +327,33 @@ describe('buildRiskSection', () => {
     expect(s.length).toBeGreaterThan(0)
   })
 
-  it('includes bearish evidence factors when present', () => {
+  it('does not list bearish signals as risks in a bearish trend — they support the thesis', () => {
     const input = makeBearishInput()
     const s = buildRiskSection(input.analysis, input.confidence, DEFAULT_WRITER_CONFIG)
-    expect(s.toLowerCase()).toContain('bearish signal')
+    expect(s.toLowerCase()).not.toContain('bearish counter-signal')
+  })
+
+  it('lists bullish counter-signals as risks in a bearish trend', () => {
+    const input = makeBearishInput()
+    const confidence = {
+      ...input.confidence,
+      reasons: [{ factor: 'Price above EMA200', points: 5, direction: 'bullish' as const }],
+    }
+    const s = buildRiskSection(input.analysis, confidence, DEFAULT_WRITER_CONFIG)
+    expect(s.toLowerCase()).toContain('bullish counter-signal')
+  })
+
+  it('lists bearish counter-signals as risks in a bullish trend', () => {
+    const input = makeBullishInput()
+    const confidence = {
+      ...input.confidence,
+      reasons: [
+        ...input.confidence.reasons,
+        { factor: 'Price below EMA200', points: -5, direction: 'bearish' as const },
+      ],
+    }
+    const s = buildRiskSection(input.analysis, confidence, DEFAULT_WRITER_CONFIG)
+    expect(s.toLowerCase()).toContain('bearish counter-signal')
   })
 
   it('mentions validation penalties when present', () => {

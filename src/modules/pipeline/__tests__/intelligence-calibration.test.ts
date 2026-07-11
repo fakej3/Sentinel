@@ -54,7 +54,7 @@ function makeAnalysis(overrides: Partial<{
     },
     emaContext: {
       priceVsEMA20: 'above', priceVsEMA50: 'above', priceVsEMA100: 'above', priceVsEMA200: 'above',
-      emaAlignment: (o.emaAlignment ?? 'bullish_stack') as 'bullish_stack' | 'bearish_stack' | 'mixed' | 'unavailable' | 'compressed' | 'tangled',
+      emaAlignment: (o.emaAlignment ?? 'bullish_stack') as 'bullish_stack' | 'bearish_stack' | 'mixed' | 'unavailable',
       confluenceZones: [],
     },
     indicatorSummary: {
@@ -342,13 +342,13 @@ describe('computeMarketStory', () => {
     expect(result.text).toMatch(/bearish|downward|selling/i)
   })
 
-  it('ranging market with compressed EMAs mentions consolidation', () => {
+  it('ranging market mentions ranging or neutral', () => {
     const result = computeMarketStory(
-      makeAnalysis({ trend: 'ranging', emaAlignment: 'compressed' }),
+      makeAnalysis({ trend: 'ranging', emaAlignment: 'mixed' }),
       makeConfidence({ score: 3.5 }),
       makeMarketContext({ phase: 'ranging', isTrending: false }),
     )
-    expect(result.text).toMatch(/consolidat|ranging|sideways/i)
+    expect(result.text).toMatch(/consolidat|ranging|sideways|neutral/i)
   })
 
   it('buying climax produces a climax note', () => {

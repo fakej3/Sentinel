@@ -102,7 +102,7 @@ function deriveVerdict(
 
 function buildReasoning(
   verdict: TraderVerdict,
-  trend: string,
+  _trend: string,
   score: number,
   actionable: boolean,
   setupQuality: TradePlan['setupQuality'],
