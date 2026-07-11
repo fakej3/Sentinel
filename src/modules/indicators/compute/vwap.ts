@@ -3,6 +3,7 @@
  * Always returns a value (falls back to last close when total volume is 0).
  */
 export function computeVwap(highs: number[], lows: number[], closes: number[], volumes: number[]): number {
+  if (closes.length === 0) return 0
   let cumulativeTPV = 0
   let cumulativeVolume = 0
 

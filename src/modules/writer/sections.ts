@@ -292,7 +292,7 @@ export function buildIndicatorSection(analysis: MarketAnalysisResult): string {
 
   // StochRSI
   if (stochRsi.k !== null && stochRsi.d !== null) {
-    lines.push(`StochRSI: K=${stochRsi.k.toFixed(1)}, D=${stochRsi.d.toFixed(1)} (${stochRsi.zone}).`)
+    lines.push(`StochRSI: K=${(stochRsi.k * 100).toFixed(1)}, D=${(stochRsi.d * 100).toFixed(1)} (${stochRsi.zone}).`)
   } else {
     lines.push('StochRSI: unavailable.')
   }

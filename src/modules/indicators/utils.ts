@@ -35,7 +35,7 @@ export function rsiSeries(closes: number[], period: number): number[] {
   avgGain /= period
   avgLoss /= period
 
-  const toRsi = (g: number, l: number) => l === 0 ? 100 : 100 - 100 / (1 + g / l)
+  const toRsi = (g: number, l: number) => g === 0 && l === 0 ? 50 : l === 0 ? 100 : 100 - 100 / (1 + g / l)
   const result: number[] = [toRsi(avgGain, avgLoss)]
 
   for (let i = period; i < changes.length; i++) {

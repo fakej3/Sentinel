@@ -4,7 +4,7 @@ import type { PriceZone, ZoneState } from './types'
 export function computeStrength(zone: PriceZone, strengthDecayAge: number): number {
   const score =
     20 +
-    Math.min(zone.touchCount - 1, 5) * 10 +
+    Math.max(0, Math.min(zone.touchCount - 1, 5)) * 10 +
     Math.min(zone.successfulReactions, 4) * 5 -
     Math.min(zone.failedReactions, 2) * 10 +
     (zone.retested ? 5 : 0) -

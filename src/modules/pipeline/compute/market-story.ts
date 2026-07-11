@@ -52,7 +52,10 @@ function buildTrendSentence(
   const strengthAdverb = score >= 7.5 ? 'clearly' : score >= 5 ? 'moderately' : 'weakly'
 
   if (trend.includes('strong bullish')) {
-    return `Price is ${strengthAdverb} trending upward with a fully bullish EMA stack confirming broad momentum.`
+    const emaNote = emaAlignment === 'bullish_stack'
+      ? 'with a fully bullish EMA stack confirming broad momentum'
+      : 'with strong multi-factor confirmation'
+    return `Price is ${strengthAdverb} trending upward ${emaNote}.`
   }
   if (trend.includes('moderate bullish') || trend.includes('bullish')) {
     const alignNote = emaAlignment === 'bullish_stack'
@@ -101,8 +104,10 @@ function buildMomentumSentence(
 ): string {
   const rsiVal = rsi.value
   const rsiDesc = rsiVal === null ? 'RSI unavailable'
-    : rsiVal >= 70 ? `RSI is overbought at ${rsiVal.toFixed(0)}`
-    : rsiVal <= 30 ? `RSI is oversold at ${rsiVal.toFixed(0)}`
+    : rsiVal > 70  ? `RSI is overbought at ${rsiVal.toFixed(0)}`
+    : rsiVal < 30  ? `RSI is oversold at ${rsiVal.toFixed(0)}`
+    : rsiVal >= 55 ? `RSI in bullish zone at ${rsiVal.toFixed(0)}`
+    : rsiVal <= 45 ? `RSI in bearish zone at ${rsiVal.toFixed(0)}`
     : `RSI is neutral at ${rsiVal.toFixed(0)}`
 
   const macdDesc = macd.bias === 'bullish' ? 'MACD is bullish'

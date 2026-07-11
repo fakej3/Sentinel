@@ -67,13 +67,13 @@ export function computeSanityAudit(
 
   // Flag 6: RSI extreme in the direction of trade
   const rsi = analysis.indicatorSummary.rsi.value
-  if (rsi !== null && buyingDecision && rsi >= 75) {
+  if (rsi !== null && buyingDecision && rsi > 70) {
     flags.push({
       type: 'overbought_buy_signal',
       description: `Buy signal generated with RSI at ${rsi.toFixed(0)} (overbought) — risk of near-term pullback is elevated.`,
     })
   }
-  if (rsi !== null && sellingDecision && rsi <= 25) {
+  if (rsi !== null && sellingDecision && rsi < 30) {
     flags.push({
       type: 'oversold_sell_signal',
       description: `Sell signal generated with RSI at ${rsi.toFixed(0)} (oversold) — risk of near-term bounce is elevated.`,

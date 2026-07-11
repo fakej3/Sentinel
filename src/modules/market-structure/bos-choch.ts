@@ -94,8 +94,7 @@ export function detectBosChoch(
       })
       highUsed = lastHigh
       bias = 'bullish'
-    }
-    if (lastLow && lowUsed !== lastLow && close < lastLow.price) {
+    } else if (lastLow && lowUsed !== lastLow && close < lastLow.price) {
       const type = (bias === null || bias === 'bearish') ? 'BOS' : 'CHOCH'
       events.push({
         type,

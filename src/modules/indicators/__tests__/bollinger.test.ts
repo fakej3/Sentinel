@@ -35,9 +35,9 @@ describe('computeBollinger', () => {
     expect(upperDiff).toBeCloseTo(lowerDiff, 8)
   })
 
-  it('bandwidth is (upper - lower) / middle', () => {
+  it('bandwidth is upper - lower', () => {
     const result = computeBollinger([10, 20, 15, 25, 12], 3)!
-    expect(result.bandwidth).toBeCloseTo((result.upper - result.lower) / result.middle, 8)
+    expect(result.bandwidth).toBeCloseTo(result.upper - result.lower, 8)
   })
 
   it('wider bands for higher volatility', () => {

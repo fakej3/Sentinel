@@ -162,14 +162,6 @@ export function collectEvidence(
     items.push(item('Oversold RSI (<30)', 'medium',
       `RSI ${indicatorSummary.rsi.value?.toFixed(1)} is oversold — potential reversal setup`, 'indicators', 'bullish'))
   }
-  if (indicatorSummary.rsi.classification === 'weak_bearish') {
-    items.push(item('RSI in 30–45 range', 'medium',
-      `RSI ${indicatorSummary.rsi.value?.toFixed(1)} in weak/bearish zone — bearish momentum`, 'indicators', 'bearish'))
-  }
-  if (indicatorSummary.rsi.classification === 'healthy_bullish') {
-    items.push(item('RSI in 55–70 range', 'medium',
-      `RSI ${indicatorSummary.rsi.value?.toFixed(1)} in healthy bullish zone`, 'indicators', 'bullish'))
-  }
 
   // ── MACD evidence ─────────────────────────────────────────────────────────
   if (indicatorSummary.macd.bias === 'bullish') {
@@ -212,11 +204,11 @@ export function collectEvidence(
   // ── StochRSI evidence ─────────────────────────────────────────────────────
   if (indicatorSummary.stochRsi.zone === 'overbought') {
     items.push(item('StochRSI overbought', 'low',
-      `StochRSI K ${indicatorSummary.stochRsi.k?.toFixed(1)} ≥ ${cfg.stochRsiOverboughtThreshold} — overbought`, 'indicators', 'bearish'))
+      `StochRSI K ${indicatorSummary.stochRsi.k != null ? (indicatorSummary.stochRsi.k * 100).toFixed(1) : '?'} ≥ ${(cfg.stochRsiOverboughtThreshold * 100).toFixed(0)} — overbought`, 'indicators', 'bearish'))
   }
   if (indicatorSummary.stochRsi.zone === 'oversold') {
     items.push(item('StochRSI oversold', 'low',
-      `StochRSI K ${indicatorSummary.stochRsi.k?.toFixed(1)} ≤ ${cfg.stochRsiOversoldThreshold} — oversold`, 'indicators', 'bullish'))
+      `StochRSI K ${indicatorSummary.stochRsi.k != null ? (indicatorSummary.stochRsi.k * 100).toFixed(1) : '?'} ≤ ${(cfg.stochRsiOversoldThreshold * 100).toFixed(0)} — oversold`, 'indicators', 'bullish'))
   }
 
   // ── S/R evidence ──────────────────────────────────────────────────────────
@@ -302,6 +294,10 @@ export function collectEvidence(
   if (volumeContext.obvDirection === 'bearish' && !volumeContext.obvConfirmingPrice) {
     items.push(item('OBV diverging from price', 'medium',
       'OBV trending opposite to price — hidden divergence warning', 'volume', 'bearish'))
+  }
+  if (volumeContext.obvDirection === 'bullish' && !volumeContext.obvConfirmingPrice) {
+    items.push(item('OBV diverging from price (bullish)', 'medium',
+      'OBV rising while price falls — potential bullish reversal signal', 'volume', 'bullish'))
   }
   if (volumeContext.priceAboveVWAP) {
     items.push(item('Price above VWAP', 'low',

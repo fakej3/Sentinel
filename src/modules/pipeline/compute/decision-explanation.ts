@@ -58,7 +58,7 @@ export function computeDecisionExplanation(
     dimensions.push(dim('Structure', 'supports', reason))
   } else if (isBearish && (hasBearBOS || hasBearCHoCH || rs.lowerHighs >= 2)) {
     const reason = hasBearBOS ? 'Bearish BOS confirmed' : hasBearCHoCH ? 'Bearish CHoCH confirmed' : `${rs.lowerHighs}LH/${rs.lowerLows}LL pattern`
-    dimensions.push(dim('Structure', 'opposes', reason))
+    dimensions.push(dim('Structure', 'supports', reason))
   } else if (ms.consolidation.detected) {
     dimensions.push(dim('Structure', 'neutral', 'Consolidating — no clear structural signal yet'))
   } else {
@@ -74,11 +74,11 @@ export function computeDecisionExplanation(
   if (rsi.value !== null) {
     const r = rsi.value.toFixed(0)
     if (rsi.classification === 'healthy_bullish' && macd.bias === 'bullish') {
-      momentumStatus = 'supports'
-      momentumDetail = `RSI ${r} (healthy zone) + MACD bullish — momentum aligned with trend`
+      momentumStatus = isBullish ? 'supports' : 'opposes'
+      momentumDetail = `RSI ${r} (healthy zone) + MACD bullish — momentum ${isBullish ? 'aligned with' : 'against the'} trend`
     } else if (rsi.classification === 'weak_bearish' && macd.bias === 'bearish') {
-      momentumStatus = 'opposes'
-      momentumDetail = `RSI ${r} (bearish zone) + MACD bearish — momentum against the view`
+      momentumStatus = isBearish ? 'supports' : 'opposes'
+      momentumDetail = `RSI ${r} (bearish zone) + MACD bearish — momentum ${isBearish ? 'aligned with' : 'against the'} trend`
     } else if (rsi.classification === 'overbought') {
       momentumStatus = isBullish ? 'opposes' : 'supports'
       momentumDetail = `RSI ${r} — overbought, potential exhaustion ahead`
@@ -186,14 +186,14 @@ export function computeDecisionExplanation(
       flipToOpposite.push('Full EMA bearish realignment — all four EMAs invert their stacking order')
     }
     flipToOpposite.push('Price closes and holds below key support with expanding sell volume')
-    flipToOpposite.push(`${5 - bearMet + 1} or more additional bearish conditions trigger simultaneously`)
+    flipToOpposite.push(`${5 - bearMet} or more additional bearish conditions trigger simultaneously`)
   } else if (isBearish) {
     flipToOpposite.push('Bullish BOS or CHoCH confirmed — market structure flips bullish')
     if (emaContext.emaAlignment === 'bearish_stack') {
       flipToOpposite.push('Full EMA bullish realignment — all four EMAs invert their stacking order')
     }
     flipToOpposite.push('Price closes and holds above key resistance with expanding buy volume')
-    flipToOpposite.push(`${5 - bullMet + 1} or more additional bullish conditions trigger simultaneously`)
+    flipToOpposite.push(`${5 - bullMet} or more additional bullish conditions trigger simultaneously`)
   } else {
     flipToOpposite.push('Not applicable from a ranging market — pick a direction first')
   }

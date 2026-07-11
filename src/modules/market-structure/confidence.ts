@@ -56,7 +56,7 @@ export function computeConfidence(
 
   const bullBos = Math.min(bosEvents.filter(e => e.direction === 'bullish').length, 2)
   const bearBos = Math.min(bosEvents.filter(e => e.direction === 'bearish').length, 2)
-  const chochCount = chochEvents.length
+  const chochCount = Math.min(chochEvents.length, 3)
 
   let score = 0
 

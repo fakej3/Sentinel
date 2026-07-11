@@ -14,7 +14,7 @@ export function computeBollinger(closes: number[], period = 20, multiplier = 2):
 
   const upper = middle + multiplier * stdDev
   const lower = middle - multiplier * stdDev
-  const bandwidth = middle === 0 ? 0 : (upper - lower) / middle
+  const bandwidth = upper - lower
 
   return { upper, middle, lower, bandwidth }
 }

@@ -87,10 +87,10 @@ export function computeSupportResistance(
   // 6. Classify
   const isActive = (z: PriceZone) => !z.broken && z.state !== 'archived'
 
-  const activeSupport = finalZones.filter(z => z.type === 'support' && isActive(z))
+  const activeSupport = finalZones.filter(z => z.type === 'support' && isActive(z) && z.upper < currentPrice)
     .sort((a, b) => b.center - a.center)
 
-  const activeResistance = finalZones.filter(z => z.type === 'resistance' && isActive(z))
+  const activeResistance = finalZones.filter(z => z.type === 'resistance' && isActive(z) && z.lower > currentPrice)
     .sort((a, b) => a.center - b.center)
 
   // Nearest support: highest support zone whose upper < currentPrice

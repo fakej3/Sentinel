@@ -25,11 +25,11 @@ export function computeAccumulationDistribution(
   if (pressure.dominantSide === 'buyers') score += 1
   else if (pressure.dominantSide === 'sellers') score -= 1
 
-  // OBV trend alignment
-  if (obv.confirmingPrice && marketStructure.trend === 'bullish') score += 2
-  else if (obv.confirmingPrice && marketStructure.trend === 'bearish') score -= 2
-  else if (obv.diverging && marketStructure.trend === 'bullish') score -= 1
-  else if (obv.diverging && marketStructure.trend === 'bearish') score += 1
+  // OBV trend alignment — use direction directly to avoid the ambiguity in confirmingPrice
+  if (obv.direction === 'bullish' && marketStructure.trend === 'bullish')      score += 2
+  else if (obv.direction === 'bearish' && marketStructure.trend === 'bearish') score -= 2
+  else if (obv.direction === 'bullish' && marketStructure.trend === 'bearish') score += 1  // bullish divergence
+  else if (obv.direction === 'bearish' && marketStructure.trend === 'bullish') score -= 1  // bearish divergence
 
   // Price vs VWAP
   if (vwap.above) score += 1

@@ -129,17 +129,17 @@ describe('interpretIndicators', () => {
 
   describe('StochRSI zone', () => {
     it('returns overbought when K >= overbought threshold', () => {
-      const result = interpretIndicators(100, indicators({ stochRsi: stochRsi(85, 80) }), cfg)
+      const result = interpretIndicators(100, indicators({ stochRsi: stochRsi(0.85, 0.80) }), cfg)
       expect(result.stochRsi.zone).toBe('overbought')
     })
 
     it('returns oversold when K <= oversold threshold', () => {
-      const result = interpretIndicators(100, indicators({ stochRsi: stochRsi(15, 20) }), cfg)
+      const result = interpretIndicators(100, indicators({ stochRsi: stochRsi(0.15, 0.20) }), cfg)
       expect(result.stochRsi.zone).toBe('oversold')
     })
 
     it('returns neutral in the middle range', () => {
-      const result = interpretIndicators(100, indicators({ stochRsi: stochRsi(50, 45) }), cfg)
+      const result = interpretIndicators(100, indicators({ stochRsi: stochRsi(0.50, 0.45) }), cfg)
       expect(result.stochRsi.zone).toBe('neutral')
     })
 

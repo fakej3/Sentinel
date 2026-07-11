@@ -290,12 +290,12 @@ export interface AnalysisConfig {
   emaConfluencePercent: number
   /**
    * StochRSI K above this level = overbought.
-   * ENGINE_RULES.md §10: default 80
+   * ENGINE_RULES.md §10: default 0.8 (k/d are in [0,1] range)
    */
   stochRsiOverboughtThreshold: number
   /**
    * StochRSI K below this level = oversold.
-   * ENGINE_RULES.md §10: default 20
+   * ENGINE_RULES.md §10: default 0.2 (k/d are in [0,1] range)
    */
   stochRsiOversoldThreshold: number
   /**

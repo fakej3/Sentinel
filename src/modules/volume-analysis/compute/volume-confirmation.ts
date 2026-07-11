@@ -28,7 +28,14 @@ export function computeVolumeConfirmation(
     ? `Volume is ${ratio.toFixed(2)}× the prior average (threshold: ${cfg.confirmationThreshold}×)`
     : `Volume is ${ratio.toFixed(2)}× the prior average — below confirmation threshold of ${cfg.confirmationThreshold}×`
 
-  const supportsTrend = confirmed && marketStructure.trend !== 'ranging'
+  const current = candles[candles.length - 1]
+  const candleDir = current.close > current.open ? 'bullish'
+    : current.close < current.open ? 'bearish' : 'neutral'
+  // Counter-trend candle direction voids confirmation; neutral (doji) candles are allowed
+  const supportsTrend = confirmed
+    && !(marketStructure.trend.includes('bullish') && candleDir === 'bearish')
+    && !(marketStructure.trend.includes('bearish') && candleDir === 'bullish')
+    && marketStructure.trend !== 'ranging'
 
   const supportsBreakout = confirmed && marketStructure.breakout.confirmed
 

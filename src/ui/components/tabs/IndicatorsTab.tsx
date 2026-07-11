@@ -278,11 +278,11 @@ export function IndicatorsTab({ result }: IndicatorsTabProps) {
             <div className="flex items-center gap-4">
               <div>
                 <p className="text-[10px] text-slate-500 mb-0.5">K</p>
-                <p className="text-lg font-bold font-mono text-slate-100">{indicators.stochRsi.k.toFixed(1)}</p>
+                <p className="text-lg font-bold font-mono text-slate-100">{(indicators.stochRsi.k * 100).toFixed(1)}</p>
               </div>
               <div>
                 <p className="text-[10px] text-slate-500 mb-0.5">D</p>
-                <p className="text-lg font-bold font-mono text-slate-100">{indicators.stochRsi.d.toFixed(1)}</p>
+                <p className="text-lg font-bold font-mono text-slate-100">{(indicators.stochRsi.d * 100).toFixed(1)}</p>
               </div>
               <div className="ml-auto">
                 <StatusBadge status={stochRsi.zone} />
@@ -291,14 +291,14 @@ export function IndicatorsTab({ result }: IndicatorsTabProps) {
             <div className="space-y-1">
               <ProgressBar
                 value={indicators.stochRsi.k}
-                max={100}
+                max={1}
                 height="h-1.5"
                 label="K"
                 colorClass={stochRsi.zone === 'overbought' ? 'bg-red-400' : stochRsi.zone === 'oversold' ? 'bg-emerald-400' : 'bg-blue-400'}
               />
               <ProgressBar
                 value={indicators.stochRsi.d}
-                max={100}
+                max={1}
                 height="h-1.5"
                 label="D"
                 colorClass="bg-violet-400"

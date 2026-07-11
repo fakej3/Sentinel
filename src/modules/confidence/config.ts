@@ -98,7 +98,8 @@ export const DEFAULT_CONFIDENCE_CONFIG: ConfidenceConfig = {
     'Distribution detected':      -10,
     'Bullish OBV trend':            6,
     'Bearish OBV trend':           -6,
-    'OBV diverging from price':    -5,
+    'OBV diverging from price':            -5,
+    'OBV diverging from price (bullish)':   5,  // OBV rising while price falls — bullish divergence
     'Volume climax selling':        6,  // selling exhaustion = bullish reversal cue
     'Volume climax buying':        -6,  // buying exhaustion = bearish reversal cue
     'Volume exhaustion':           -2,  // neutral — high volume small body; indecision

@@ -6,8 +6,8 @@ import type { AnalysisConfig } from './types'
  */
 export const DEFAULT_ANALYSIS_CONFIG: AnalysisConfig = {
   emaConfluencePercent: 0.5,
-  stochRsiOverboughtThreshold: 80,
-  stochRsiOversoldThreshold: 20,
+  stochRsiOverboughtThreshold: 0.8,
+  stochRsiOversoldThreshold: 0.2,
   adxWeakThreshold: 20,
   adxStrongThreshold: 25,
   rsiNeutralLow: 40,

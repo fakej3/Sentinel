@@ -53,6 +53,12 @@ export const FACTOR_CATEGORY: Readonly<Record<string, BreakdownCategory>> = {
   'Price at Bollinger lower': 'momentum',
   'Price at Bollinger upper': 'momentum',
 
+  // ── Momentum neutrals ────────────────────────────────────────────────────────
+  'RSI neutral':                       'momentum',
+  'RSI in neutral overlap zone':       'momentum',
+  'Bollinger squeeze':                 'momentum',
+  'Bollinger expansion':               'momentum',
+
   // ── Volume ───────────────────────────────────────────────────────────────────
   'Strong volume confirmation':         'volume',
   'Strong bullish volume confirmation': 'volume',
@@ -63,8 +69,10 @@ export const FACTOR_CATEGORY: Readonly<Record<string, BreakdownCategory>> = {
   'Bullish OBV trend':                 'volume',
   'Bearish OBV trend':                 'volume',
   'OBV diverging from price':          'volume',
+  'OBV diverging from price (bullish)': 'volume',
   'Volume climax selling':             'volume',
   'Volume climax buying':              'volume',
+  'Volume exhaustion':                 'volume',
   'Price above VWAP':                  'volume',
   'Price below VWAP':                  'volume',
   'High relative volume':              'volume',

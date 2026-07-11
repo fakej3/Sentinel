@@ -60,8 +60,10 @@ export function detectBreakout(
     null
 
   if (breakoutDirection === null) {
-    // Check if a previous candle broke out but price returned (failed breakout)
-    const prevBroke = candles.slice(0, -1).some(
+    // Check if a previous candle broke out but price returned (failed breakout).
+    // Limit scan to the consolidation window to avoid flagging historical breakouts.
+    const startIdx = Math.max(0, candles.length - 1 - (consolidation.barsInRange ?? candles.length))
+    const prevBroke = candles.slice(startIdx, -1).some(
       c => c.close > rangeHigh || c.close < rangeLow,
     )
     if (prevBroke) {

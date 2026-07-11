@@ -36,11 +36,11 @@ export function applyInteractions(zone: PriceZone, candles: Candle[]): PriceZone
       if (z.type === 'resistance') {
         if (c.close < z.lower) {
           // Closed below zone bottom — potential bounce (successful reaction)
-          const nextConfirms = i + 1 < candles.length ? candles[i + 1].high < z.lower : true
+          const nextConfirms = i + 1 < candles.length ? candles[i + 1].high < z.lower : false
           if (nextConfirms) {
             z = { ...z, successfulReactions: z.successfulReactions + 1 }
           } else {
-            // Next candle re-entered — ambiguous; count as failed
+            // Next candle re-entered or no next candle — ambiguous; count as failed
             z = { ...z, failedReactions: z.failedReactions + 1 }
           }
         } else if (c.close > z.upper) {
@@ -57,7 +57,7 @@ export function applyInteractions(zone: PriceZone, candles: Candle[]): PriceZone
         // support zone
         if (c.close > z.upper) {
           // Closed above zone top — bounce (successful reaction for support)
-          const nextConfirms = i + 1 < candles.length ? candles[i + 1].low > z.upper : true
+          const nextConfirms = i + 1 < candles.length ? candles[i + 1].low > z.upper : false
           if (nextConfirms) {
             z = { ...z, successfulReactions: z.successfulReactions + 1 }
           } else {
