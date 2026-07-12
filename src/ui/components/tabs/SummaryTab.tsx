@@ -518,6 +518,19 @@ export function SummaryTab({ result }: SummaryTabProps) {
     [invalidationScenarios],
   )
 
+  // Patience message color reflects urgency: blue for actionable, amber for caution, muted for no-trade
+  const patienceIsActionable = tradePlan.setupQuality === 'excellent' || tradePlan.setupQuality === 'good'
+  const patienceIsCaution    = tradePlan.setupQuality === 'average'   || tradePlan.setupQuality === 'poor'
+  const patienceContainerCls = patienceIsActionable
+    ? 'bg-blue-400/5 border-blue-400/15'
+    : patienceIsCaution
+    ? 'bg-amber-400/8 border-amber-400/20'
+    : 'bg-surface-800 border-border-subtle'
+  const patienceIconCls = patienceIsActionable ? 'text-blue-400'
+    : patienceIsCaution ? 'text-amber-400' : 'text-slate-500'
+  const patienceTextCls = patienceIsActionable ? 'text-slate-400'
+    : patienceIsCaution ? 'text-amber-300/80' : 'text-slate-500'
+
   return (
     <div className="p-4 space-y-4 animate-in max-w-3xl mx-auto">
 
@@ -671,9 +684,9 @@ export function SummaryTab({ result }: SummaryTabProps) {
 
       {/* Patience / opportunity guidance from trade plan */}
       {tradePlan.patienceMessage && (
-        <div className="flex items-start gap-2 px-3 py-2.5 rounded-lg bg-blue-400/5 border border-blue-400/15">
-          <Activity size={12} className="text-blue-400 flex-shrink-0 mt-0.5" />
-          <p className="text-xs text-slate-400 leading-relaxed">{tradePlan.patienceMessage}</p>
+        <div className={`flex items-start gap-2 px-3 py-2.5 rounded-lg border ${patienceContainerCls}`}>
+          <Activity size={12} className={`${patienceIconCls} flex-shrink-0 mt-0.5`} />
+          <p className={`text-xs leading-relaxed ${patienceTextCls}`}>{tradePlan.patienceMessage}</p>
         </div>
       )}
 
