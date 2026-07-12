@@ -1,0 +1,1145 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Sentinel Engine — Ground Truth Validation</title>
+<style>
+  :root {
+    --bg: #0f1117;
+    --bg2: #1a1d27;
+    --bg3: #252836;
+    --border: #2d3148;
+    --text: #e2e8f0;
+    --muted: #9ca3af;
+    --accent: #3b82f6;
+    --green: #22c55e;
+    --yellow: #f59e0b;
+    --red: #ef4444;
+    --orange: #f97316;
+  }
+  @media (prefers-color-scheme: light) {
+    :root {
+      --bg: #f8fafc; --bg2: #ffffff; --bg3: #f1f5f9;
+      --border: #e2e8f0; --text: #0f172a; --muted: #64748b;
+    }
+  }
+  :root[data-theme="light"] {
+    --bg: #f8fafc; --bg2: #ffffff; --bg3: #f1f5f9;
+    --border: #e2e8f0; --text: #0f172a; --muted: #64748b;
+  }
+  :root[data-theme="dark"] {
+    --bg: #0f1117; --bg2: #1a1d27; --bg3: #252836;
+    --border: #2d3148; --text: #e2e8f0; --muted: #9ca3af;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0 }
+  body { font-family: 'SF Mono','Cascadia Code','Consolas',monospace; background: var(--bg); color: var(--text); line-height: 1.6; padding: 0 }
+  h1 { font-size: 1.5rem; font-weight: 700; letter-spacing: -0.02em }
+  h2 { font-size: 1.05rem; font-weight: 600; color: var(--accent); margin: 2rem 0 0.75rem; border-bottom: 1px solid var(--border); padding-bottom: 0.4rem }
+  h3 { font-size: 0.9rem; font-weight: 600; margin: 1.25rem 0 0.5rem; color: var(--muted) }
+  p, li { font-size: 0.85rem; color: var(--muted) }
+  a { color: var(--accent); text-decoration: none }
+
+  .header { background: var(--bg2); border-bottom: 1px solid var(--border); padding: 1.25rem 2rem; display: flex; align-items: center; gap: 1rem }
+  .header-meta { font-size: 0.75rem; color: var(--muted) }
+  .badge { font-size: 0.7rem; padding: 2px 8px; border-radius: 12px; background: var(--bg3); border: 1px solid var(--border) }
+
+  .container { max-width: 1200px; margin: 0 auto; padding: 1.5rem 2rem }
+
+  .verdict-banner {
+    border-radius: 8px; padding: 1.25rem 1.5rem; margin: 1.5rem 0;
+    background: var(--bg2); border: 2px solid;
+    display: grid; grid-template-columns: auto 1fr; gap: 1rem; align-items: center
+  }
+  .verdict-score { font-size: 3rem; font-weight: 800; line-height: 1; font-variant-numeric: tabular-nums }
+  .verdict-text { font-size: 0.95rem; font-weight: 600 }
+  .verdict-sub  { font-size: 0.8rem; color: var(--muted); margin-top: 0.3rem }
+
+  .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 1rem; margin: 1rem 0 }
+  .stat-card { background: var(--bg2); border: 1px solid var(--border); border-radius: 6px; padding: 1rem }
+  .stat-label { font-size: 0.7rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em }
+  .stat-value { font-size: 1.4rem; font-weight: 700; font-variant-numeric: tabular-nums; margin-top: 0.25rem }
+
+  .section { background: var(--bg2); border: 1px solid var(--border); border-radius: 8px; padding: 1.25rem 1.5rem; margin-bottom: 1.25rem }
+
+  .data-table { width: 100%; border-collapse: collapse; font-size: 0.82rem; font-variant-numeric: tabular-nums }
+  .data-table th { padding: 0.5rem 0.75rem; text-align: left; background: var(--bg3); color: var(--muted); font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.06em; position: sticky; top: 0 }
+  .data-table td { padding: 0.45rem 0.75rem; border-top: 1px solid var(--border) }
+  .data-table tr:hover td { background: var(--bg3) }
+  .table-scroll { overflow-x: auto }
+
+  .chart-wrap { overflow-x: auto; padding: 0.5rem 0 }
+
+  .details-list { list-style: none; padding: 0 }
+  .details-list li { font-size: 0.82rem; padding: 0.3rem 0; color: var(--text); display: flex; gap: 0.5rem }
+  .details-list li::before { content: '•'; color: var(--accent) }
+
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 1.25rem }
+  @media (max-width: 700px) { .two-col { grid-template-columns: 1fr } }
+
+  .theme-toggle { margin-left: auto; background: var(--bg3); border: 1px solid var(--border); color: var(--text); padding: 4px 10px; border-radius: 4px; cursor: pointer; font-size: 0.75rem }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div>
+    <h1>Sentinel Engine</h1>
+    <div class="header-meta">Ground Truth Validation Report &mdash; Module 38</div>
+  </div>
+  <span class="badge">10 symbols × 3 timeframes</span>
+  <span class="badge">1440 snapshots</span>
+  <span class="badge">2026-07-12 05:25:32 UTC</span>
+  <button class="theme-toggle" onclick="toggleTheme()">Toggle Theme</button>
+</div>
+
+<div class="container">
+
+  <!-- PRODUCTION READINESS VERDICT -->
+  <h2>Production Readiness</h2>
+  <div class="verdict-banner" style="border-color:#22c55e">
+    <div class="verdict-score" style="color:#22c55e">77</div>
+    <div>
+      <div class="verdict-text" style="color:#22c55e">TRUSTED — publish without manual editing</div>
+      <div class="verdict-sub">Score out of 100 — based on win rate, expectancy, calibration, signal rate, and loss quality</div>
+    </div>
+  </div>
+
+  <div class="section">
+    <h3>Scoring Breakdown</h3>
+    <ul class="details-list">
+      <li>Win rate 92.4% ≥ 60% — Excellent (+25)</li><li>Expectancy 8.26R ≥ 1.0R — Strong edge (+25)</li><li>Confidence score does NOT clearly correlate with win rate — needs tuning (+5)</li><li>Signal rate 12% &lt; 15% — very selective, possibly over-filtered (+7)</li><li>Systematic loss categories (bad R:R, tight stop, etc.) = 0% ≤ 20% (+15)</li>
+    </ul>
+  </div>
+
+  <!-- EXECUTIVE SUMMARY -->
+  <h2>Executive Summary</h2>
+  <div class="stats-grid">
+    <div class="stat-card">
+      <div class="stat-label">Datasets</div>
+      <div class="stat-value">30</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Total Snapshots</div>
+      <div class="stat-value">1440</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Actionable Trades</div>
+      <div class="stat-value">176 <span style="font-size:0.8rem;color:var(--muted)">(12%)</span></div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Win Rate</div>
+      <div class="stat-value" style="color:#22c55e">92.4%</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Avg Setup R:R</div>
+      <div class="stat-value">9.02</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Expectancy</div>
+      <div class="stat-value" style="color:var(--green)">
+        8.26R
+      </div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Precision</div>
+      <div class="stat-value">92.4%</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">F1 (approx)</div>
+      <div class="stat-value">0.22</div>
+    </div>
+  </div>
+
+  <div class="stats-grid" style="grid-template-columns:repeat(4,1fr)">
+    <div class="stat-card" style="border-color:var(--green)">
+      <div class="stat-label">Wins (TP Hit)</div>
+      <div class="stat-value" style="color:var(--green)">122</div>
+    </div>
+    <div class="stat-card" style="border-color:var(--red)">
+      <div class="stat-label">Losses (SL Hit)</div>
+      <div class="stat-value" style="color:var(--red)">10</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Inconclusive</div>
+      <div class="stat-value" style="color:var(--muted)">44</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">No Trade</div>
+      <div class="stat-value" style="color:var(--muted)">1264</div>
+    </div>
+  </div>
+
+  <!-- CONFIDENCE CALIBRATION -->
+  <h2>Confidence Calibration</h2>
+  <div class="two-col">
+    <div class="section">
+      <h3>Win Rate by Confidence Bucket (all datasets)</h3>
+      <div class="table-scroll"><table class="data-table">
+    <thead><tr><th>Confidence</th><th>Trades</th><th>Wins</th><th>Losses</th><th>Win Rate</th></tr></thead>
+    <tbody><tr>
+      <td>9-10</td>
+      <td>72</td>
+      <td>53</td>
+      <td>2</td>
+      <td style="color:#22c55e;font-weight:600">96.4%</td>
+    </tr><tr>
+      <td>8-9</td>
+      <td>25</td>
+      <td>16</td>
+      <td>2</td>
+      <td style="color:#22c55e;font-weight:600">88.9%</td>
+    </tr><tr>
+      <td>7-8</td>
+      <td>28</td>
+      <td>16</td>
+      <td>2</td>
+      <td style="color:#22c55e;font-weight:600">88.9%</td>
+    </tr><tr>
+      <td>6-7</td>
+      <td>21</td>
+      <td>15</td>
+      <td>2</td>
+      <td style="color:#22c55e;font-weight:600">88.2%</td>
+    </tr><tr>
+      <td>5-6</td>
+      <td>14</td>
+      <td>10</td>
+      <td>1</td>
+      <td style="color:#22c55e;font-weight:600">90.9%</td>
+    </tr><tr>
+      <td>4-5</td>
+      <td>16</td>
+      <td>12</td>
+      <td>1</td>
+      <td style="color:#22c55e;font-weight:600">92.3%</td>
+    </tr></tbody>
+  </table></div>
+    </div>
+    <div class="section">
+      <h3>Calibration Chart</h3>
+      <div class="chart-wrap">
+        <svg width="560" height="220" xmlns="http://www.w3.org/2000/svg" style="max-width:100%;overflow:hidden">
+    <text x="280" y="18" text-anchor="middle" font-size="12" font-weight="600" fill="#d1d5db">Win Rate % by Confidence Bucket</text>
+    <line x1="130" y1="30" x2="130" y2="190" stroke="#374151" stroke-width="1"/>
+    
+      <text x="124" y="43" text-anchor="end" font-size="11" fill="#9ca3af">9-10</text>
+      <rect x="130" y="30" width="395" height="18" fill="#22c55e" rx="2"/>
+      <text x="529" y="43" font-size="11" fill="#d1d5db">96.4%</text>
+    
+      <text x="124" y="69" text-anchor="end" font-size="11" fill="#9ca3af">8-9</text>
+      <rect x="130" y="56" width="364" height="18" fill="#22c55e" rx="2"/>
+      <text x="498" y="69" font-size="11" fill="#d1d5db">88.9%</text>
+    
+      <text x="124" y="95" text-anchor="end" font-size="11" fill="#9ca3af">7-8</text>
+      <rect x="130" y="82" width="364" height="18" fill="#22c55e" rx="2"/>
+      <text x="498" y="95" font-size="11" fill="#d1d5db">88.9%</text>
+    
+      <text x="124" y="121" text-anchor="end" font-size="11" fill="#9ca3af">6-7</text>
+      <rect x="130" y="108" width="362" height="18" fill="#22c55e" rx="2"/>
+      <text x="496" y="121" font-size="11" fill="#d1d5db">88.2%</text>
+    
+      <text x="124" y="147" text-anchor="end" font-size="11" fill="#9ca3af">5-6</text>
+      <rect x="130" y="134" width="373" height="18" fill="#22c55e" rx="2"/>
+      <text x="507" y="147" font-size="11" fill="#d1d5db">90.9%</text>
+    
+      <text x="124" y="173" text-anchor="end" font-size="11" fill="#9ca3af">4-5</text>
+      <rect x="130" y="160" width="378" height="18" fill="#22c55e" rx="2"/>
+      <text x="512" y="173" font-size="11" fill="#d1d5db">92.3%</text>
+    
+  </svg>
+      </div>
+    </div>
+  </div>
+
+  <!-- REGIME ANALYSIS -->
+  <h2>Market Regime Analysis</h2>
+  <div class="two-col">
+    <div class="section">
+      <h3>Win Rate by Market Regime</h3>
+      <div class="table-scroll"><table class="data-table">
+    <thead><tr>
+      <th>Market Regime</th><th>Snapshots</th><th>Actionable</th>
+      <th>Wins</th><th>Losses</th><th>Win Rate</th>
+    </tr></thead>
+    <tbody><tr>
+      <td>Ranging / Sideways</td>
+      <td>90</td>
+      <td>15</td>
+      <td>14</td>
+      <td>0</td>
+      <td style="color:#22c55e;font-weight:600">100.0%</td>
+    </tr><tr>
+      <td>High Volatility</td>
+      <td>120</td>
+      <td>14</td>
+      <td>13</td>
+      <td>0</td>
+      <td style="color:#22c55e;font-weight:600">100.0%</td>
+    </tr><tr>
+      <td>Low Volatility</td>
+      <td>120</td>
+      <td>19</td>
+      <td>11</td>
+      <td>0</td>
+      <td style="color:#22c55e;font-weight:600">100.0%</td>
+    </tr><tr>
+      <td>Bear Trend</td>
+      <td>270</td>
+      <td>27</td>
+      <td>23</td>
+      <td>1</td>
+      <td style="color:#22c55e;font-weight:600">95.8%</td>
+    </tr><tr>
+      <td>Bull Trend</td>
+      <td>270</td>
+      <td>17</td>
+      <td>15</td>
+      <td>1</td>
+      <td style="color:#22c55e;font-weight:600">93.8%</td>
+    </tr><tr>
+      <td>Accumulation (Bottoming)</td>
+      <td>150</td>
+      <td>17</td>
+      <td>9</td>
+      <td>1</td>
+      <td style="color:#22c55e;font-weight:600">90.0%</td>
+    </tr><tr>
+      <td>Breakout</td>
+      <td>180</td>
+      <td>7</td>
+      <td>6</td>
+      <td>1</td>
+      <td style="color:#22c55e;font-weight:600">85.7%</td>
+    </tr><tr>
+      <td>Reversal</td>
+      <td>90</td>
+      <td>25</td>
+      <td>6</td>
+      <td>1</td>
+      <td style="color:#22c55e;font-weight:600">85.7%</td>
+    </tr><tr>
+      <td>Distribution (Topping)</td>
+      <td>150</td>
+      <td>35</td>
+      <td>25</td>
+      <td>5</td>
+      <td style="color:#22c55e;font-weight:600">83.3%</td>
+    </tr></tbody>
+  </table></div>
+    </div>
+    <div class="section">
+      <h3>Regime Win Rate Chart</h3>
+      <div class="chart-wrap">
+        <svg width="560" height="220" xmlns="http://www.w3.org/2000/svg" style="max-width:100%;overflow:hidden">
+    <text x="280" y="18" text-anchor="middle" font-size="12" font-weight="600" fill="#d1d5db">Win Rate % by Regime (≥3 resolved trades)</text>
+    <line x1="130" y1="30" x2="130" y2="190" stroke="#374151" stroke-width="1"/>
+    
+      <text x="124" y="40" text-anchor="end" font-size="11" fill="#9ca3af">Ranging/Sideways</text>
+      <rect x="130" y="30" width="410" height="12" fill="#22c55e" rx="2"/>
+      <text x="544" y="40" font-size="11" fill="#d1d5db">100.0%</text>
+    
+      <text x="124" y="57" text-anchor="end" font-size="11" fill="#9ca3af">High Volatility</text>
+      <rect x="130" y="47" width="410" height="12" fill="#22c55e" rx="2"/>
+      <text x="544" y="57" font-size="11" fill="#d1d5db">100.0%</text>
+    
+      <text x="124" y="74" text-anchor="end" font-size="11" fill="#9ca3af">Low Volatility</text>
+      <rect x="130" y="64" width="410" height="12" fill="#22c55e" rx="2"/>
+      <text x="544" y="74" font-size="11" fill="#d1d5db">100.0%</text>
+    
+      <text x="124" y="91" text-anchor="end" font-size="11" fill="#9ca3af">Bear Trend</text>
+      <rect x="130" y="81" width="393" height="12" fill="#22c55e" rx="2"/>
+      <text x="527" y="91" font-size="11" fill="#d1d5db">95.8%</text>
+    
+      <text x="124" y="108" text-anchor="end" font-size="11" fill="#9ca3af">Bull Trend</text>
+      <rect x="130" y="98" width="384" height="12" fill="#22c55e" rx="2"/>
+      <text x="518" y="108" font-size="11" fill="#d1d5db">93.8%</text>
+    
+      <text x="124" y="125" text-anchor="end" font-size="11" fill="#9ca3af">Accumulation (Bottoming)</text>
+      <rect x="130" y="115" width="369" height="12" fill="#22c55e" rx="2"/>
+      <text x="503" y="125" font-size="11" fill="#d1d5db">90.0%</text>
+    
+      <text x="124" y="142" text-anchor="end" font-size="11" fill="#9ca3af">Breakout</text>
+      <rect x="130" y="132" width="351" height="12" fill="#22c55e" rx="2"/>
+      <text x="485" y="142" font-size="11" fill="#d1d5db">85.7%</text>
+    
+      <text x="124" y="159" text-anchor="end" font-size="11" fill="#9ca3af">Reversal</text>
+      <rect x="130" y="149" width="351" height="12" fill="#22c55e" rx="2"/>
+      <text x="485" y="159" font-size="11" fill="#d1d5db">85.7%</text>
+    
+      <text x="124" y="176" text-anchor="end" font-size="11" fill="#9ca3af">Distribution (Topping)</text>
+      <rect x="130" y="166" width="342" height="12" fill="#22c55e" rx="2"/>
+      <text x="476" y="176" font-size="11" fill="#d1d5db">83.3%</text>
+    
+  </svg>
+      </div>
+    </div>
+  </div>
+
+  <!-- MTF AGREEMENT -->
+  <h2>Multi-Timeframe Agreement (15m / 1h / 4h)</h2>
+  <div class="section">
+    <p style="margin-bottom:0.75rem">For each symbol, snapshots are binned by position (decile). The 15m, 1h, and 4h directions are compared. Win rate by agreement level shows whether timeframe alignment predicts outcomes.</p>
+    <div class="table-scroll"><table class="data-table">
+    <thead><tr>
+      <th>MTF Agreement</th><th>Position Bins</th><th>Wins</th><th>Losses</th><th>Win Rate</th>
+    </tr></thead>
+    <tbody><tr>
+      <td>All timeframes aligned</td>
+      <td>55</td>
+      <td>60</td>
+      <td>4</td>
+      <td style="color:#22c55e;font-weight:600">93.8%</td>
+    </tr><tr>
+      <td>Mixed signals</td>
+      <td>39</td>
+      <td>52</td>
+      <td>5</td>
+      <td style="color:#22c55e;font-weight:600">91.2%</td>
+    </tr><tr>
+      <td>Strong conflict</td>
+      <td>6</td>
+      <td>10</td>
+      <td>1</td>
+      <td style="color:#22c55e;font-weight:600">90.9%</td>
+    </tr></tbody>
+  </table></div>
+  </div>
+
+  <!-- LOSS BREAKDOWN -->
+  <h2>Loss Categorization</h2>
+  <div class="two-col">
+    <div class="section">
+      <h3>Loss Categories (10 total losses)</h3>
+      <div class="table-scroll"><table class="data-table">
+    <thead><tr><th>Loss Category</th><th>Count</th><th>% of Losses</th></tr></thead>
+    <tbody><tr>
+      <td>Weak Trend</td>
+      <td>7</td>
+      <td>70.0%</td>
+    </tr><tr>
+      <td>Low Volume</td>
+      <td>2</td>
+      <td>20.0%</td>
+    </tr><tr>
+      <td>Unexpected Reversal</td>
+      <td>1</td>
+      <td>10.0%</td>
+    </tr></tbody>
+  </table></div>
+    </div>
+    <div class="section">
+      <h3>Loss Category Chart</h3>
+      <div class="chart-wrap">
+        <svg width="560" height="220" xmlns="http://www.w3.org/2000/svg" style="max-width:100%;overflow:hidden">
+    <text x="280" y="18" text-anchor="middle" font-size="12" font-weight="600" fill="#d1d5db">% of Total Losses by Category</text>
+    <line x1="130" y1="30" x2="130" y2="190" stroke="#374151" stroke-width="1"/>
+    
+      <text x="124" y="52.5" text-anchor="end" font-size="11" fill="#9ca3af">Weak Trend</text>
+      <rect x="130" y="30" width="410" height="37" fill="#f97316" rx="2"/>
+      <text x="544" y="52.5" font-size="11" fill="#d1d5db">70.0%</text>
+    
+      <text x="124" y="105.5" text-anchor="end" font-size="11" fill="#9ca3af">Low Volume</text>
+      <rect x="130" y="83" width="117" height="37" fill="#f97316" rx="2"/>
+      <text x="251" y="105.5" font-size="11" fill="#d1d5db">20.0%</text>
+    
+      <text x="124" y="158.5" text-anchor="end" font-size="11" fill="#9ca3af">Unexpected Reversal</text>
+      <rect x="130" y="136" width="59" height="37" fill="#f97316" rx="2"/>
+      <text x="193" y="158.5" font-size="11" fill="#d1d5db">10.0%</text>
+    
+  </svg>
+      </div>
+    </div>
+  </div>
+
+  <!-- PER-SYMBOL -->
+  <h2>Per-Symbol Summary</h2>
+  <div class="section">
+    <div class="table-scroll"><table class="data-table">
+    <thead><tr>
+      <th>Symbol</th><th>Snapshots</th><th>Actionable</th>
+      <th>Wins</th><th>Losses</th><th>Win Rate</th>
+      <th>Avg R:R</th><th>Expectancy</th>
+    </tr></thead>
+    <tbody><tr>
+      <td style="font-weight:600">BTCUSDT</td>
+      <td>144</td>
+      <td>16 (11%)</td>
+      <td>13</td>
+      <td>1</td>
+      <td style="color:#22c55e;font-weight:600">92.9%</td>
+      <td>7.28</td>
+      <td style="color:#22c55e">6.69</td>
+    </tr><tr>
+      <td style="font-weight:600">ETHUSDT</td>
+      <td>144</td>
+      <td>18 (13%)</td>
+      <td>7</td>
+      <td>2</td>
+      <td style="color:#22c55e;font-weight:600">77.8%</td>
+      <td>4.90</td>
+      <td style="color:#22c55e">3.59</td>
+    </tr><tr>
+      <td style="font-weight:600">BNBUSDT</td>
+      <td>144</td>
+      <td>26 (18%)</td>
+      <td>15</td>
+      <td>1</td>
+      <td style="color:#22c55e;font-weight:600">93.8%</td>
+      <td>9.80</td>
+      <td style="color:#22c55e">9.12</td>
+    </tr><tr>
+      <td style="font-weight:600">SOLUSDT</td>
+      <td>144</td>
+      <td>20 (14%)</td>
+      <td>15</td>
+      <td>0</td>
+      <td style="color:#22c55e;font-weight:600">100.0%</td>
+      <td>12.85</td>
+      <td style="color:#22c55e">12.85</td>
+    </tr><tr>
+      <td style="font-weight:600">XRPUSDT</td>
+      <td>144</td>
+      <td>16 (11%)</td>
+      <td>13</td>
+      <td>0</td>
+      <td style="color:#22c55e;font-weight:600">100.0%</td>
+      <td>8.64</td>
+      <td style="color:#22c55e">8.64</td>
+    </tr><tr>
+      <td style="font-weight:600">ADAUSDT</td>
+      <td>144</td>
+      <td>12 (8%)</td>
+      <td>11</td>
+      <td>0</td>
+      <td style="color:#22c55e;font-weight:600">100.0%</td>
+      <td>13.22</td>
+      <td style="color:#22c55e">13.22</td>
+    </tr><tr>
+      <td style="font-weight:600">DOGEUSDT</td>
+      <td>144</td>
+      <td>9 (6%)</td>
+      <td>5</td>
+      <td>0</td>
+      <td style="color:#22c55e;font-weight:600">100.0%</td>
+      <td>11.90</td>
+      <td style="color:#22c55e">11.90</td>
+    </tr><tr>
+      <td style="font-weight:600">LINKUSDT</td>
+      <td>144</td>
+      <td>11 (8%)</td>
+      <td>8</td>
+      <td>1</td>
+      <td style="color:#22c55e;font-weight:600">88.9%</td>
+      <td>7.66</td>
+      <td style="color:#22c55e">6.69</td>
+    </tr><tr>
+      <td style="font-weight:600">AVAXUSDT</td>
+      <td>144</td>
+      <td>25 (17%)</td>
+      <td>19</td>
+      <td>2</td>
+      <td style="color:#22c55e;font-weight:600">90.5%</td>
+      <td>10.57</td>
+      <td style="color:#22c55e">9.46</td>
+    </tr><tr>
+      <td style="font-weight:600">SUIUSDT</td>
+      <td>144</td>
+      <td>23 (16%)</td>
+      <td>16</td>
+      <td>3</td>
+      <td style="color:#22c55e;font-weight:600">84.2%</td>
+      <td>6.48</td>
+      <td style="color:#22c55e">5.30</td>
+    </tr></tbody>
+  </table></div>
+  </div>
+
+  <!-- PER-TIMEFRAME -->
+  <h2>Per-Timeframe Summary</h2>
+  <div class="section">
+    <div class="table-scroll"><table class="data-table">
+    <thead><tr>
+      <th>Timeframe</th><th>Snapshots</th><th>Actionable</th>
+      <th>Wins</th><th>Losses</th><th>Win Rate</th>
+      <th>Avg R:R</th><th>Expectancy</th>
+    </tr></thead>
+    <tbody><tr>
+      <td style="font-weight:600">15m</td>
+      <td>480</td>
+      <td>53 (11%)</td>
+      <td>36</td>
+      <td>2</td>
+      <td style="color:#22c55e;font-weight:600">94.7%</td>
+      <td>10.89</td>
+      <td style="color:#22c55e">10.26</td>
+    </tr><tr>
+      <td style="font-weight:600">1h</td>
+      <td>480</td>
+      <td>73 (15%)</td>
+      <td>53</td>
+      <td>2</td>
+      <td style="color:#22c55e;font-weight:600">96.4%</td>
+      <td>7.93</td>
+      <td style="color:#22c55e">7.61</td>
+    </tr><tr>
+      <td style="font-weight:600">4h</td>
+      <td>480</td>
+      <td>50 (10%)</td>
+      <td>33</td>
+      <td>6</td>
+      <td style="color:#22c55e;font-weight:600">84.6%</td>
+      <td>8.72</td>
+      <td style="color:#22c55e">7.22</td>
+    </tr></tbody>
+  </table></div>
+  </div>
+
+  <!-- DETAILED PER-DATASET -->
+  <h2>Detailed Per-Dataset Results</h2>
+  
+    <details>
+      <summary style="cursor:pointer;padding:0.5rem 0.75rem;background:var(--bg3);border-radius:4px;margin:0.4rem 0;font-size:0.85rem">
+        <strong>BTCUSDT / 15m</strong>
+        &nbsp; snapshots:48
+        &nbsp; action:7
+        &nbsp; win:100.0%
+        &nbsp; exp:5.10R
+      </summary>
+      <div style="margin:0.25rem 0 0.75rem;padding:0 0.5rem">
+        <div class="stats-grid" style="grid-template-columns:repeat(4,1fr);margin-top:0.5rem">
+          <div class="stat-card"><div class="stat-label">Win Rate</div><div class="stat-value" style="color:#22c55e">100.0%</div></div>
+          <div class="stat-card"><div class="stat-label">Avg Setup R:R</div><div class="stat-value">5.10</div></div>
+          <div class="stat-card"><div class="stat-label">Top Phase</div><div class="stat-value" style="font-size:0.8rem">reversal_attempt</div></div>
+          <div class="stat-card"><div class="stat-label">Common Failure</div><div class="stat-value" style="font-size:0.8rem">—</div></div>
+        </div>
+      </div>
+    </details>
+    <details>
+      <summary style="cursor:pointer;padding:0.5rem 0.75rem;background:var(--bg3);border-radius:4px;margin:0.4rem 0;font-size:0.85rem">
+        <strong>BTCUSDT / 1h</strong>
+        &nbsp; snapshots:48
+        &nbsp; action:4
+        &nbsp; win:75.0%
+        &nbsp; exp:5.90R
+      </summary>
+      <div style="margin:0.25rem 0 0.75rem;padding:0 0.5rem">
+        <div class="stats-grid" style="grid-template-columns:repeat(4,1fr);margin-top:0.5rem">
+          <div class="stat-card"><div class="stat-label">Win Rate</div><div class="stat-value" style="color:#22c55e">75.0%</div></div>
+          <div class="stat-card"><div class="stat-label">Avg Setup R:R</div><div class="stat-value">8.20</div></div>
+          <div class="stat-card"><div class="stat-label">Top Phase</div><div class="stat-value" style="font-size:0.8rem">—</div></div>
+          <div class="stat-card"><div class="stat-label">Common Failure</div><div class="stat-value" style="font-size:0.8rem">price_level</div></div>
+        </div>
+      </div>
+    </details>
+    <details>
+      <summary style="cursor:pointer;padding:0.5rem 0.75rem;background:var(--bg3);border-radius:4px;margin:0.4rem 0;font-size:0.85rem">
+        <strong>BTCUSDT / 4h</strong>
+        &nbsp; snapshots:48
+        &nbsp; action:5
+        &nbsp; win:100.0%
+        &nbsp; exp:8.54R
+      </summary>
+      <div style="margin:0.25rem 0 0.75rem;padding:0 0.5rem">
+        <div class="stats-grid" style="grid-template-columns:repeat(4,1fr);margin-top:0.5rem">
+          <div class="stat-card"><div class="stat-label">Win Rate</div><div class="stat-value" style="color:#22c55e">100.0%</div></div>
+          <div class="stat-card"><div class="stat-label">Avg Setup R:R</div><div class="stat-value">8.54</div></div>
+          <div class="stat-card"><div class="stat-label">Top Phase</div><div class="stat-value" style="font-size:0.8rem">reversal_attempt</div></div>
+          <div class="stat-card"><div class="stat-label">Common Failure</div><div class="stat-value" style="font-size:0.8rem">—</div></div>
+        </div>
+      </div>
+    </details>
+    <details>
+      <summary style="cursor:pointer;padding:0.5rem 0.75rem;background:var(--bg3);border-radius:4px;margin:0.4rem 0;font-size:0.85rem">
+        <strong>ETHUSDT / 15m</strong>
+        &nbsp; snapshots:48
+        &nbsp; action:7
+        &nbsp; win:100.0%
+        &nbsp; exp:6.37R
+      </summary>
+      <div style="margin:0.25rem 0 0.75rem;padding:0 0.5rem">
+        <div class="stats-grid" style="grid-template-columns:repeat(4,1fr);margin-top:0.5rem">
+          <div class="stat-card"><div class="stat-label">Win Rate</div><div class="stat-value" style="color:#22c55e">100.0%</div></div>
+          <div class="stat-card"><div class="stat-label">Avg Setup R:R</div><div class="stat-value">6.37</div></div>
+          <div class="stat-card"><div class="stat-label">Top Phase</div><div class="stat-value" style="font-size:0.8rem">reversal_attempt</div></div>
+          <div class="stat-card"><div class="stat-label">Common Failure</div><div class="stat-value" style="font-size:0.8rem">—</div></div>
+        </div>
+      </div>
+    </details>
+    <details>
+      <summary style="cursor:pointer;padding:0.5rem 0.75rem;background:var(--bg3);border-radius:4px;margin:0.4rem 0;font-size:0.85rem">
+        <strong>ETHUSDT / 1h</strong>
+        &nbsp; snapshots:48
+        &nbsp; action:6
+        &nbsp; win:100.0%
+        &nbsp; exp:5.23R
+      </summary>
+      <div style="margin:0.25rem 0 0.75rem;padding:0 0.5rem">
+        <div class="stats-grid" style="grid-template-columns:repeat(4,1fr);margin-top:0.5rem">
+          <div class="stat-card"><div class="stat-label">Win Rate</div><div class="stat-value" style="color:#22c55e">100.0%</div></div>
+          <div class="stat-card"><div class="stat-label">Avg Setup R:R</div><div class="stat-value">5.23</div></div>
+          <div class="stat-card"><div class="stat-label">Top Phase</div><div class="stat-value" style="font-size:0.8rem">—</div></div>
+          <div class="stat-card"><div class="stat-label">Common Failure</div><div class="stat-value" style="font-size:0.8rem">—</div></div>
+        </div>
+      </div>
+    </details>
+    <details>
+      <summary style="cursor:pointer;padding:0.5rem 0.75rem;background:var(--bg3);border-radius:4px;margin:0.4rem 0;font-size:0.85rem">
+        <strong>ETHUSDT / 4h</strong>
+        &nbsp; snapshots:48
+        &nbsp; action:5
+        &nbsp; win:33.3%
+        &nbsp; exp:0.37R
+      </summary>
+      <div style="margin:0.25rem 0 0.75rem;padding:0 0.5rem">
+        <div class="stats-grid" style="grid-template-columns:repeat(4,1fr);margin-top:0.5rem">
+          <div class="stat-card"><div class="stat-label">Win Rate</div><div class="stat-value" style="color:#ef4444">33.3%</div></div>
+          <div class="stat-card"><div class="stat-label">Avg Setup R:R</div><div class="stat-value">3.10</div></div>
+          <div class="stat-card"><div class="stat-label">Top Phase</div><div class="stat-value" style="font-size:0.8rem">—</div></div>
+          <div class="stat-card"><div class="stat-label">Common Failure</div><div class="stat-value" style="font-size:0.8rem">price_level</div></div>
+        </div>
+      </div>
+    </details>
+    <details>
+      <summary style="cursor:pointer;padding:0.5rem 0.75rem;background:var(--bg3);border-radius:4px;margin:0.4rem 0;font-size:0.85rem">
+        <strong>BNBUSDT / 15m</strong>
+        &nbsp; snapshots:48
+        &nbsp; action:7
+        &nbsp; win:100.0%
+        &nbsp; exp:10.58R
+      </summary>
+      <div style="margin:0.25rem 0 0.75rem;padding:0 0.5rem">
+        <div class="stats-grid" style="grid-template-columns:repeat(4,1fr);margin-top:0.5rem">
+          <div class="stat-card"><div class="stat-label">Win Rate</div><div class="stat-value" style="color:#22c55e">100.0%</div></div>
+          <div class="stat-card"><div class="stat-label">Avg Setup R:R</div><div class="stat-value">10.58</div></div>
+          <div class="stat-card"><div class="stat-label">Top Phase</div><div class="stat-value" style="font-size:0.8rem">reversal_attempt</div></div>
+          <div class="stat-card"><div class="stat-label">Common Failure</div><div class="stat-value" style="font-size:0.8rem">—</div></div>
+        </div>
+      </div>
+    </details>
+    <details>
+      <summary style="cursor:pointer;padding:0.5rem 0.75rem;background:var(--bg3);border-radius:4px;margin:0.4rem 0;font-size:0.85rem">
+        <strong>BNBUSDT / 1h</strong>
+        &nbsp; snapshots:48
+        &nbsp; action:7
+        &nbsp; win:75.0%
+        &nbsp; exp:6.54R
+      </summary>
+      <div style="margin:0.25rem 0 0.75rem;padding:0 0.5rem">
+        <div class="stats-grid" style="grid-template-columns:repeat(4,1fr);margin-top:0.5rem">
+          <div class="stat-card"><div class="stat-label">Win Rate</div><div class="stat-value" style="color:#22c55e">75.0%</div></div>
+          <div class="stat-card"><div class="stat-label">Avg Setup R:R</div><div class="stat-value">9.06</div></div>
+          <div class="stat-card"><div class="stat-label">Top Phase</div><div class="stat-value" style="font-size:0.8rem">reversal_attempt</div></div>
+          <div class="stat-card"><div class="stat-label">Common Failure</div><div class="stat-value" style="font-size:0.8rem">price_level</div></div>
+        </div>
+      </div>
+    </details>
+    <details>
+      <summary style="cursor:pointer;padding:0.5rem 0.75rem;background:var(--bg3);border-radius:4px;margin:0.4rem 0;font-size:0.85rem">
+        <strong>BNBUSDT / 4h</strong>
+        &nbsp; snapshots:48
+        &nbsp; action:12
+        &nbsp; win:100.0%
+        &nbsp; exp:9.75R
+      </summary>
+      <div style="margin:0.25rem 0 0.75rem;padding:0 0.5rem">
+        <div class="stats-grid" style="grid-template-columns:repeat(4,1fr);margin-top:0.5rem">
+          <div class="stat-card"><div class="stat-label">Win Rate</div><div class="stat-value" style="color:#22c55e">100.0%</div></div>
+          <div class="stat-card"><div class="stat-label">Avg Setup R:R</div><div class="stat-value">9.75</div></div>
+          <div class="stat-card"><div class="stat-label">Top Phase</div><div class="stat-value" style="font-size:0.8rem">reversal_attempt</div></div>
+          <div class="stat-card"><div class="stat-label">Common Failure</div><div class="stat-value" style="font-size:0.8rem">—</div></div>
+        </div>
+      </div>
+    </details>
+    <details>
+      <summary style="cursor:pointer;padding:0.5rem 0.75rem;background:var(--bg3);border-radius:4px;margin:0.4rem 0;font-size:0.85rem">
+        <strong>SOLUSDT / 15m</strong>
+        &nbsp; snapshots:48
+        &nbsp; action:8
+        &nbsp; win:100.0%
+        &nbsp; exp:11.77R
+      </summary>
+      <div style="margin:0.25rem 0 0.75rem;padding:0 0.5rem">
+        <div class="stats-grid" style="grid-template-columns:repeat(4,1fr);margin-top:0.5rem">
+          <div class="stat-card"><div class="stat-label">Win Rate</div><div class="stat-value" style="color:#22c55e">100.0%</div></div>
+          <div class="stat-card"><div class="stat-label">Avg Setup R:R</div><div class="stat-value">11.77</div></div>
+          <div class="stat-card"><div class="stat-label">Top Phase</div><div class="stat-value" style="font-size:0.8rem">reversal_attempt</div></div>
+          <div class="stat-card"><div class="stat-label">Common Failure</div><div class="stat-value" style="font-size:0.8rem">—</div></div>
+        </div>
+      </div>
+    </details>
+    <details>
+      <summary style="cursor:pointer;padding:0.5rem 0.75rem;background:var(--bg3);border-radius:4px;margin:0.4rem 0;font-size:0.85rem">
+        <strong>SOLUSDT / 1h</strong>
+        &nbsp; snapshots:48
+        &nbsp; action:8
+        &nbsp; win:100.0%
+        &nbsp; exp:11.21R
+      </summary>
+      <div style="margin:0.25rem 0 0.75rem;padding:0 0.5rem">
+        <div class="stats-grid" style="grid-template-columns:repeat(4,1fr);margin-top:0.5rem">
+          <div class="stat-card"><div class="stat-label">Win Rate</div><div class="stat-value" style="color:#22c55e">100.0%</div></div>
+          <div class="stat-card"><div class="stat-label">Avg Setup R:R</div><div class="stat-value">11.21</div></div>
+          <div class="stat-card"><div class="stat-label">Top Phase</div><div class="stat-value" style="font-size:0.8rem">reversal_attempt</div></div>
+          <div class="stat-card"><div class="stat-label">Common Failure</div><div class="stat-value" style="font-size:0.8rem">—</div></div>
+        </div>
+      </div>
+    </details>
+    <details>
+      <summary style="cursor:pointer;padding:0.5rem 0.75rem;background:var(--bg3);border-radius:4px;margin:0.4rem 0;font-size:0.85rem">
+        <strong>SOLUSDT / 4h</strong>
+        &nbsp; snapshots:48
+        &nbsp; action:4
+        &nbsp; win:100.0%
+        &nbsp; exp:15.59R
+      </summary>
+      <div style="margin:0.25rem 0 0.75rem;padding:0 0.5rem">
+        <div class="stats-grid" style="grid-template-columns:repeat(4,1fr);margin-top:0.5rem">
+          <div class="stat-card"><div class="stat-label">Win Rate</div><div class="stat-value" style="color:#22c55e">100.0%</div></div>
+          <div class="stat-card"><div class="stat-label">Avg Setup R:R</div><div class="stat-value">15.59</div></div>
+          <div class="stat-card"><div class="stat-label">Top Phase</div><div class="stat-value" style="font-size:0.8rem">reversal_attempt</div></div>
+          <div class="stat-card"><div class="stat-label">Common Failure</div><div class="stat-value" style="font-size:0.8rem">—</div></div>
+        </div>
+      </div>
+    </details>
+    <details>
+      <summary style="cursor:pointer;padding:0.5rem 0.75rem;background:var(--bg3);border-radius:4px;margin:0.4rem 0;font-size:0.85rem">
+        <strong>XRPUSDT / 15m</strong>
+        &nbsp; snapshots:48
+        &nbsp; action:5
+        &nbsp; win:100.0%
+        &nbsp; exp:13.43R
+      </summary>
+      <div style="margin:0.25rem 0 0.75rem;padding:0 0.5rem">
+        <div class="stats-grid" style="grid-template-columns:repeat(4,1fr);margin-top:0.5rem">
+          <div class="stat-card"><div class="stat-label">Win Rate</div><div class="stat-value" style="color:#22c55e">100.0%</div></div>
+          <div class="stat-card"><div class="stat-label">Avg Setup R:R</div><div class="stat-value">13.43</div></div>
+          <div class="stat-card"><div class="stat-label">Top Phase</div><div class="stat-value" style="font-size:0.8rem">reversal_attempt</div></div>
+          <div class="stat-card"><div class="stat-label">Common Failure</div><div class="stat-value" style="font-size:0.8rem">—</div></div>
+        </div>
+      </div>
+    </details>
+    <details>
+      <summary style="cursor:pointer;padding:0.5rem 0.75rem;background:var(--bg3);border-radius:4px;margin:0.4rem 0;font-size:0.85rem">
+        <strong>XRPUSDT / 1h</strong>
+        &nbsp; snapshots:48
+        &nbsp; action:7
+        &nbsp; win:100.0%
+        &nbsp; exp:5.59R
+      </summary>
+      <div style="margin:0.25rem 0 0.75rem;padding:0 0.5rem">
+        <div class="stats-grid" style="grid-template-columns:repeat(4,1fr);margin-top:0.5rem">
+          <div class="stat-card"><div class="stat-label">Win Rate</div><div class="stat-value" style="color:#22c55e">100.0%</div></div>
+          <div class="stat-card"><div class="stat-label">Avg Setup R:R</div><div class="stat-value">5.59</div></div>
+          <div class="stat-card"><div class="stat-label">Top Phase</div><div class="stat-value" style="font-size:0.8rem">reversal_attempt</div></div>
+          <div class="stat-card"><div class="stat-label">Common Failure</div><div class="stat-value" style="font-size:0.8rem">—</div></div>
+        </div>
+      </div>
+    </details>
+    <details>
+      <summary style="cursor:pointer;padding:0.5rem 0.75rem;background:var(--bg3);border-radius:4px;margin:0.4rem 0;font-size:0.85rem">
+        <strong>XRPUSDT / 4h</strong>
+        &nbsp; snapshots:48
+        &nbsp; action:4
+        &nbsp; win:100.0%
+        &nbsp; exp:6.89R
+      </summary>
+      <div style="margin:0.25rem 0 0.75rem;padding:0 0.5rem">
+        <div class="stats-grid" style="grid-template-columns:repeat(4,1fr);margin-top:0.5rem">
+          <div class="stat-card"><div class="stat-label">Win Rate</div><div class="stat-value" style="color:#22c55e">100.0%</div></div>
+          <div class="stat-card"><div class="stat-label">Avg Setup R:R</div><div class="stat-value">6.89</div></div>
+          <div class="stat-card"><div class="stat-label">Top Phase</div><div class="stat-value" style="font-size:0.8rem">—</div></div>
+          <div class="stat-card"><div class="stat-label">Common Failure</div><div class="stat-value" style="font-size:0.8rem">—</div></div>
+        </div>
+      </div>
+    </details>
+    <details>
+      <summary style="cursor:pointer;padding:0.5rem 0.75rem;background:var(--bg3);border-radius:4px;margin:0.4rem 0;font-size:0.85rem">
+        <strong>ADAUSDT / 15m</strong>
+        &nbsp; snapshots:48
+        &nbsp; action:5
+        &nbsp; win:100.0%
+        &nbsp; exp:19.74R
+      </summary>
+      <div style="margin:0.25rem 0 0.75rem;padding:0 0.5rem">
+        <div class="stats-grid" style="grid-template-columns:repeat(4,1fr);margin-top:0.5rem">
+          <div class="stat-card"><div class="stat-label">Win Rate</div><div class="stat-value" style="color:#22c55e">100.0%</div></div>
+          <div class="stat-card"><div class="stat-label">Avg Setup R:R</div><div class="stat-value">19.74</div></div>
+          <div class="stat-card"><div class="stat-label">Top Phase</div><div class="stat-value" style="font-size:0.8rem">reversal_attempt</div></div>
+          <div class="stat-card"><div class="stat-label">Common Failure</div><div class="stat-value" style="font-size:0.8rem">—</div></div>
+        </div>
+      </div>
+    </details>
+    <details>
+      <summary style="cursor:pointer;padding:0.5rem 0.75rem;background:var(--bg3);border-radius:4px;margin:0.4rem 0;font-size:0.85rem">
+        <strong>ADAUSDT / 1h</strong>
+        &nbsp; snapshots:48
+        &nbsp; action:7
+        &nbsp; win:100.0%
+        &nbsp; exp:6.70R
+      </summary>
+      <div style="margin:0.25rem 0 0.75rem;padding:0 0.5rem">
+        <div class="stats-grid" style="grid-template-columns:repeat(4,1fr);margin-top:0.5rem">
+          <div class="stat-card"><div class="stat-label">Win Rate</div><div class="stat-value" style="color:#22c55e">100.0%</div></div>
+          <div class="stat-card"><div class="stat-label">Avg Setup R:R</div><div class="stat-value">6.70</div></div>
+          <div class="stat-card"><div class="stat-label">Top Phase</div><div class="stat-value" style="font-size:0.8rem">reversal_attempt</div></div>
+          <div class="stat-card"><div class="stat-label">Common Failure</div><div class="stat-value" style="font-size:0.8rem">—</div></div>
+        </div>
+      </div>
+    </details>
+    <details>
+      <summary style="cursor:pointer;padding:0.5rem 0.75rem;background:var(--bg3);border-radius:4px;margin:0.4rem 0;font-size:0.85rem">
+        <strong>ADAUSDT / 4h</strong>
+        &nbsp; snapshots:48
+        &nbsp; action:0
+        &nbsp; win:—
+        &nbsp; exp:—R
+      </summary>
+      <div style="margin:0.25rem 0 0.75rem;padding:0 0.5rem">
+        <div class="stats-grid" style="grid-template-columns:repeat(4,1fr);margin-top:0.5rem">
+          <div class="stat-card"><div class="stat-label">Win Rate</div><div class="stat-value" style="color:#6b7280">—</div></div>
+          <div class="stat-card"><div class="stat-label">Avg Setup R:R</div><div class="stat-value">—</div></div>
+          <div class="stat-card"><div class="stat-label">Top Phase</div><div class="stat-value" style="font-size:0.8rem">—</div></div>
+          <div class="stat-card"><div class="stat-label">Common Failure</div><div class="stat-value" style="font-size:0.8rem">—</div></div>
+        </div>
+      </div>
+    </details>
+    <details>
+      <summary style="cursor:pointer;padding:0.5rem 0.75rem;background:var(--bg3);border-radius:4px;margin:0.4rem 0;font-size:0.85rem">
+        <strong>DOGEUSDT / 15m</strong>
+        &nbsp; snapshots:48
+        &nbsp; action:3
+        &nbsp; win:—
+        &nbsp; exp:—R
+      </summary>
+      <div style="margin:0.25rem 0 0.75rem;padding:0 0.5rem">
+        <div class="stats-grid" style="grid-template-columns:repeat(4,1fr);margin-top:0.5rem">
+          <div class="stat-card"><div class="stat-label">Win Rate</div><div class="stat-value" style="color:#6b7280">—</div></div>
+          <div class="stat-card"><div class="stat-label">Avg Setup R:R</div><div class="stat-value">16.95</div></div>
+          <div class="stat-card"><div class="stat-label">Top Phase</div><div class="stat-value" style="font-size:0.8rem">—</div></div>
+          <div class="stat-card"><div class="stat-label">Common Failure</div><div class="stat-value" style="font-size:0.8rem">—</div></div>
+        </div>
+      </div>
+    </details>
+    <details>
+      <summary style="cursor:pointer;padding:0.5rem 0.75rem;background:var(--bg3);border-radius:4px;margin:0.4rem 0;font-size:0.85rem">
+        <strong>DOGEUSDT / 1h</strong>
+        &nbsp; snapshots:48
+        &nbsp; action:4
+        &nbsp; win:100.0%
+        &nbsp; exp:3.90R
+      </summary>
+      <div style="margin:0.25rem 0 0.75rem;padding:0 0.5rem">
+        <div class="stats-grid" style="grid-template-columns:repeat(4,1fr);margin-top:0.5rem">
+          <div class="stat-card"><div class="stat-label">Win Rate</div><div class="stat-value" style="color:#22c55e">100.0%</div></div>
+          <div class="stat-card"><div class="stat-label">Avg Setup R:R</div><div class="stat-value">3.90</div></div>
+          <div class="stat-card"><div class="stat-label">Top Phase</div><div class="stat-value" style="font-size:0.8rem">reversal_attempt</div></div>
+          <div class="stat-card"><div class="stat-label">Common Failure</div><div class="stat-value" style="font-size:0.8rem">—</div></div>
+        </div>
+      </div>
+    </details>
+    <details>
+      <summary style="cursor:pointer;padding:0.5rem 0.75rem;background:var(--bg3);border-radius:4px;margin:0.4rem 0;font-size:0.85rem">
+        <strong>DOGEUSDT / 4h</strong>
+        &nbsp; snapshots:48
+        &nbsp; action:2
+        &nbsp; win:100.0%
+        &nbsp; exp:14.84R
+      </summary>
+      <div style="margin:0.25rem 0 0.75rem;padding:0 0.5rem">
+        <div class="stats-grid" style="grid-template-columns:repeat(4,1fr);margin-top:0.5rem">
+          <div class="stat-card"><div class="stat-label">Win Rate</div><div class="stat-value" style="color:#22c55e">100.0%</div></div>
+          <div class="stat-card"><div class="stat-label">Avg Setup R:R</div><div class="stat-value">14.84</div></div>
+          <div class="stat-card"><div class="stat-label">Top Phase</div><div class="stat-value" style="font-size:0.8rem">—</div></div>
+          <div class="stat-card"><div class="stat-label">Common Failure</div><div class="stat-value" style="font-size:0.8rem">—</div></div>
+        </div>
+      </div>
+    </details>
+    <details>
+      <summary style="cursor:pointer;padding:0.5rem 0.75rem;background:var(--bg3);border-radius:4px;margin:0.4rem 0;font-size:0.85rem">
+        <strong>LINKUSDT / 15m</strong>
+        &nbsp; snapshots:48
+        &nbsp; action:2
+        &nbsp; win:50.0%
+        &nbsp; exp:2.19R
+      </summary>
+      <div style="margin:0.25rem 0 0.75rem;padding:0 0.5rem">
+        <div class="stats-grid" style="grid-template-columns:repeat(4,1fr);margin-top:0.5rem">
+          <div class="stat-card"><div class="stat-label">Win Rate</div><div class="stat-value" style="color:#f59e0b">50.0%</div></div>
+          <div class="stat-card"><div class="stat-label">Avg Setup R:R</div><div class="stat-value">5.38</div></div>
+          <div class="stat-card"><div class="stat-label">Top Phase</div><div class="stat-value" style="font-size:0.8rem">—</div></div>
+          <div class="stat-card"><div class="stat-label">Common Failure</div><div class="stat-value" style="font-size:0.8rem">price_level</div></div>
+        </div>
+      </div>
+    </details>
+    <details>
+      <summary style="cursor:pointer;padding:0.5rem 0.75rem;background:var(--bg3);border-radius:4px;margin:0.4rem 0;font-size:0.85rem">
+        <strong>LINKUSDT / 1h</strong>
+        &nbsp; snapshots:48
+        &nbsp; action:6
+        &nbsp; win:100.0%
+        &nbsp; exp:6.19R
+      </summary>
+      <div style="margin:0.25rem 0 0.75rem;padding:0 0.5rem">
+        <div class="stats-grid" style="grid-template-columns:repeat(4,1fr);margin-top:0.5rem">
+          <div class="stat-card"><div class="stat-label">Win Rate</div><div class="stat-value" style="color:#22c55e">100.0%</div></div>
+          <div class="stat-card"><div class="stat-label">Avg Setup R:R</div><div class="stat-value">6.19</div></div>
+          <div class="stat-card"><div class="stat-label">Top Phase</div><div class="stat-value" style="font-size:0.8rem">reversal_attempt</div></div>
+          <div class="stat-card"><div class="stat-label">Common Failure</div><div class="stat-value" style="font-size:0.8rem">—</div></div>
+        </div>
+      </div>
+    </details>
+    <details>
+      <summary style="cursor:pointer;padding:0.5rem 0.75rem;background:var(--bg3);border-radius:4px;margin:0.4rem 0;font-size:0.85rem">
+        <strong>LINKUSDT / 4h</strong>
+        &nbsp; snapshots:48
+        &nbsp; action:3
+        &nbsp; win:100.0%
+        &nbsp; exp:11.40R
+      </summary>
+      <div style="margin:0.25rem 0 0.75rem;padding:0 0.5rem">
+        <div class="stats-grid" style="grid-template-columns:repeat(4,1fr);margin-top:0.5rem">
+          <div class="stat-card"><div class="stat-label">Win Rate</div><div class="stat-value" style="color:#22c55e">100.0%</div></div>
+          <div class="stat-card"><div class="stat-label">Avg Setup R:R</div><div class="stat-value">11.40</div></div>
+          <div class="stat-card"><div class="stat-label">Top Phase</div><div class="stat-value" style="font-size:0.8rem">—</div></div>
+          <div class="stat-card"><div class="stat-label">Common Failure</div><div class="stat-value" style="font-size:0.8rem">—</div></div>
+        </div>
+      </div>
+    </details>
+    <details>
+      <summary style="cursor:pointer;padding:0.5rem 0.75rem;background:var(--bg3);border-radius:4px;margin:0.4rem 0;font-size:0.85rem">
+        <strong>AVAXUSDT / 15m</strong>
+        &nbsp; snapshots:48
+        &nbsp; action:3
+        &nbsp; win:100.0%
+        &nbsp; exp:15.35R
+      </summary>
+      <div style="margin:0.25rem 0 0.75rem;padding:0 0.5rem">
+        <div class="stats-grid" style="grid-template-columns:repeat(4,1fr);margin-top:0.5rem">
+          <div class="stat-card"><div class="stat-label">Win Rate</div><div class="stat-value" style="color:#22c55e">100.0%</div></div>
+          <div class="stat-card"><div class="stat-label">Avg Setup R:R</div><div class="stat-value">15.35</div></div>
+          <div class="stat-card"><div class="stat-label">Top Phase</div><div class="stat-value" style="font-size:0.8rem">—</div></div>
+          <div class="stat-card"><div class="stat-label">Common Failure</div><div class="stat-value" style="font-size:0.8rem">—</div></div>
+        </div>
+      </div>
+    </details>
+    <details>
+      <summary style="cursor:pointer;padding:0.5rem 0.75rem;background:var(--bg3);border-radius:4px;margin:0.4rem 0;font-size:0.85rem">
+        <strong>AVAXUSDT / 1h</strong>
+        &nbsp; snapshots:48
+        &nbsp; action:10
+        &nbsp; win:100.0%
+        &nbsp; exp:10.95R
+      </summary>
+      <div style="margin:0.25rem 0 0.75rem;padding:0 0.5rem">
+        <div class="stats-grid" style="grid-template-columns:repeat(4,1fr);margin-top:0.5rem">
+          <div class="stat-card"><div class="stat-label">Win Rate</div><div class="stat-value" style="color:#22c55e">100.0%</div></div>
+          <div class="stat-card"><div class="stat-label">Avg Setup R:R</div><div class="stat-value">10.95</div></div>
+          <div class="stat-card"><div class="stat-label">Top Phase</div><div class="stat-value" style="font-size:0.8rem">reversal_attempt</div></div>
+          <div class="stat-card"><div class="stat-label">Common Failure</div><div class="stat-value" style="font-size:0.8rem">—</div></div>
+        </div>
+      </div>
+    </details>
+    <details>
+      <summary style="cursor:pointer;padding:0.5rem 0.75rem;background:var(--bg3);border-radius:4px;margin:0.4rem 0;font-size:0.85rem">
+        <strong>AVAXUSDT / 4h</strong>
+        &nbsp; snapshots:48
+        &nbsp; action:12
+        &nbsp; win:80.0%
+        &nbsp; exp:4.12R
+      </summary>
+      <div style="margin:0.25rem 0 0.75rem;padding:0 0.5rem">
+        <div class="stats-grid" style="grid-template-columns:repeat(4,1fr);margin-top:0.5rem">
+          <div class="stat-card"><div class="stat-label">Win Rate</div><div class="stat-value" style="color:#22c55e">80.0%</div></div>
+          <div class="stat-card"><div class="stat-label">Avg Setup R:R</div><div class="stat-value">5.40</div></div>
+          <div class="stat-card"><div class="stat-label">Top Phase</div><div class="stat-value" style="font-size:0.8rem">reversal_attempt</div></div>
+          <div class="stat-card"><div class="stat-label">Common Failure</div><div class="stat-value" style="font-size:0.8rem">price_level</div></div>
+        </div>
+      </div>
+    </details>
+    <details>
+      <summary style="cursor:pointer;padding:0.5rem 0.75rem;background:var(--bg3);border-radius:4px;margin:0.4rem 0;font-size:0.85rem">
+        <strong>SUIUSDT / 15m</strong>
+        &nbsp; snapshots:48
+        &nbsp; action:6
+        &nbsp; win:80.0%
+        &nbsp; exp:3.17R
+      </summary>
+      <div style="margin:0.25rem 0 0.75rem;padding:0 0.5rem">
+        <div class="stats-grid" style="grid-template-columns:repeat(4,1fr);margin-top:0.5rem">
+          <div class="stat-card"><div class="stat-label">Win Rate</div><div class="stat-value" style="color:#22c55e">80.0%</div></div>
+          <div class="stat-card"><div class="stat-label">Avg Setup R:R</div><div class="stat-value">4.22</div></div>
+          <div class="stat-card"><div class="stat-label">Top Phase</div><div class="stat-value" style="font-size:0.8rem">reversal_attempt</div></div>
+          <div class="stat-card"><div class="stat-label">Common Failure</div><div class="stat-value" style="font-size:0.8rem">price_level</div></div>
+        </div>
+      </div>
+    </details>
+    <details>
+      <summary style="cursor:pointer;padding:0.5rem 0.75rem;background:var(--bg3);border-radius:4px;margin:0.4rem 0;font-size:0.85rem">
+        <strong>SUIUSDT / 1h</strong>
+        &nbsp; snapshots:48
+        &nbsp; action:14
+        &nbsp; win:100.0%
+        &nbsp; exp:12.26R
+      </summary>
+      <div style="margin:0.25rem 0 0.75rem;padding:0 0.5rem">
+        <div class="stats-grid" style="grid-template-columns:repeat(4,1fr);margin-top:0.5rem">
+          <div class="stat-card"><div class="stat-label">Win Rate</div><div class="stat-value" style="color:#22c55e">100.0%</div></div>
+          <div class="stat-card"><div class="stat-label">Avg Setup R:R</div><div class="stat-value">12.26</div></div>
+          <div class="stat-card"><div class="stat-label">Top Phase</div><div class="stat-value" style="font-size:0.8rem">reversal_attempt</div></div>
+          <div class="stat-card"><div class="stat-label">Common Failure</div><div class="stat-value" style="font-size:0.8rem">—</div></div>
+        </div>
+      </div>
+    </details>
+    <details>
+      <summary style="cursor:pointer;padding:0.5rem 0.75rem;background:var(--bg3);border-radius:4px;margin:0.4rem 0;font-size:0.85rem">
+        <strong>SUIUSDT / 4h</strong>
+        &nbsp; snapshots:48
+        &nbsp; action:3
+        &nbsp; win:33.3%
+        &nbsp; exp:0.32R
+      </summary>
+      <div style="margin:0.25rem 0 0.75rem;padding:0 0.5rem">
+        <div class="stats-grid" style="grid-template-columns:repeat(4,1fr);margin-top:0.5rem">
+          <div class="stat-card"><div class="stat-label">Win Rate</div><div class="stat-value" style="color:#ef4444">33.3%</div></div>
+          <div class="stat-card"><div class="stat-label">Avg Setup R:R</div><div class="stat-value">2.95</div></div>
+          <div class="stat-card"><div class="stat-label">Top Phase</div><div class="stat-value" style="font-size:0.8rem">—</div></div>
+          <div class="stat-card"><div class="stat-label">Common Failure</div><div class="stat-value" style="font-size:0.8rem">price_level</div></div>
+        </div>
+      </div>
+    </details>
+
+  <!-- FINAL ANSWER -->
+  <h2>Final Answer: Would You Trust This Engine?</h2>
+  <div class="section" style="border-color:#22c55e">
+    <div style="font-size:1.1rem;font-weight:700;color:#22c55e;margin-bottom:0.75rem">TRUSTED — publish without manual editing</div>
+    <p style="color:var(--text);font-size:0.85rem;margin-bottom:0.5rem">
+      Based on 1440 walk-forward snapshots across 10 symbols × 3 timeframes
+      using synthetic multi-regime candle data covering all 9 market conditions,
+      with no look-ahead bias, no AI assistance, and no manual overrides:
+    </p>
+    <ul class="details-list">
+      <li>Win rate: <strong style="color:#22c55e">92.4%</strong> across 132 resolved trades</li>
+      <li>Expectancy: <strong style="color:var(--green)">8.26R per trade</strong></li>
+      <li>Signal rate: <strong>12%</strong> of snapshots produce an actionable trade signal</li>
+      <li>Production readiness score: <strong style="color:#22c55e">77/100</strong></li>
+    </ul>
+    <p style="color:var(--muted);font-size:0.75rem;margin-top:1rem">
+      Note: All validation used synthetic candles generated by a deterministic seeded RNG covering
+      range, bull, distribution, high-volatility, bear, low-volatility, accumulation, breakout, and reversal regimes.
+      Results reflect engine performance on pattern-based synthetic data, not live Binance market data.
+    </p>
+  </div>
+
+</div><!-- end container -->
+
+<script>
+function toggleTheme() {
+  const root = document.documentElement
+  const current = root.getAttribute('data-theme')
+  root.setAttribute('data-theme', current === 'dark' ? 'light' : 'dark')
+}
+</script>
+</body>
+</html>
