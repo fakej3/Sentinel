@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Module 39 — Trade Intelligence Lab</title>
+  <style>
+  :root {
+    --bg:        #0f172a;
+    --bg-card:   #1e293b;
+    --border:    #334155;
+    --txt:       #e2e8f0;
+    --txt-muted: #94a3b8;
+    --green:     #22c55e;
+    --red:       #ef4444;
+    --yellow:    #f59e0b;
+    --blue:      #3b82f6;
+    --accent:    #38bdf8;
+  }
+  @media (prefers-color-scheme: light) {
+    :root {
+      --bg:        #f1f5f9;
+      --bg-card:   #ffffff;
+      --border:    #cbd5e1;
+      --txt:       #0f172a;
+      --txt-muted: #64748b;
+    }
+  }
+  :root[data-theme="light"] {
+    --bg:        #f1f5f9;
+    --bg-card:   #ffffff;
+    --border:    #cbd5e1;
+    --txt:       #0f172a;
+    --txt-muted: #64748b;
+  }
+  :root[data-theme="dark"] {
+    --bg:        #0f172a;
+    --bg-card:   #1e293b;
+    --border:    #334155;
+    --txt:       #e2e8f0;
+    --txt-muted: #94a3b8;
+  }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: ui-monospace, 'Cascadia Code', 'Fira Code', monospace;
+    background: var(--bg);
+    color: var(--txt);
+    line-height: 1.5;
+    padding: 0 1rem 4rem;
+  }
+  header {
+    text-align: center;
+    padding: 2.5rem 1rem 1.5rem;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 2.5rem;
+  }
+  header h1 { font-size: 1.6rem; color: var(--accent); letter-spacing: 0.02em; }
+  header p { color: var(--txt-muted); font-size: 0.85rem; margin-top: 0.4rem; }
+  nav {
+    display: flex; flex-wrap: wrap; gap: 0.4rem;
+    justify-content: center; margin-bottom: 2rem;
+  }
+  nav a {
+    color: var(--accent); text-decoration: none; font-size: 0.8rem;
+    padding: 0.2rem 0.5rem; border: 1px solid var(--border); border-radius: 4px;
+  }
+  nav a:hover { background: var(--bg-card); }
+  section { max-width: 900px; margin: 0 auto 3rem; }
+  section h2 {
+    font-size: 1.1rem; font-weight: 700; color: var(--accent);
+    padding-bottom: 0.5rem; border-bottom: 1px solid var(--border);
+    margin-bottom: 1rem; letter-spacing: 0.03em;
+  }
+  section h3 { font-size: 0.95rem; font-weight: 600; color: var(--txt-muted); margin-bottom: 0.75rem; }
+  .stat-grid {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 0.75rem;
+  }
+  .stat-card {
+    background: var(--bg-card); border: 1px solid var(--border); border-radius: 6px;
+    padding: 0.75rem 1rem; display: flex; flex-direction: column; gap: 0.25rem;
+  }
+  .stat-label { font-size: 0.72rem; color: var(--txt-muted); text-transform: uppercase; letter-spacing: 0.06em; }
+  .stat-value { font-size: 1.15rem; font-weight: 700; color: var(--txt); font-variant-numeric: tabular-nums; }
+  .note { font-size: 0.8rem; color: var(--txt-muted); margin-bottom: 0.75rem; }
+  .empty { color: var(--txt-muted); font-style: italic; }
+  .tbl-wrap { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; font-size: 0.8rem; margin-top: 0.75rem; }
+  th, td { padding: 0.4rem 0.65rem; text-align: left; border-bottom: 1px solid var(--border); white-space: nowrap; }
+  th { color: var(--txt-muted); font-weight: 600; font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.04em; }
+  tr:hover td { background: var(--bg-card); }
+  code { font-size: 0.78rem; color: var(--accent); }
+  .badge {
+    display: inline-block; font-size: 0.7rem; padding: 0.1rem 0.4rem;
+    border-radius: 3px; font-weight: 600;
+  }
+  .badge-green  { background: rgba(34,197,94,0.15);  color: var(--green); }
+  .badge-red    { background: rgba(239,68,68,0.15);   color: var(--red); }
+  .badge-yellow { background: rgba(245,158,11,0.15);  color: var(--yellow); }
+  .badge-gray   { background: rgba(148,163,184,0.15); color: var(--txt-muted); }
+  .rec-list { list-style: none; display: flex; flex-direction: column; gap: 0.5rem; }
+  .rec-item {
+    padding: 0.5rem 0.75rem; border-radius: 5px; font-size: 0.82rem;
+    border-left: 3px solid;
+  }
+  .rec-strong   { border-color: var(--green);   background: rgba(34,197,94,0.07); }
+  .rec-moderate { border-color: var(--yellow);  background: rgba(245,158,11,0.07); }
+  .rec-weak     { border-color: var(--txt-muted); background: rgba(148,163,184,0.07); }
+  svg text { font-family: inherit; }
+</style>
+</head>
+<body>
+  <header>
+    <h1>Trade Intelligence Lab</h1>
+    <p>Module 39 · Evidence-Driven Optimization · Generated 2026-07-12 05:44:58 UTC</p>
+  </header>
+  <nav><a href="#overview">Overview</a><a href="#loss">Loss Attribution</a><a href="#win">Win Attribution</a><a href="#importance">Feature Importance</a><a href="#filters">Filter Simulator</a><a href="#combos">Combinations</a><a href="#candidates">Recommendations</a></nav>
+  <section id="overview">
+  <h2>Overview</h2>
+  <div class="stat-grid"><div class="stat-card"><span class="stat-label">Total Records</span><span class="stat-value">1440</span></div><div class="stat-card"><span class="stat-label">Actionable</span><span class="stat-value">176</span></div><div class="stat-card"><span class="stat-label">Wins (TP hit)</span><span class="stat-value">122</span></div><div class="stat-card"><span class="stat-label">Losses (SL hit)</span><span class="stat-value">10</span></div><div class="stat-card"><span class="stat-label">Neither</span><span class="stat-value">44</span></div><div class="stat-card"><span class="stat-label">Overall Win Rate</span><span class="stat-value">92.4%</span></div><div class="stat-card"><span class="stat-label">Overall Expectancy</span><span class="stat-value">8.259R</span></div></div>
+</section>
+<section id="loss">
+  <h2>Loss Attribution</h2>
+  
+    <p class="note">Multi-label: one losing trade may satisfy multiple reasons. Percentages are out of 10 losing trades.</p>
+    <div style="overflow-x:auto">
+<svg width="540" height="344" xmlns="http://www.w3.org/2000/svg" style="max-width:100%">
+  <text x="270" y="16" text-anchor="middle" font-size="12" font-weight="600" fill="var(--txt-muted)">Top 15 Loss Reasons (%)</text>
+  <line x1="160" y1="28" x2="160" y2="336" stroke="var(--border)" stroke-width="1"/>
+  
+      <text x="154" y="40" text-anchor="end" font-size="11" fill="var(--txt-muted)">Failed BOS</text>
+      <rect x="160" y="28" width="320" height="16" fill="#ef4444" rx="2" opacity="0.85"/>
+      <text x="484" y="40" font-size="11" fill="var(--txt)">100.0%</text>
+      <text x="154" y="62" text-anchor="end" font-size="11" fill="var(--txt-muted)">Weak Trend</text>
+      <rect x="160" y="50" width="256" height="16" fill="#ef4444" rx="2" opacity="0.85"/>
+      <text x="420" y="62" font-size="11" fill="var(--txt)">80.0%</text>
+      <text x="154" y="84" text-anchor="end" font-size="11" fill="var(--txt-muted)">Failed CHoCH</text>
+      <rect x="160" y="72" width="256" height="16" fill="#ef4444" rx="2" opacity="0.85"/>
+      <text x="420" y="84" font-size="11" fill="var(--txt)">80.0%</text>
+      <text x="154" y="106" text-anchor="end" font-size="11" fill="var(--txt-muted)">Momentum Failure</text>
+      <rect x="160" y="94" width="256" height="16" fill="#ef4444" rx="2" opacity="0.85"/>
+      <text x="420" y="106" font-size="11" fill="var(--txt)">80.0%</text>
+      <text x="154" y="128" text-anchor="end" font-size="11" fill="var(--txt-muted)">Weak Market Structure</text>
+      <rect x="160" y="116" width="160" height="16" fill="#ef4444" rx="2" opacity="0.85"/>
+      <text x="324" y="128" font-size="11" fill="var(--txt)">50.0%</text>
+      <text x="154" y="150" text-anchor="end" font-size="11" fill="var(--txt-muted)">Low Trust</text>
+      <rect x="160" y="138" width="96" height="16" fill="#ef4444" rx="2" opacity="0.85"/>
+      <text x="260" y="150" font-size="11" fill="var(--txt)">30.0%</text>
+      <text x="154" y="172" text-anchor="end" font-size="11" fill="var(--txt-muted)">MTF Conflict</text>
+      <rect x="160" y="160" width="96" height="16" fill="#ef4444" rx="2" opacity="0.85"/>
+      <text x="260" y="172" font-size="11" fill="var(--txt)">30.0%</text>
+      <text x="154" y="194" text-anchor="end" font-size="11" fill="var(--txt-muted)">Liquidity Sweep</text>
+      <rect x="160" y="182" width="64" height="16" fill="#ef4444" rx="2" opacity="0.85"/>
+      <text x="228" y="194" font-size="11" fill="var(--txt)">20.0%</text>
+      <text x="154" y="216" text-anchor="end" font-size="11" fill="var(--txt-muted)">Low Relative Volume</text>
+      <rect x="160" y="204" width="64" height="16" fill="#ef4444" rx="2" opacity="0.85"/>
+      <text x="228" y="216" font-size="11" fill="var(--txt)">20.0%</text>
+      <text x="154" y="238" text-anchor="end" font-size="11" fill="var(--txt-muted)">Support Failure</text>
+      <rect x="160" y="226" width="32" height="16" fill="#ef4444" rx="2" opacity="0.85"/>
+      <text x="196" y="238" font-size="11" fill="var(--txt)">10.0%</text>
+      <text x="154" y="260" text-anchor="end" font-size="11" fill="var(--txt-muted)">Late Entry</text>
+      <rect x="160" y="248" width="32" height="16" fill="#ef4444" rx="2" opacity="0.85"/>
+      <text x="196" y="260" font-size="11" fill="var(--txt)">10.0%</text>
+      <text x="154" y="282" text-anchor="end" font-size="11" fill="var(--txt-muted)">Resistance Failure</text>
+      <rect x="160" y="270" width="32" height="16" fill="#ef4444" rx="2" opacity="0.85"/>
+      <text x="196" y="282" font-size="11" fill="var(--txt)">10.0%</text>
+      <text x="154" y="304" text-anchor="end" font-size="11" fill="var(--txt-muted)">Weak Volume</text>
+      <rect x="160" y="292" width="32" height="16" fill="#ef4444" rx="2" opacity="0.85"/>
+      <text x="196" y="304" font-size="11" fill="var(--txt)">10.0%</text>
+      <text x="154" y="326" text-anchor="end" font-size="11" fill="var(--txt-muted)">Low Confidence</text>
+      <rect x="160" y="314" width="32" height="16" fill="#ef4444" rx="2" opacity="0.85"/>
+      <text x="196" y="326" font-size="11" fill="var(--txt)">10.0%</text>
+</svg></div>
+    <div class="tbl-wrap"><table class=""><thead><tr><th>Reason</th><th>Count</th><th>% of Losses</th><th>ID</th></tr></thead><tbody><tr><td>Failed BOS</td><td>10</td><td>100.0%</td><td><span style="color:var(--txt-muted)">failed_bos</span></td></tr><tr><td>Weak Trend</td><td>8</td><td>80.0%</td><td><span style="color:var(--txt-muted)">weak_trend</span></td></tr><tr><td>Failed CHoCH</td><td>8</td><td>80.0%</td><td><span style="color:var(--txt-muted)">failed_choch</span></td></tr><tr><td>Momentum Failure</td><td>8</td><td>80.0%</td><td><span style="color:var(--txt-muted)">momentum_failure</span></td></tr><tr><td>Weak Market Structure</td><td>5</td><td>50.0%</td><td><span style="color:var(--txt-muted)">weak_structure</span></td></tr><tr><td>Low Trust</td><td>3</td><td>30.0%</td><td><span style="color:var(--txt-muted)">low_trust</span></td></tr><tr><td>MTF Conflict</td><td>3</td><td>30.0%</td><td><span style="color:var(--txt-muted)">mtf_conflict</span></td></tr><tr><td>Liquidity Sweep</td><td>2</td><td>20.0%</td><td><span style="color:var(--txt-muted)">liquidity_sweep</span></td></tr><tr><td>Low Relative Volume</td><td>2</td><td>20.0%</td><td><span style="color:var(--txt-muted)">low_rel_volume</span></td></tr><tr><td>Support Failure</td><td>1</td><td>10.0%</td><td><span style="color:var(--txt-muted)">support_failure</span></td></tr><tr><td>Late Entry</td><td>1</td><td>10.0%</td><td><span style="color:var(--txt-muted)">late_entry</span></td></tr><tr><td>Resistance Failure</td><td>1</td><td>10.0%</td><td><span style="color:var(--txt-muted)">resistance_failure</span></td></tr><tr><td>Weak Volume</td><td>1</td><td>10.0%</td><td><span style="color:var(--txt-muted)">weak_volume</span></td></tr><tr><td>Low Confidence</td><td>1</td><td>10.0%</td><td><span style="color:var(--txt-muted)">low_confidence</span></td></tr></tbody></table></div>
+  
+</section>
+<section id="win">
+  <h2>Win Attribution</h2>
+  
+    <p class="note">Multi-label: one winning trade may satisfy multiple reasons. Percentages are out of 122 winning trades.</p>
+    <div style="overflow-x:auto">
+<svg width="540" height="344" xmlns="http://www.w3.org/2000/svg" style="max-width:100%">
+  <text x="270" y="16" text-anchor="middle" font-size="12" font-weight="600" fill="var(--txt-muted)">Top 15 Win Reasons (%)</text>
+  <line x1="160" y1="28" x2="160" y2="336" stroke="var(--border)" stroke-width="1"/>
+  
+      <text x="154" y="40" text-anchor="end" font-size="11" fill="var(--txt-muted)">BOS Confirmed</text>
+      <rect x="160" y="28" width="320" height="16" fill="#22c55e" rx="2" opacity="0.85"/>
+      <text x="484" y="40" font-size="11" fill="var(--txt)">98.4%</text>
+      <text x="154" y="62" text-anchor="end" font-size="11" fill="var(--txt-muted)">CHoCH Detected</text>
+      <rect x="160" y="50" width="296" height="16" fill="#22c55e" rx="2" opacity="0.85"/>
+      <text x="460" y="62" font-size="11" fill="var(--txt)">91.0%</text>
+      <text x="154" y="84" text-anchor="end" font-size="11" fill="var(--txt-muted)">Good R:R (≥ 2.5)</text>
+      <rect x="160" y="72" width="251" height="16" fill="#22c55e" rx="2" opacity="0.85"/>
+      <text x="415" y="84" font-size="11" fill="var(--txt)">77.0%</text>
+      <text x="154" y="106" text-anchor="end" font-size="11" fill="var(--txt-muted)">High Confidence</text>
+      <rect x="160" y="94" width="227" height="16" fill="#22c55e" rx="2" opacity="0.85"/>
+      <text x="391" y="106" font-size="11" fill="var(--txt)">69.7%</text>
+      <text x="154" y="128" text-anchor="end" font-size="11" fill="var(--txt-muted)">High Trust</text>
+      <rect x="160" y="116" width="195" height="16" fill="#22c55e" rx="2" opacity="0.85"/>
+      <text x="359" y="128" font-size="11" fill="var(--txt)">59.8%</text>
+      <text x="154" y="150" text-anchor="end" font-size="11" fill="var(--txt-muted)">Excellent Setup</text>
+      <rect x="160" y="138" width="133" height="16" fill="#22c55e" rx="2" opacity="0.85"/>
+      <text x="297" y="150" font-size="11" fill="var(--txt)">41.0%</text>
+      <text x="154" y="172" text-anchor="end" font-size="11" fill="var(--txt-muted)">Excellent Opportunity</text>
+      <rect x="160" y="160" width="133" height="16" fill="#22c55e" rx="2" opacity="0.85"/>
+      <text x="297" y="172" font-size="11" fill="var(--txt)">41.0%</text>
+      <text x="154" y="194" text-anchor="end" font-size="11" fill="var(--txt-muted)">Strong Momentum</text>
+      <rect x="160" y="182" width="131" height="16" fill="#22c55e" rx="2" opacity="0.85"/>
+      <text x="295" y="194" font-size="11" fill="var(--txt)">40.2%</text>
+      <text x="154" y="216" text-anchor="end" font-size="11" fill="var(--txt-muted)">Perfect EMA Stack</text>
+      <rect x="160" y="204" width="128" height="16" fill="#22c55e" rx="2" opacity="0.85"/>
+      <text x="292" y="216" font-size="11" fill="var(--txt)">39.3%</text>
+      <text x="154" y="238" text-anchor="end" font-size="11" fill="var(--txt-muted)">Strong Structure</text>
+      <rect x="160" y="226" width="109" height="16" fill="#22c55e" rx="2" opacity="0.85"/>
+      <text x="273" y="238" font-size="11" fill="var(--txt)">33.6%</text>
+      <text x="154" y="260" text-anchor="end" font-size="11" fill="var(--txt-muted)">Resistance Rejection</text>
+      <rect x="160" y="248" width="67" height="16" fill="#22c55e" rx="2" opacity="0.85"/>
+      <text x="231" y="260" font-size="11" fill="var(--txt)">20.5%</text>
+      <text x="154" y="282" text-anchor="end" font-size="11" fill="var(--txt-muted)">Support Bounce</text>
+      <rect x="160" y="270" width="64" height="16" fill="#22c55e" rx="2" opacity="0.85"/>
+      <text x="228" y="282" font-size="11" fill="var(--txt)">19.7%</text>
+      <text x="154" y="304" text-anchor="end" font-size="11" fill="var(--txt-muted)">Volume Confirms</text>
+      <rect x="160" y="292" width="21" height="16" fill="#22c55e" rx="2" opacity="0.85"/>
+      <text x="185" y="304" font-size="11" fill="var(--txt)">6.6%</text>
+      <text x="154" y="326" text-anchor="end" font-size="11" fill="var(--txt-muted)">Strong Trend</text>
+      <rect x="160" y="314" width="11" height="16" fill="#22c55e" rx="2" opacity="0.85"/>
+      <text x="175" y="326" font-size="11" fill="var(--txt)">3.3%</text>
+</svg></div>
+    <div class="tbl-wrap"><table class=""><thead><tr><th>Reason</th><th>Count</th><th>% of Wins</th><th>ID</th></tr></thead><tbody><tr><td>BOS Confirmed</td><td>120</td><td>98.4%</td><td><code>bos_confirmed</code></td></tr><tr><td>CHoCH Detected</td><td>111</td><td>91.0%</td><td><code>choch_detected</code></td></tr><tr><td>Good R:R (≥ 2.5)</td><td>94</td><td>77.0%</td><td><code>good_rr</code></td></tr><tr><td>High Confidence</td><td>85</td><td>69.7%</td><td><code>high_confidence</code></td></tr><tr><td>High Trust</td><td>73</td><td>59.8%</td><td><code>high_trust</code></td></tr><tr><td>Excellent Setup</td><td>50</td><td>41.0%</td><td><code>excellent_setup</code></td></tr><tr><td>Excellent Opportunity</td><td>50</td><td>41.0%</td><td><code>excellent_opportunity</code></td></tr><tr><td>Strong Momentum</td><td>49</td><td>40.2%</td><td><code>strong_momentum</code></td></tr><tr><td>Perfect EMA Stack</td><td>48</td><td>39.3%</td><td><code>perfect_ema</code></td></tr><tr><td>Strong Structure</td><td>41</td><td>33.6%</td><td><code>strong_structure</code></td></tr><tr><td>Resistance Rejection</td><td>25</td><td>20.5%</td><td><code>resistance_rejection</code></td></tr><tr><td>Support Bounce</td><td>24</td><td>19.7%</td><td><code>support_bounce</code></td></tr><tr><td>Volume Confirms</td><td>8</td><td>6.6%</td><td><code>volume_confirms</code></td></tr><tr><td>Strong Trend</td><td>4</td><td>3.3%</td><td><code>strong_trend</code></td></tr></tbody></table></div>
+  
+</section>
+<section id="importance">
+  <h2>Feature Importance</h2>
+  
+    <p class="note">Score = lift × log(n_active + 1). Higher score = more predictive signal.</p>
+    <div style="overflow-x:auto">
+<svg width="540" height="366" xmlns="http://www.w3.org/2000/svg" style="max-width:100%">
+  <text x="270" y="16" text-anchor="middle" font-size="12" font-weight="600" fill="var(--txt-muted)">Top 15 Features by Importance Score</text>
+  <line x1="160" y1="28" x2="160" y2="358" stroke="var(--border)" stroke-width="1"/>
+  
+      <text x="154" y="40" text-anchor="end" font-size="11" fill="var(--txt-muted)">OBV confirming price direction</text>
+      <rect x="160" y="28" width="320" height="16" fill="#3b82f6" rx="2" opacity="0.85"/>
+      <text x="484" y="40" font-size="11" fill="var(--txt)">5.6%</text>
+      <text x="154" y="62" text-anchor="end" font-size="11" fill="var(--txt-muted)">Change of Character detected</text>
+      <rect x="160" y="50" width="301" height="16" fill="#3b82f6" rx="2" opacity="0.85"/>
+      <text x="465" y="62" font-size="11" fill="var(--txt)">5.3%</text>
+      <text x="154" y="84" text-anchor="end" font-size="11" fill="var(--txt-muted)">Planned R:R ≥ 2.0</text>
+      <rect x="160" y="72" width="301" height="16" fill="#3b82f6" rx="2" opacity="0.85"/>
+      <text x="465" y="84" font-size="11" fill="var(--txt)">5.3%</text>
+      <text x="154" y="106" text-anchor="end" font-size="11" fill="var(--txt-muted)">Confidence ≥ 7</text>
+      <rect x="160" y="94" width="267" height="16" fill="#3b82f6" rx="2" opacity="0.85"/>
+      <text x="431" y="106" font-size="11" fill="var(--txt)">4.7%</text>
+      <text x="154" y="128" text-anchor="end" font-size="11" fill="var(--txt-muted)">MACD: Bias aligned with direction</text>
+      <rect x="160" y="116" width="265" height="16" fill="#3b82f6" rx="2" opacity="0.85"/>
+      <text x="429" y="128" font-size="11" fill="var(--txt)">4.6%</text>
+      <text x="154" y="150" text-anchor="end" font-size="11" fill="var(--txt-muted)">RSI: Favorable classification for direction</text>
+      <rect x="160" y="138" width="258" height="16" fill="#3b82f6" rx="2" opacity="0.85"/>
+      <text x="422" y="150" font-size="11" fill="var(--txt)">4.5%</text>
+      <text x="154" y="172" text-anchor="end" font-size="11" fill="var(--txt-muted)">Break of Structure detected</text>
+      <rect x="160" y="160" width="257" height="16" fill="#3b82f6" rx="2" opacity="0.85"/>
+      <text x="421" y="172" font-size="11" fill="var(--txt)">4.5%</text>
+      <text x="154" y="194" text-anchor="end" font-size="11" fill="var(--txt-muted)">Confidence ≥ 8.5 (very strong)</text>
+      <rect x="160" y="182" width="257" height="16" fill="#3b82f6" rx="2" opacity="0.85"/>
+      <text x="421" y="194" font-size="11" fill="var(--txt)">4.5%</text>
+      <text x="154" y="216" text-anchor="end" font-size="11" fill="var(--txt-muted)">ADX: Strong or very strong trend</text>
+      <rect x="160" y="204" width="255" height="16" fill="#3b82f6" rx="2" opacity="0.85"/>
+      <text x="419" y="216" font-size="11" fill="var(--txt)">4.5%</text>
+      <text x="154" y="238" text-anchor="end" font-size="11" fill="var(--txt-muted)">Trust: Aggressive/Conservative entry</text>
+      <rect x="160" y="226" width="243" height="16" fill="#3b82f6" rx="2" opacity="0.85"/>
+      <text x="407" y="238" font-size="11" fill="var(--txt)">4.3%</text>
+      <text x="154" y="260" text-anchor="end" font-size="11" fill="var(--txt-muted)">Opportunity: Excellent</text>
+      <rect x="160" y="248" width="236" height="16" fill="#3b82f6" rx="2" opacity="0.85"/>
+      <text x="400" y="260" font-size="11" fill="var(--txt)">4.1%</text>
+      <text x="154" y="282" text-anchor="end" font-size="11" fill="var(--txt-muted)">EMA: Stack aligned with direction</text>
+      <rect x="160" y="270" width="226" height="16" fill="#3b82f6" rx="2" opacity="0.85"/>
+      <text x="390" y="282" font-size="11" fill="var(--txt)">4.0%</text>
+      <text x="154" y="304" text-anchor="end" font-size="11" fill="var(--txt-muted)">Market Structure: Strong</text>
+      <rect x="160" y="292" width="208" height="16" fill="#3b82f6" rx="2" opacity="0.85"/>
+      <text x="372" y="304" font-size="11" fill="var(--txt)">3.6%</text>
+      <text x="154" y="326" text-anchor="end" font-size="11" fill="var(--txt-muted)">S/R: Inside or approaching relevant zone</text>
+      <rect x="160" y="314" width="194" height="16" fill="#3b82f6" rx="2" opacity="0.85"/>
+      <text x="358" y="326" font-size="11" fill="var(--txt)">3.4%</text>
+      <text x="154" y="348" text-anchor="end" font-size="11" fill="var(--txt-muted)">Volume confirms current move</text>
+      <rect x="160" y="336" width="126" height="16" fill="#3b82f6" rx="2" opacity="0.85"/>
+      <text x="290" y="348" font-size="11" fill="var(--txt)">2.2%</text>
+</svg></div>
+    <div class="tbl-wrap"><table class=""><thead><tr><th>Feature</th><th>WR Active</th><th>N Active</th><th>WR Inactive</th><th>N Inactive</th><th>Lift</th><th>Score</th></tr></thead><tbody><tr><td>OBV confirming price direction</td><td>94.0%</td><td>117</td><td>80.0%</td><td>15</td><td>1.18</td><td>5.61</td></tr><tr><td>Change of Character detected</td><td>93.3%</td><td>119</td><td>84.6%</td><td>13</td><td>1.10</td><td>5.28</td></tr><tr><td>Planned R:R ≥ 2.0</td><td>93.8%</td><td>113</td><td>84.2%</td><td>19</td><td>1.11</td><td>5.28</td></tr><tr><td>Confidence ≥ 7</td><td>93.4%</td><td>91</td><td>90.2%</td><td>41</td><td>1.04</td><td>4.68</td></tr><tr><td>MACD: Bias aligned with direction</td><td>97.0%</td><td>66</td><td>87.9%</td><td>66</td><td>1.10</td><td>4.64</td></tr><tr><td>RSI: Favorable classification for direction</td><td>92.9%</td><td>85</td><td>91.5%</td><td>47</td><td>1.02</td><td>4.53</td></tr><tr><td>Break of Structure detected</td><td>92.3%</td><td>130</td><td>100.0%</td><td>2</td><td>0.92</td><td>4.50</td></tr><tr><td>Confidence ≥ 8.5 (very strong)</td><td>96.7%</td><td>61</td><td>88.7%</td><td>71</td><td>1.09</td><td>4.50</td></tr><tr><td>ADX: Strong or very strong trend</td><td>91.8%</td><td>97</td><td>94.3%</td><td>35</td><td>0.97</td><td>4.46</td></tr><tr><td>Trust: Aggressive/Conservative entry</td><td>91.3%</td><td>80</td><td>94.2%</td><td>52</td><td>0.97</td><td>4.26</td></tr><tr><td>Opportunity: Excellent</td><td>94.3%</td><td>53</td><td>91.1%</td><td>79</td><td>1.04</td><td>4.13</td></tr><tr><td>EMA: Stack aligned with direction</td><td>92.3%</td><td>52</td><td>92.5%</td><td>80</td><td>1.00</td><td>3.96</td></tr><tr><td>Market Structure: Strong</td><td>89.1%</td><td>46</td><td>94.2%</td><td>86</td><td>0.95</td><td>3.64</td></tr><tr><td>S/R: Inside or approaching relevant zone</td><td>83.1%</td><td>59</td><td>100.0%</td><td>73</td><td>0.83</td><td>3.40</td></tr><tr><td>Volume confirms current move</td><td>88.9%</td><td>9</td><td>92.7%</td><td>123</td><td>0.96</td><td>2.21</td></tr><tr><td>Trend: Strong (bullish or bearish)</td><td>100.0%</td><td>4</td><td>92.2%</td><td>128</td><td>1.08</td><td>1.75</td></tr><tr><td>Relative volume ≥ 1.3×</td><td>100.0%</td><td>2</td><td>92.3%</td><td>130</td><td>1.08</td><td>1.19</td></tr><tr><td>Trend: Not ranging</td><td>92.4%</td><td>132</td><td>—</td><td>0</td><td>—</td><td>0.00</td></tr><tr><td>No major contradictions (severity = none)</td><td>—</td><td>0</td><td>92.4%</td><td>132</td><td>—</td><td>0.00</td></tr><tr><td>Breakout structure confirmed</td><td>—</td><td>0</td><td>92.4%</td><td>132</td><td>—</td><td>0.00</td></tr></tbody></table></div>
+  
+</section>
+<section id="filters">
+  <h2>Filter Simulator</h2>
+  
+    <p class="note">Optimization target: expectancy (E = WR × avg_RR − (1 − WR)). Sorted by expectancy delta descending.</p>
+    <div class="tbl-wrap"><table class=""><thead><tr><th>Filter</th><th>WR Before</th><th>WR After</th><th>ΔExpectancy</th><th>Wins Removed</th><th>Losses Removed</th><th>Selectivity</th><th>Result</th></tr></thead><tbody><tr><td>Ignore Weak Trend</td><td>92.4%</td><td>96.6%</td><td><span style="color:var(--green)">2.889R</span></td><td>65</td><td>8</td><td>11.0%</td><td><span class="badge badge-red">✗ Hurts</span></td></tr><tr><td>Ignore Low Confidence</td><td>92.4%</td><td>92.7%</td><td><span style="color:var(--green)">0.140R</span></td><td>7</td><td>1</td><td>12.5%</td><td><span class="badge badge-red">✗ Hurts</span></td></tr><tr><td>Ignore No BOS</td><td>92.4%</td><td>92.3%</td><td><span style="color:var(--txt-muted)">0.043R</span></td><td>2</td><td>0</td><td>0.0%</td><td><span class="badge badge-red">✗ Hurts</span></td></tr><tr><td>Ignore Counter Trend</td><td>92.4%</td><td>92.4%</td><td><span style="color:var(--txt-muted)">0.000R</span></td><td>0</td><td>0</td><td>—</td><td><span class="badge badge-red">✗ Hurts</span></td></tr><tr><td>Ignore Poor R:R</td><td>92.4%</td><td>92.4%</td><td><span style="color:var(--txt-muted)">0.000R</span></td><td>0</td><td>0</td><td>—</td><td><span class="badge badge-red">✗ Hurts</span></td></tr><tr><td>Ignore Range</td><td>92.4%</td><td>92.4%</td><td><span style="color:var(--txt-muted)">0.000R</span></td><td>0</td><td>0</td><td>—</td><td><span class="badge badge-red">✗ Hurts</span></td></tr><tr><td>Ignore High Volatility</td><td>92.4%</td><td>92.4%</td><td><span style="color:var(--txt-muted)">0.000R</span></td><td>0</td><td>0</td><td>—</td><td><span class="badge badge-red">✗ Hurts</span></td></tr><tr><td>Ignore Poor Setup</td><td>92.4%</td><td>92.4%</td><td><span style="color:var(--txt-muted)">0.000R</span></td><td>0</td><td>0</td><td>—</td><td><span class="badge badge-red">✗ Hurts</span></td></tr><tr><td>Ignore Weak EMA</td><td>92.4%</td><td>92.2%</td><td><span style="color:var(--red)">-0.067R</span></td><td>3</td><td>0</td><td>0.0%</td><td><span class="badge badge-red">✗ Hurts</span></td></tr><tr><td>Ignore Weak Structure</td><td>92.4%</td><td>90.6%</td><td><span style="color:var(--red)">-0.419R</span></td><td>74</td><td>5</td><td>6.3%</td><td><span class="badge badge-red">✗ Hurts</span></td></tr><tr><td>Ignore Low Volatility</td><td>92.4%</td><td>91.7%</td><td><span style="color:var(--red)">-0.547R</span></td><td>11</td><td>0</td><td>0.0%</td><td><span class="badge badge-red">✗ Hurts</span></td></tr><tr><td>Ignore MTF Conflict</td><td>92.4%</td><td>90.8%</td><td><span style="color:var(--red)">-0.760R</span></td><td>53</td><td>3</td><td>5.4%</td><td><span class="badge badge-red">✗ Hurts</span></td></tr><tr><td>Ignore Low Volume</td><td>92.4%</td><td>93.3%</td><td><span style="color:var(--red)">-0.791R</span></td><td>11</td><td>2</td><td>15.4%</td><td><span class="badge badge-red">✗ Hurts</span></td></tr><tr><td>Ignore Low Trust</td><td>92.4%</td><td>91.3%</td><td><span style="color:var(--red)">-0.898R</span></td><td>49</td><td>3</td><td>5.8%</td><td><span class="badge badge-red">✗ Hurts</span></td></tr><tr><td>Ignore Sanity Issues</td><td>92.4%</td><td>91.1%</td><td><span style="color:var(--red)">-1.302R</span></td><td>30</td><td>1</td><td>3.2%</td><td><span class="badge badge-red">✗ Hurts</span></td></tr><tr><td>Ignore Weak Momentum</td><td>92.4%</td><td>96.7%</td><td><span style="color:var(--red)">-3.153R</span></td><td>64</td><td>8</td><td>11.1%</td><td><span class="badge badge-red">✗ Hurts</span></td></tr></tbody></table></div>
+  
+</section>
+<section id="combos">
+  <h2>Signal Combinations</h2>
+  
+    <h3>Bad Combinations (WR &lt; 40%)</h3>
+    <p class="empty">No bad combinations found with ≥5 samples.</p>
+    <h3 style="margin-top:1.5rem">Good Combinations (WR &gt; 60%)</h3>
+    <div class="tbl-wrap"><table class=""><thead><tr><th>Signals</th><th>N</th><th>Wins</th><th>Losses</th><th>Win Rate</th></tr></thead><tbody><tr><td><code>Excellent Opportunity</code> + <code>Strong Structure + BOS</code></td><td>21</td><td>21</td><td>0</td><td><span style="color:var(--green)">100.0%</span></td></tr><tr><td><code>Excellent Opportunity</code> + <code>Strong Momentum</code></td><td>15</td><td>15</td><td>0</td><td><span style="color:var(--green)">100.0%</span></td></tr><tr><td><code>High Trust</code> + <code>Strong Momentum</code></td><td>32</td><td>32</td><td>0</td><td><span style="color:var(--green)">100.0%</span></td></tr><tr><td><code>Perfect EMA</code> + <code>Strong Momentum</code></td><td>10</td><td>10</td><td>0</td><td><span style="color:var(--green)">100.0%</span></td></tr><tr><td><code>Strong Structure + BOS</code> + <code>Good R:R (≥ 2.5)</code></td><td>33</td><td>33</td><td>0</td><td><span style="color:var(--green)">100.0%</span></td></tr><tr><td><code>Good R:R (≥ 2.5)</code> + <code>Strong Momentum</code></td><td>38</td><td>38</td><td>0</td><td><span style="color:var(--green)">100.0%</span></td></tr><tr><td><code>Excellent Opportunity</code> + <code>High Trust</code> + <code>Strong Structure + BOS</code></td><td>15</td><td>15</td><td>0</td><td><span style="color:var(--green)">100.0%</span></td></tr><tr><td><code>Excellent Opportunity</code> + <code>High Trust</code> + <code>Strong Momentum</code></td><td>12</td><td>12</td><td>0</td><td><span style="color:var(--green)">100.0%</span></td></tr><tr><td><code>Excellent Opportunity</code> + <code>High Confidence</code> + <code>Strong Structure + BOS</code></td><td>21</td><td>21</td><td>0</td><td><span style="color:var(--green)">100.0%</span></td></tr><tr><td><code>Excellent Opportunity</code> + <code>High Confidence</code> + <code>Strong Momentum</code></td><td>15</td><td>15</td><td>0</td><td><span style="color:var(--green)">100.0%</span></td></tr><tr><td><code>Excellent Opportunity</code> + <code>Perfect EMA</code> + <code>Strong Structure + BOS</code></td><td>12</td><td>12</td><td>0</td><td><span style="color:var(--green)">100.0%</span></td></tr><tr><td><code>Excellent Opportunity</code> + <code>Perfect EMA</code> + <code>Strong Momentum</code></td><td>9</td><td>9</td><td>0</td><td><span style="color:var(--green)">100.0%</span></td></tr><tr><td><code>Excellent Opportunity</code> + <code>Strong Structure + BOS</code> + <code>Good R:R (≥ 2.5)</code></td><td>19</td><td>19</td><td>0</td><td><span style="color:var(--green)">100.0%</span></td></tr><tr><td><code>Excellent Opportunity</code> + <code>Good R:R (≥ 2.5)</code> + <code>Strong Momentum</code></td><td>13</td><td>13</td><td>0</td><td><span style="color:var(--green)">100.0%</span></td></tr><tr><td><code>High Trust</code> + <code>High Confidence</code> + <code>Strong Momentum</code></td><td>17</td><td>17</td><td>0</td><td><span style="color:var(--green)">100.0%</span></td></tr><tr><td><code>High Trust</code> + <code>Perfect EMA</code> + <code>Strong Momentum</code></td><td>8</td><td>8</td><td>0</td><td><span style="color:var(--green)">100.0%</span></td></tr><tr><td><code>High Trust</code> + <code>Strong Structure + BOS</code> + <code>Good R:R (≥ 2.5)</code></td><td>17</td><td>17</td><td>0</td><td><span style="color:var(--green)">100.0%</span></td></tr><tr><td><code>High Trust</code> + <code>Good R:R (≥ 2.5)</code> + <code>Strong Momentum</code></td><td>28</td><td>28</td><td>0</td><td><span style="color:var(--green)">100.0%</span></td></tr><tr><td><code>High Confidence</code> + <code>Perfect EMA</code> + <code>Strong Structure + BOS</code></td><td>12</td><td>12</td><td>0</td><td><span style="color:var(--green)">100.0%</span></td></tr><tr><td><code>High Confidence</code> + <code>Perfect EMA</code> + <code>Strong Momentum</code></td><td>9</td><td>9</td><td>0</td><td><span style="color:var(--green)">100.0%</span></td></tr><tr><td><code>High Confidence</code> + <code>Strong Structure + BOS</code> + <code>Good R:R (≥ 2.5)</code></td><td>31</td><td>31</td><td>0</td><td><span style="color:var(--green)">100.0%</span></td></tr><tr><td><code>High Confidence</code> + <code>Good R:R (≥ 2.5)</code> + <code>Strong Momentum</code></td><td>18</td><td>18</td><td>0</td><td><span style="color:var(--green)">100.0%</span></td></tr><tr><td><code>Perfect EMA</code> + <code>Strong Structure + BOS</code> + <code>Good R:R (≥ 2.5)</code></td><td>12</td><td>12</td><td>0</td><td><span style="color:var(--green)">100.0%</span></td></tr><tr><td><code>Perfect EMA</code> + <code>Good R:R (≥ 2.5)</code> + <code>Strong Momentum</code></td><td>9</td><td>9</td><td>0</td><td><span style="color:var(--green)">100.0%</span></td></tr><tr><td><code>High Confidence</code> + <code>Good R:R (≥ 2.5)</code></td><td>65</td><td>63</td><td>2</td><td><span style="color:var(--green)">96.9%</span></td></tr><tr><td><code>High Confidence</code> + <code>Strong Momentum</code></td><td>27</td><td>26</td><td>1</td><td><span style="color:var(--green)">96.3%</span></td></tr><tr><td><code>Excellent Opportunity</code> + <code>Good R:R (≥ 2.5)</code></td><td>46</td><td>44</td><td>2</td><td><span style="color:var(--green)">95.7%</span></td></tr><tr><td><code>Excellent Opportunity</code> + <code>High Confidence</code> + <code>Good R:R (≥ 2.5)</code></td><td>46</td><td>44</td><td>2</td><td><span style="color:var(--green)">95.7%</span></td></tr><tr><td><code>Perfect EMA</code> + <code>Good R:R (≥ 2.5)</code></td><td>44</td><td>42</td><td>2</td><td><span style="color:var(--green)">95.5%</span></td></tr><tr><td><code>High Trust</code> + <code>High Confidence</code> + <code>Good R:R (≥ 2.5)</code></td><td>38</td><td>36</td><td>2</td><td><span style="color:var(--green)">94.7%</span></td></tr><tr><td><code>Excellent Opportunity</code> + <code>High Trust</code></td><td>36</td><td>34</td><td>2</td><td><span style="color:var(--green)">94.4%</span></td></tr><tr><td><code>Excellent Opportunity</code> + <code>High Trust</code> + <code>High Confidence</code></td><td>36</td><td>34</td><td>2</td><td><span style="color:var(--green)">94.4%</span></td></tr><tr><td><code>Excellent Opportunity</code> + <code>High Confidence</code></td><td>53</td><td>50</td><td>3</td><td><span style="color:var(--green)">94.3%</span></td></tr><tr><td><code>Excellent Opportunity</code> + <code>Perfect EMA</code> + <code>Good R:R (≥ 2.5)</code></td><td>34</td><td>32</td><td>2</td><td><span style="color:var(--green)">94.1%</span></td></tr><tr><td><code>High Confidence</code> + <code>Perfect EMA</code> + <code>Good R:R (≥ 2.5)</code></td><td>34</td><td>32</td><td>2</td><td><span style="color:var(--green)">94.1%</span></td></tr><tr><td><code>Excellent Opportunity</code> + <code>High Trust</code> + <code>Good R:R (≥ 2.5)</code></td><td>32</td><td>30</td><td>2</td><td><span style="color:var(--green)">93.8%</span></td></tr><tr><td><code>High Trust</code> + <code>Good R:R (≥ 2.5)</code></td><td>61</td><td>57</td><td>4</td><td><span style="color:var(--green)">93.4%</span></td></tr><tr><td><code>High Trust</code> + <code>High Confidence</code></td><td>55</td><td>51</td><td>4</td><td><span style="color:var(--green)">92.7%</span></td></tr><tr><td><code>High Confidence</code> + <code>Perfect EMA</code></td><td>41</td><td>38</td><td>3</td><td><span style="color:var(--green)">92.7%</span></td></tr><tr><td><code>High Confidence</code> + <code>Strong Structure + BOS</code></td><td>40</td><td>37</td><td>3</td><td><span style="color:var(--green)">92.5%</span></td></tr><tr><td><code>Perfect EMA</code> + <code>Strong Structure + BOS</code></td><td>13</td><td>12</td><td>1</td><td><span style="color:var(--green)">92.3%</span></td></tr><tr><td><code>High Trust</code> + <code>High Confidence</code> + <code>Perfect EMA</code></td><td>26</td><td>24</td><td>2</td><td><span style="color:var(--green)">92.3%</span></td></tr><tr><td><code>Excellent Opportunity</code> + <code>Perfect EMA</code></td><td>38</td><td>35</td><td>3</td><td><span style="color:var(--green)">92.1%</span></td></tr><tr><td><code>Excellent Opportunity</code> + <code>High Confidence</code> + <code>Perfect EMA</code></td><td>38</td><td>35</td><td>3</td><td><span style="color:var(--green)">92.1%</span></td></tr><tr><td><code>High Trust</code> + <code>Perfect EMA</code> + <code>Good R:R (≥ 2.5)</code></td><td>25</td><td>23</td><td>2</td><td><span style="color:var(--green)">92.0%</span></td></tr><tr><td><code>Excellent Opportunity</code> + <code>High Trust</code> + <code>Perfect EMA</code></td><td>23</td><td>21</td><td>2</td><td><span style="color:var(--green)">91.3%</span></td></tr><tr><td><code>High Trust</code> + <code>High Confidence</code> + <code>Strong Structure + BOS</code></td><td>23</td><td>21</td><td>2</td><td><span style="color:var(--green)">91.3%</span></td></tr><tr><td><code>High Trust</code> + <code>Perfect EMA</code></td><td>31</td><td>28</td><td>3</td><td><span style="color:var(--green)">90.3%</span></td></tr><tr><td><code>High Trust</code> + <code>Strong Structure + BOS</code></td><td>26</td><td>23</td><td>3</td><td><span style="color:var(--green)">88.5%</span></td></tr><tr><td><code>High Trust</code> + <code>Perfect EMA</code> + <code>Strong Structure + BOS</code></td><td>7</td><td>6</td><td>1</td><td><span style="color:var(--green)">85.7%</span></td></tr><tr><td><code>Strong Structure + BOS</code> + <code>Strong Momentum</code></td><td>6</td><td>4</td><td>2</td><td><span style="color:var(--green)">66.7%</span></td></tr></tbody></table></div>
+  
+</section>
+<section id="candidates">
+  <h2>Recommended Filters</h2>
+  <p class="empty">No evidence-backed improvements found in this dataset.</p>
+</section>
+  <script>
+    const root = document.documentElement
+    const saved = localStorage.getItem('theme')
+    if (saved) root.setAttribute('data-theme', saved)
+  </script>
+</body>
+</html>
