@@ -194,6 +194,19 @@ function buildTradePost(
     lines.push(`Risk/reward: ${tradePlan.riskRewardRatio.toFixed(2)}:1`)
   }
 
+  // For non-excellent setups, surface the key caution so post readers act on it
+  const isWeakTrend = trend.includes('weak') || trend === 'ranging'
+  if (tradePlan.setupQuality === 'average') {
+    lines.push('')
+    lines.push(isWeakTrend
+      ? '⚠️ Marginal setup (weak trend) — use reduced size and wait for a strong confirmation candle'
+      : '⚠️ Marginal setup — use reduced position size and strict risk management',
+    )
+  } else if (tradePlan.setupQuality === 'good' && isWeakTrend) {
+    lines.push('')
+    lines.push('⚠️ Weak trend — wait for a confirmation candle before entering')
+  }
+
   lines.push('')
   lines.push('Evidence:')
   for (const b of buildEvidenceBullets(analysis, confidence)) {

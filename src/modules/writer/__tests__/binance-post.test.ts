@@ -46,6 +46,32 @@ function makeAvoidPlan(): TradePlan {
   }
 }
 
+function makeGoodPlan(): TradePlan {
+  return {
+    entryZone: { lower: 94_800, upper: 95_200 },
+    invalidationLevel: 94_280,
+    targetLevel: 98_150,
+    riskRewardRatio: 2.35,
+    setupQuality: 'good',
+    setupQualityReason: 'Setup downgraded: RR 2.35, confidence 8.0 — weak trend reduces setup reliability',
+    actionable: true,
+    patienceMessage: 'Good setup in a weak trend — wait for a confirmation candle before entering; enter near 95000, stop at 94280, target 98150, RR 2.35:1',
+  }
+}
+
+function makeAveragePlan(): TradePlan {
+  return {
+    entryZone: { lower: 94_800, upper: 95_200 },
+    invalidationLevel: 94_280,
+    targetLevel: 98_150,
+    riskRewardRatio: 1.80,
+    setupQuality: 'average',
+    setupQualityReason: 'Setup downgraded: RR 1.80, confidence 5.5 — weak trend reduces setup reliability',
+    actionable: true,
+    patienceMessage: 'Weak trend — if entering, wait for a strong confirmation candle, use reduced position size, and strict stop placement',
+  }
+}
+
 function makeInvalidationScenarios(): InvalidationScenario[] {
   return [
     {
@@ -240,6 +266,77 @@ describe('buildBinancePost', () => {
       const p2 = buildBinancePost(input)
       expect(p1.text).toBe(p2.text)
       expect(p1.publishable).toBe(p2.publishable)
+    })
+  })
+
+  describe('setup quality note', () => {
+    it('excellent setup does not add a quality warning line', () => {
+      const post = buildBinancePost(makeInput())
+      // excellent posts should not contain a ⚠️ quality note (the existing disclaimer is at the end)
+      const lines = post.text.split('\n')
+      const qualityLines = lines.filter(l => l.startsWith('⚠️') && !l.includes('Not financial advice'))
+      expect(qualityLines).toHaveLength(0)
+    })
+
+    it('good setup with weak trend includes weak-trend confirmation warning', () => {
+      const post = buildBinancePost(makeInput({
+        analysis: makeAnalysis([], 'weak bullish'),
+        tradePlan: makeGoodPlan(),
+      }))
+      expect(post.publishable).toBe(true)
+      expect(post.text).toContain('Weak trend')
+      expect(post.text).toContain('confirmation candle')
+    })
+
+    it('average setup with weak trend includes marginal-setup warning mentioning weak trend', () => {
+      const post = buildBinancePost(makeInput({
+        analysis: makeAnalysis([], 'weak bullish'),
+        tradePlan: makeAveragePlan(),
+      }))
+      expect(post.publishable).toBe(true)
+      expect(post.text).toContain('Marginal setup')
+      expect(post.text).toContain('weak trend')
+    })
+
+    it('average setup without weak trend includes marginal-setup warning (no weak-trend mention)', () => {
+      const post = buildBinancePost(makeInput({
+        analysis: makeAnalysis([], 'strong bullish'),
+        tradePlan: makeAveragePlan(),
+      }))
+      expect(post.publishable).toBe(true)
+      expect(post.text).toContain('Marginal setup')
+      expect(post.text).not.toContain('weak trend')
+    })
+
+    it('good setup with strong trend does not add quality warning', () => {
+      const strongGoodPlan: TradePlan = {
+        ...makeGoodPlan(),
+        setupQuality: 'good',
+        setupQualityReason: 'Good setup: RR 2.35, confidence 6.5',
+        patienceMessage: 'Good setup — enter at the entry zone with a clearly defined stop loss',
+      }
+      const post = buildBinancePost(makeInput({
+        analysis: makeAnalysis([], 'strong bullish'),
+        tradePlan: strongGoodPlan,
+      }))
+      expect(post.publishable).toBe(true)
+      const lines = post.text.split('\n')
+      const qualityLines = lines.filter(l => l.startsWith('⚠️') && !l.includes('Not financial advice'))
+      expect(qualityLines).toHaveLength(0)
+    })
+
+    it('setup quality note does not use prohibited hedging language', () => {
+      const PROHIBITED = ['probably', 'maybe', 'looks like', 'appears to', 'might suggest', 'seems like']
+      const posts = [
+        buildBinancePost(makeInput({ analysis: makeAnalysis([], 'weak bullish'), tradePlan: makeGoodPlan() })),
+        buildBinancePost(makeInput({ analysis: makeAnalysis([], 'weak bullish'), tradePlan: makeAveragePlan() })),
+        buildBinancePost(makeInput({ analysis: makeAnalysis([], 'strong bullish'), tradePlan: makeAveragePlan() })),
+      ]
+      for (const post of posts) {
+        for (const phrase of PROHIBITED) {
+          expect(post.text.toLowerCase()).not.toContain(phrase)
+        }
+      }
     })
   })
 })
