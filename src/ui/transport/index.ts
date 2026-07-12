@@ -1,5 +1,14 @@
 import { HttpTransport } from './HttpTransport'
+import { TauriTransport } from './TauriTransport'
 import type { AnalysisTransport } from './types'
+
+// ── Environment detection ─────────────────────────────────────────────────────
+
+// Tauri v2 injects __TAURI_INTERNALS__ into the webview before any JS runs.
+// Checking typeof window first makes this safe in Node (test) environments too.
+function isTauriEnv(): boolean {
+  return typeof window !== 'undefined' && '__TAURI_INTERNALS__' in window
+}
 
 // ── Singleton transport instance ──────────────────────────────────────────────
 
@@ -10,13 +19,13 @@ let _transport: AnalysisTransport | null = null
 /**
  * Returns the active transport implementation.
  *
- * Today this always returns HttpTransport (Express HTTP).
- * To add Tauri or mobile support, replace the constructor call here —
- * every React component that calls getTransport() picks up the change
- * automatically, with no other modifications needed.
+ * - Inside Tauri webview → TauriTransport (discovers sidecar URL via IPC)
+ * - Browser / dev server → HttpTransport (VITE_API_URL or localhost:3000)
  */
 export function getTransport(): AnalysisTransport {
-  if (!_transport) _transport = new HttpTransport(BASE_URL)
+  if (!_transport) {
+    _transport = isTauriEnv() ? new TauriTransport() : new HttpTransport(BASE_URL)
+  }
   return _transport
 }
 
