@@ -85,10 +85,17 @@ function describeOpportunity(level: QualityLevel | 'none', tradePlan: TradePlan)
       : 'Setup geometry is unfavorable — risk/reward does not justify entry.'
   }
   const rrStr = tradePlan.riskRewardRatio !== null ? ` RR: ${tradePlan.riskRewardRatio.toFixed(2)}:1.` : ''
+  // Surface the downgrade reason when setup was degraded from a higher tier
+  const isDowngraded = tradePlan.setupQualityReason.includes('downgraded') || tradePlan.setupQualityReason.includes('degraded')
+  const downgradeNote = isDowngraded ? ` ${tradePlan.setupQualityReason.split('—')[1]?.trim() ?? ''}`.trimEnd() : ''
   switch (level) {
     case 'excellent': return `Excellent setup:${rrStr} Entry, stop, and target are clearly defined.`
-    case 'good':      return `Good setup:${rrStr} Levels are defined and conditions are reasonable.`
-    case 'fair':      return `Marginal setup:${rrStr} Conditions are acceptable but not ideal.`
+    case 'good':      return isDowngraded
+      ? `Good setup (downgraded):${rrStr}${downgradeNote ? ` ${downgradeNote}.` : ' Conditions reduced setup reliability.'}`
+      : `Good setup:${rrStr} Levels are defined and conditions are favorable.`
+    case 'fair':      return isDowngraded
+      ? `Marginal setup (downgraded):${rrStr}${downgradeNote ? ` ${downgradeNote}.` : ' Conditions reduce setup reliability.'}`
+      : `Marginal setup:${rrStr} Conditions are acceptable but not ideal.`
     case 'poor':      return `Poor setup:${rrStr} Proceed with caution — setup quality is low.`
   }
 }
