@@ -1,4 +1,4 @@
-import { useCallback, lazy, Suspense, useState } from 'react'
+import { useCallback, lazy, Suspense, useState, useRef } from 'react'
 import { Header } from './ui/components/layout/Header'
 import { Sidebar } from './ui/components/layout/Sidebar'
 import { BottomNav } from './ui/components/layout/BottomNav'
@@ -29,9 +29,9 @@ export default function App() {
   const [watchlist,        setWatchlist       ] = useLocalStorage<string[]>('sentinel_watchlist', [])
   const [recentAnalyses,   setRecentAnalyses  ] = useLocalStorage<RecentAnalysis[]>('sentinel_recent', [])
 
-  // Track save state for the current analysis
   const [savedEntry,  setSavedEntry ] = useState<HistoryMeta | null>(null)
   const [saving,      setSaving     ] = useState(false)
+  const savingRef = useRef(false)
 
   const { data, loading, stage, error, analyze, loadData } = useAnalyze()
 
@@ -59,12 +59,14 @@ export default function App() {
   }, [symbol, interval, analyze, setRecentAnalyses, setSymbol])
 
   const handleSaveAnalysis = useCallback(async () => {
-    if (!data || saving) return
+    if (!data || savingRef.current) return
+    savingRef.current = true
     setSaving(true)
     const meta = await saveAnalysis(data, symbol, interval)
+    savingRef.current = false
     setSaving(false)
     if (meta) setSavedEntry(meta)
-  }, [data, saving, symbol, interval])
+  }, [data, symbol, interval])
 
   const handleSelectSymbol = useCallback((sym: string, iv?: string) => {
     setSymbol(sym)
@@ -120,7 +122,6 @@ export default function App() {
                 symbol={symbol}
                 interval={interval}
                 loading={loading}
-                stage={stage}
                 error={error}
                 data={data}
                 recentAnalyses={recentAnalyses}
@@ -143,7 +144,6 @@ export default function App() {
               <AnalysisPage
                 data={data}
                 loading={loading}
-                stage={stage}
                 savedEntry={savedEntry}
                 saving={saving}
                 onAnalyze={handleAnalyze}

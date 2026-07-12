@@ -149,8 +149,8 @@ export async function fetchHistory(): Promise<HistoryMeta[]> {
   try {
     const res = await fetch(`${API_BASE}/history`)
     if (!res.ok) return []
-    const data = (await res.json()) as { history: HistoryMeta[] }
-    return data.history
+    const data = (await res.json()) as { history?: HistoryMeta[] }
+    return data.history ?? []
   } catch {
     return []
   }

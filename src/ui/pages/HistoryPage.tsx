@@ -38,8 +38,12 @@ export function HistoryPage({
   useEffect(() => { void loadSaved() }, [loadSaved])
 
   const handleDelete = useCallback(async (id: string) => {
-    await deleteHistoryEntry(id)
-    setSaved(p => p.filter(e => e.id !== id))
+    const ok = await deleteHistoryEntry(id)
+    if (ok) {
+      setSaved(p => p.filter(e => e.id !== id))
+    } else {
+      setReopenError('Failed to delete. Please refresh and try again.')
+    }
   }, [])
 
   const handleReopen = useCallback(async (id: string) => {
@@ -63,9 +67,12 @@ export function HistoryPage({
     return matchSearch && matchDecision && matchInterval
   })
 
-  const filteredRecent = recentAnalyses.filter(r =>
-    !search || r.symbol.toLowerCase().includes(search.toLowerCase())
-  )
+  const filteredRecent = recentAnalyses.filter(r => {
+    const matchSearch   = !search || r.symbol.includes(search.toUpperCase())
+    const matchDecision = decision === 'All' || (r.decision ?? '').toLowerCase().includes(decision.toLowerCase())
+    const matchInterval = intervalF === 'All' || r.interval === intervalF
+    return matchSearch && matchDecision && matchInterval
+  })
 
   return (
     <div className="p-4 pb-20 lg:pb-4 space-y-4 animate-fade-in">
@@ -136,7 +143,11 @@ export function HistoryPage({
             <FolderOpen size={9} className="text-slate-600" />
             Saved Analyses
           </p>
-          <span className="text-[10px] text-slate-600">{saved.length} saved</span>
+          <span className="text-[10px] text-slate-600">
+            {filteredSaved.length === saved.length
+              ? `${saved.length} saved`
+              : `${filteredSaved.length} of ${saved.length}`}
+          </span>
         </div>
 
         {loadingS ? (

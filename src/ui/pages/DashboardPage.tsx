@@ -12,7 +12,6 @@ interface DashboardPageProps {
   symbol: string
   interval: string
   loading: boolean
-  stage: string | null
   error: string | null
   data: PipelineResult | null
   recentAnalyses: RecentAnalysis[]

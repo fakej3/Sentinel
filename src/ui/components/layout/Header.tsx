@@ -251,7 +251,7 @@ export function Header({
 
       {/* Analyze button */}
       <button
-        onClick={onAnalyze}
+        onClick={() => onAnalyze()}
         disabled={loading || !symbol.trim()}
         className="h-8 px-4 bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold rounded-md
                    transition-colors duration-150 active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed

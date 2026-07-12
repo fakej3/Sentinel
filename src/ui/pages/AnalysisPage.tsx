@@ -20,7 +20,6 @@ const BenchmarkTab  = lazy(() => import('../components/tabs/BenchmarkTab').then(
 interface AnalysisPageProps {
   data: PipelineResult | null
   loading: boolean
-  stage: string | null
   savedEntry: HistoryMeta | null
   saving: boolean
   onAnalyze: () => void

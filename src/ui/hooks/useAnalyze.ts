@@ -44,7 +44,10 @@ export function useAnalyze() {
   }, [])
 
   // Cleanup on unmount
-  useEffect(() => () => clearTimers(), [clearTimers])
+  useEffect(() => () => {
+    clearTimers()
+    abortRef.current?.abort()
+  }, [clearTimers])
 
   const analyze = useCallback(async (params: AnalyzeParams) => {
     abortRef.current?.abort()
@@ -78,7 +81,10 @@ export function useAnalyze() {
     } catch (err) {
       clearTimers()
       if (controller.signal.aborted) {
-        setState(prev => ({ ...prev, loading: false, stage: null }))
+        // Don't touch state if a newer analyze() call has already taken over
+        if (abortRef.current === controller) {
+          setState(prev => ({ ...prev, loading: false, stage: null }))
+        }
         return null
       }
 
