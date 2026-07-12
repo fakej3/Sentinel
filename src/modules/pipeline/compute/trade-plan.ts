@@ -2,7 +2,10 @@ import type { MarketAnalysisResult } from '../../analysis/types'
 import type { SupportResistanceResult } from '../../support-resistance/types'
 import type { ConfidenceResult } from '../../confidence/types'
 import type { ValidationResult } from '../../validation/types'
+import type { MarketStructureResult } from '../../market-structure/types'
 import type { TradePlan, TradeSetupQuality, MultiTimeframeAgreement } from '../types'
+import { computeTradeMaturity } from './trade-maturity'
+import type { TradeMaturityResult } from './trade-maturity'
 
 const CLEAN_VALIDATION: ValidationResult = {
   passed: true, clean: true, issues: [],
@@ -25,6 +28,7 @@ export function computeTradePlan(
   confidence: ConfidenceResult,
   validation: ValidationResult = CLEAN_VALIDATION,
   mtfAgreement?: MultiTimeframeAgreement,
+  marketStructure?: MarketStructureResult,
 ): TradePlan {
   const { fullTrend, srContext, price } = analysis
   const trend = fullTrend.trend
@@ -90,11 +94,19 @@ export function computeTradePlan(
     if (risk > 0) riskRewardRatio = Math.round((reward / risk) * 100) / 100
   }
 
+  // ── Trade Maturity Score (Module 41) ─────────────────────────────────────
+  // Compute before quality classification so maturity can inform the quality tier.
+  // Requires marketStructure; falls back to a zero-scored result when unavailable
+  // (maintains backward compatibility with callers that don't pass it yet).
+  const maturity = marketStructure
+    ? computeTradeMaturity(analysis, marketStructure, confidence)
+    : { score: 50, label: 'developing' as const, components: { momentum: 10, volume: 10, trend: 10, structure: 10, confidence: 10 }, primaryConcern: null }
+
   // ── Setup quality ─────────────────────────────────────────────────────────
   const { setupQuality, setupQualityReason } = classifySetupQuality(
     entryZone, invalidationLevel, targetLevel,
     geometryValid, riskRewardRatio,
-    confidence, validation, mtfAgreement, trend,
+    confidence, validation, mtfAgreement, trend, maturity.score,
   )
 
   // excellent / good / average are actionable; poor / avoid / no_setup are not
@@ -103,7 +115,7 @@ export function computeTradePlan(
   // ── Patience message ──────────────────────────────────────────────────────
   const patienceMessage = buildPatienceMessage(
     setupQuality, trend, confidence, srContext, riskRewardRatio, validation,
-    entryZone, invalidationLevel, targetLevel,
+    entryZone, invalidationLevel, targetLevel, maturity,
   )
 
   // price is referenced here only to satisfy the linter — the variable is
@@ -119,6 +131,10 @@ export function computeTradePlan(
     setupQualityReason,
     actionable,
     patienceMessage,
+    maturityScore:          maturity.score,
+    maturityLabel:          maturity.label,
+    maturityComponents:     maturity.components,
+    maturityPrimaryConcern: maturity.primaryConcern,
   }
 }
 
@@ -134,6 +150,7 @@ function classifySetupQuality(
   validation: ValidationResult,
   mtfAgreement?: MultiTimeframeAgreement,
   trend?: string,
+  maturityScore?: number,
 ): { setupQuality: TradeSetupQuality; setupQualityReason: string } {
   // Weak trend (weak bullish / weak bearish / ranging) reduces setup reliability.
   // Evidence: 8/10 synthetic validation losses had weak trend labels despite high
@@ -181,6 +198,16 @@ function classifySetupQuality(
     return {
       setupQuality: 'poor',
       setupQualityReason: `Data trust of ${confidence.trust.score}% is below the 50% reliability threshold`,
+    }
+  }
+
+  // 4b. Maturity gate (Module 41) — block Immature setups regardless of other signals.
+  // Evidence: score < 30 had 0% WR across 132 resolved M38/M39 historical trades.
+  // Pure improvement: 1 loss blocked, 0 wins removed, selectivity = 100%.
+  if (maturityScore !== undefined && maturityScore < 30) {
+    return {
+      setupQuality: 'poor',
+      setupQualityReason: `Trade maturity ${maturityScore}/100 (Immature) — market conditions are not ready; wait for momentum, volume, and structure to align`,
     }
   }
 
@@ -260,6 +287,7 @@ function buildPatienceMessage(
   entryZone: TradePlan['entryZone'],
   invalidationLevel: number | null,
   targetLevel: number | null,
+  maturity: TradeMaturityResult,
 ): string {
   switch (setupQuality) {
     case 'no_setup':
@@ -280,15 +308,24 @@ function buildPatienceMessage(
       if (confidence.score < 4.0) {
         return `Signal confidence is ${confidence.score.toFixed(1)}/10 — too low for a reliable setup; wait for a clearer directional move`
       }
+      if (maturity.score < 30) {
+        const concern = maturity.primaryConcern ?? 'momentum, volume, and structure not yet aligned'
+        return `Setup maturity ${maturity.score}/100 (Immature) — ${concern}; wait for conditions to mature before entering`
+      }
       return 'Data quality is insufficient for a reliable setup — wait for more price history to accumulate'
 
     case 'excellent': {
+      const earlyNote = maturity.score < 45 && maturity.primaryConcern
+        ? `; caution: ${maturity.primaryConcern}` : ''
       if (entryZone !== null && invalidationLevel !== null && targetLevel !== null) {
         const mid = fmtPrice((entryZone.lower + entryZone.upper) / 2)
         const stop = fmtPrice(invalidationLevel)
         const target = fmtPrice(targetLevel)
         const rrStr = riskRewardRatio !== null ? `, RR ${riskRewardRatio.toFixed(2)}:1` : ''
-        return `High-quality setup — enter near ${mid}, stop at ${stop}, target ${target}${rrStr}`
+        return `High-quality setup — enter near ${mid}, stop at ${stop}, target ${target}${rrStr}${earlyNote}`
+      }
+      if (earlyNote) {
+        return `High-quality setup${earlyNote} — enter at the zone boundary with a defined stop and target`
       }
       return trend.includes('strong')
         ? 'High-quality setup in a strong trend — enter at the zone boundary with a defined stop and target'
@@ -297,18 +334,20 @@ function buildPatienceMessage(
 
     case 'good': {
       const isWeak = trend.includes('weak') || trend === 'ranging'
+      const earlyNote = maturity.score < 45 && maturity.primaryConcern
+        ? `; note: ${maturity.primaryConcern}` : ''
       if (entryZone !== null && invalidationLevel !== null && targetLevel !== null) {
         const mid = fmtPrice((entryZone.lower + entryZone.upper) / 2)
         const stop = fmtPrice(invalidationLevel)
         const target = fmtPrice(targetLevel)
         const rrStr = riskRewardRatio !== null ? `, RR ${riskRewardRatio.toFixed(2)}:1` : ''
         if (isWeak) {
-          return `Good setup in a weak trend — wait for a confirmation candle before entering; enter near ${mid}, stop at ${stop}, target ${target}${rrStr}`
+          return `Good setup in a weak trend — wait for a confirmation candle before entering; enter near ${mid}, stop at ${stop}, target ${target}${rrStr}${earlyNote}`
         }
         if (srContext.approachingSupport || srContext.approachingResistance) {
-          return `Good setup near a key level — wait for a reaction, then enter near ${mid} with stop at ${stop}, target ${target}${rrStr}`
+          return `Good setup near a key level — wait for a reaction, then enter near ${mid} with stop at ${stop}, target ${target}${rrStr}${earlyNote}`
         }
-        return `Good setup — enter near ${mid}, stop at ${stop}, target ${target}${rrStr}`
+        return `Good setup — enter near ${mid}, stop at ${stop}, target ${target}${rrStr}${earlyNote}`
       }
       if (isWeak) {
         return 'Good setup but trend strength is weak — wait for trend confirmation before entering'
@@ -323,10 +362,12 @@ function buildPatienceMessage(
 
     case 'average': {
       const isWeak = trend.includes('weak') || trend === 'ranging'
+      const earlyNote = maturity.score < 45 && maturity.primaryConcern
+        ? `; ${maturity.primaryConcern}` : ''
       if (isWeak) {
-        return 'Weak trend — if entering, wait for a strong confirmation candle, use reduced position size, and strict stop placement'
+        return `Weak trend — if entering, wait for a strong confirmation candle, use reduced position size, and strict stop placement${earlyNote}`
       }
-      return 'Marginal setup — if entering, use reduced size and strict risk management; wait for confirmation if possible'
+      return `Marginal setup — if entering, use reduced size and strict risk management; wait for confirmation if possible${earlyNote}`
     }
   }
 }

@@ -88,15 +88,19 @@ function describeOpportunity(level: QualityLevel | 'none', tradePlan: TradePlan)
   // Surface the downgrade reason when setup was degraded from a higher tier
   const isDowngraded = tradePlan.setupQualityReason.includes('downgraded') || tradePlan.setupQualityReason.includes('degraded')
   const downgradeNote = isDowngraded ? ` ${tradePlan.setupQualityReason.split('—')[1]?.trim() ?? ''}`.trimEnd() : ''
+  // Module 41 maturity annotation
+  const maturityNote = tradePlan.maturityScore < 45
+    ? ` Maturity: ${tradePlan.maturityScore}/100 (${tradePlan.maturityLabel}).`
+    : ''
   switch (level) {
-    case 'excellent': return `Excellent setup:${rrStr} Entry, stop, and target are clearly defined.`
+    case 'excellent': return `Excellent setup:${rrStr} Entry, stop, and target are clearly defined.${maturityNote}`
     case 'good':      return isDowngraded
-      ? `Good setup (downgraded):${rrStr}${downgradeNote ? ` ${downgradeNote}.` : ' Conditions reduced setup reliability.'}`
-      : `Good setup:${rrStr} Levels are defined and conditions are favorable.`
+      ? `Good setup (downgraded):${rrStr}${downgradeNote ? ` ${downgradeNote}.` : ' Conditions reduced setup reliability.'}${maturityNote}`
+      : `Good setup:${rrStr} Levels are defined and conditions are favorable.${maturityNote}`
     case 'fair':      return isDowngraded
-      ? `Marginal setup (downgraded):${rrStr}${downgradeNote ? ` ${downgradeNote}.` : ' Conditions reduce setup reliability.'}`
-      : `Marginal setup:${rrStr} Conditions are acceptable but not ideal.`
-    case 'poor':      return `Poor setup:${rrStr} Proceed with caution — setup quality is low.`
+      ? `Marginal setup (downgraded):${rrStr}${downgradeNote ? ` ${downgradeNote}.` : ' Conditions reduce setup reliability.'}${maturityNote}`
+      : `Marginal setup:${rrStr} Conditions are acceptable but not ideal.${maturityNote}`
+    case 'poor':      return `Poor setup:${rrStr} Proceed with caution — setup quality is low.${maturityNote}`
   }
 }
 

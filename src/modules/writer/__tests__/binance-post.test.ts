@@ -6,6 +6,13 @@ import { makeAnalysis, makeConfidence, cleanValidation, validationWithCriticals 
 
 // ─── Stubs ────────────────────────────────────────────────────────────────────
 
+const MATURE_MATURITY = {
+  maturityScore: 62,
+  maturityLabel: 'mature' as const,
+  maturityComponents: { momentum: 20, volume: 15, trend: 14, structure: 8, confidence: 5 },
+  maturityPrimaryConcern: null,
+}
+
 function makeActionablePlan(overrides: Partial<TradePlan> = {}): TradePlan {
   return {
     entryZone: { lower: 94_800, upper: 95_200 },
@@ -16,6 +23,7 @@ function makeActionablePlan(overrides: Partial<TradePlan> = {}): TradePlan {
     setupQualityReason: 'Excellent setup: RR 2.35, confidence 7.8, trust 100%',
     actionable: true,
     patienceMessage: 'High-quality setup — enter near 95000, stop at 94280, target 98150, RR 2.35:1',
+    ...MATURE_MATURITY,
     ...overrides,
   }
 }
@@ -30,6 +38,7 @@ function makeNoSetupPlan(): TradePlan {
     setupQualityReason: 'Insufficient support/resistance data to establish trade levels',
     actionable: false,
     patienceMessage: 'No high-quality trade setup currently exists — wait for support/resistance structure to form',
+    ...MATURE_MATURITY,
   }
 }
 
@@ -43,6 +52,7 @@ function makeAvoidPlan(): TradePlan {
     setupQualityReason: 'Risk/reward of 1.10 is below the minimum threshold of 1.5',
     actionable: false,
     patienceMessage: 'Risk/reward is 1.10:1 — below minimum 1.5:1; wait for price to approach a higher-probability zone',
+    ...MATURE_MATURITY,
   }
 }
 
@@ -56,6 +66,7 @@ function makeGoodPlan(): TradePlan {
     setupQualityReason: 'Setup downgraded: RR 2.35, confidence 8.0 — weak trend reduces setup reliability',
     actionable: true,
     patienceMessage: 'Good setup in a weak trend — wait for a confirmation candle before entering; enter near 95000, stop at 94280, target 98150, RR 2.35:1',
+    ...MATURE_MATURITY,
   }
 }
 
@@ -69,6 +80,7 @@ function makeAveragePlan(): TradePlan {
     setupQualityReason: 'Setup downgraded: RR 1.80, confidence 5.5 — weak trend reduces setup reliability',
     actionable: true,
     patienceMessage: 'Weak trend — if entering, wait for a strong confirmation candle, use reduced position size, and strict stop placement',
+    ...MATURE_MATURITY,
   }
 }
 

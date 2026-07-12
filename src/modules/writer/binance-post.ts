@@ -207,6 +207,12 @@ function buildTradePost(
     lines.push('⚠️ Weak trend — wait for a confirmation candle before entering')
   }
 
+  // Module 41 maturity warning: surface when setup is not yet fully mature
+  if (tradePlan.maturityScore < 45 && tradePlan.maturityPrimaryConcern) {
+    lines.push('')
+    lines.push(`⏳ Setup maturity: ${tradePlan.maturityScore}/100 (Early) — ${tradePlan.maturityPrimaryConcern}`)
+  }
+
   lines.push('')
   lines.push('Evidence:')
   for (const b of buildEvidenceBullets(analysis, confidence)) {

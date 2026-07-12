@@ -169,6 +169,26 @@ export interface TradePlan {
   actionable: boolean
   /** Contextual guidance — always shown, even when not actionable */
   patienceMessage: string
+  /**
+   * Module 41 Trade Maturity Score (0–100).
+   * Measures how "ready" the setup is — independent of directional bias.
+   * Based on momentum alignment, volume participation, trend strength,
+   * structure confirmation, and confidence quality.
+   * Evidence: immature setups (< 30) had 0% WR in M38/M39 historical validation.
+   */
+  maturityScore: number
+  /** Qualitative label for the maturity score */
+  maturityLabel: import('./compute/trade-maturity').MaturityLabel
+  /** Per-component breakdown of the maturity score */
+  maturityComponents: {
+    momentum: number
+    volume: number
+    trend: number
+    structure: number
+    confidence: number
+  }
+  /** Most significant limiting factor; null when score is high */
+  maturityPrimaryConcern: string | null
 }
 
 // ── Confidence Explanation ─────────────────────────────────────────────────────

@@ -494,6 +494,102 @@ function SanityFlagsPanel({ audit }: { audit: ConfidenceSanityResult }) {
   )
 }
 
+// ── Module 41 — Trade Maturity Widget ────────────────────────────────────────
+
+type MaturityLabel = 'immature' | 'early' | 'developing' | 'mature' | 'peak'
+
+const MATURITY_LABELS: Record<MaturityLabel, string> = {
+  immature: 'Immature', early: 'Early', developing: 'Developing', mature: 'Mature', peak: 'Peak',
+}
+
+function maturityColor(label: MaturityLabel): string {
+  switch (label) {
+    case 'immature':   return 'text-red-400'
+    case 'early':      return 'text-amber-400'
+    case 'developing': return 'text-yellow-400'
+    case 'mature':     return 'text-emerald-400'
+    case 'peak':       return 'text-sky-400'
+  }
+}
+
+function maturityBarColor(label: MaturityLabel): string {
+  switch (label) {
+    case 'immature':   return 'bg-red-500'
+    case 'early':      return 'bg-amber-500'
+    case 'developing': return 'bg-yellow-500'
+    case 'mature':     return 'bg-emerald-500'
+    case 'peak':       return 'bg-sky-500'
+  }
+}
+
+function MaturityWidget({
+  score, label, components, primaryConcern,
+}: {
+  score: number
+  label: MaturityLabel
+  components: { momentum: number; volume: number; trend: number; structure: number; confidence: number }
+  primaryConcern: string | null
+}) {
+  const [expanded, setExpanded] = useState(false)
+  const color = maturityColor(label)
+  const barColor = maturityBarColor(label)
+  const displayLabel = MATURITY_LABELS[label]
+  const pct = Math.min(100, score)
+
+  return (
+    <Card className="p-4">
+      <div className="flex items-center justify-between mb-2">
+        <div className="flex items-center gap-1.5">
+          <BarChart3 size={12} className="text-slate-400" />
+          <p className="section-label">Setup Maturity</p>
+        </div>
+        <button
+          onClick={() => setExpanded(e => !e)}
+          className="text-[10px] text-slate-500 hover:text-slate-300 flex items-center gap-0.5"
+        >
+          {expanded ? <ChevronUp size={10} /> : <ChevronDown size={10} />}
+          breakdown
+        </button>
+      </div>
+
+      <div className="flex items-center gap-3 mb-1">
+        <div className="flex-1 h-1.5 rounded-full bg-slate-700 overflow-hidden">
+          <div className={`h-full rounded-full ${barColor} transition-all`} style={{ width: `${pct}%` }} />
+        </div>
+        <span className={`text-xs font-semibold tabular-nums ${color}`}>{score}/100</span>
+        <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded ${color} bg-slate-700/60`}>{displayLabel}</span>
+      </div>
+
+      {primaryConcern && score < 60 && (
+        <p className="text-[11px] text-amber-400/80 leading-snug mt-1">⚠ {primaryConcern}</p>
+      )}
+
+      {expanded && (
+        <div className="mt-2.5 grid grid-cols-5 gap-1">
+          {([
+            ['Momentum', components.momentum, 25],
+            ['Volume',   components.volume,   20],
+            ['Trend',    components.trend,     20],
+            ['Structure',components.structure, 20],
+            ['Confidence',components.confidence,15],
+          ] as [string, number, number][]).map(([name, val, max]) => (
+            <div key={name} className="flex flex-col items-center gap-1">
+              <div className="h-10 w-2 rounded-full bg-slate-700 flex items-end overflow-hidden">
+                <div
+                  className={`w-full rounded-full ${barColor} transition-all`}
+                  style={{ height: `${(val / max) * 100}%` }}
+                />
+              </div>
+              <span className="text-[9px] text-slate-500 text-center leading-tight">{name}</span>
+              <span className="text-[9px] text-slate-400 tabular-nums">{val}/{max}</span>
+            </div>
+          ))}
+        </div>
+      )}
+    </Card>
+  )
+}
+
 export function SummaryTab({ result }: SummaryTabProps) {
   const {
     analysis, confidence, supportResistance, validation, generatedAnalysis,
@@ -689,6 +785,14 @@ export function SummaryTab({ result }: SummaryTabProps) {
           <p className={`text-xs leading-relaxed ${patienceTextCls}`}>{tradePlan.patienceMessage}</p>
         </div>
       )}
+
+      {/* Module 41 — Trade Maturity Score */}
+      <MaturityWidget
+        score={tradePlan.maturityScore}
+        label={tradePlan.maturityLabel as MaturityLabel}
+        components={tradePlan.maturityComponents}
+        primaryConcern={tradePlan.maturityPrimaryConcern}
+      />
 
       {/* Q3: What would invalidate this view */}
       {invalidationPoints.length > 0 && (

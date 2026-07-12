@@ -213,6 +213,10 @@ function makeTradePlan(overrides: Partial<{
     setupQualityReason: 'Good setup',
     actionable: overrides.actionable ?? true,
     patienceMessage: 'Wait for pullback.',
+    maturityScore: 62,
+    maturityLabel: 'mature',
+    maturityComponents: { momentum: 20, volume: 15, trend: 14, structure: 8, confidence: 5 },
+    maturityPrimaryConcern: null,
   }
 }
 

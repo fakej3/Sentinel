@@ -255,7 +255,7 @@ export async function analyzeMarket(options: PipelineOptions): Promise<PipelineR
   let sanityAudit!: ConfidenceSanityResult
   try {
     decision                  = computeDecision(analysis, confidence, validation)
-    tradePlan                 = computeTradePlan(analysis, supportResistance, confidence, validation)
+    tradePlan                 = computeTradePlan(analysis, supportResistance, confidence, validation, undefined, marketStructure)
     marketContext             = computeMarketContext(analysis)
     invalidationScenarios     = computeInvalidationScenarios(analysis, validation, tradePlan)
     confidenceExplanation     = computeConfidenceExplanation(confidence, analysis)
