@@ -1,5 +1,5 @@
 import { useState, useCallback, useRef, useEffect } from 'react'
-import { analyze as apiAnalyze, SentinelApiError } from '../api'
+import { getTransport, SentinelApiError } from '../transport'
 import type { PipelineResult } from '../types'
 import type { AnalyzeParams } from '../types'
 
@@ -66,7 +66,7 @@ export function useAnalyze() {
     }
 
     try {
-      const data = await apiAnalyze(
+      const data = await getTransport().analyze(
         params.symbol,
         params.interval,
         params.candleLimit !== undefined ? { candleLimit: params.candleLimit } : undefined,

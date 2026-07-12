@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { Clock, Search, Trash2, FolderOpen, RefreshCw } from 'lucide-react'
 import { clsx } from 'clsx'
-import { fetchHistory, deleteHistoryEntry, fetchHistoryEntry } from '../api'
+import { getTransport } from '../transport'
 import { formatScore, formatTimeAgo } from '../utils/format'
 import { gradeColor } from '../utils/colors'
 import type { RecentAnalysis, ConfidenceGrade, AppPage, TradeDecisionLabel, HistoryMeta } from '../types'
@@ -11,7 +11,7 @@ interface HistoryPageProps {
   onSelectSymbol: (sym: string, interval?: string) => void
   onClearHistory: () => void
   onNavigate: (page: AppPage) => void
-  onLoadEntry?: (entry: import('../api').HistoryEntry) => void
+  onLoadEntry?: (entry: import('../transport').HistoryEntry) => void
 }
 
 const DECISION_OPTIONS = ['All', 'Buy', 'Sell', 'Hold'] as const
@@ -30,7 +30,7 @@ export function HistoryPage({
 
   const loadSaved = useCallback(async () => {
     setLoadingS(true)
-    const entries = await fetchHistory()
+    const entries = await getTransport().listHistory()
     setSaved(entries)
     setLoadingS(false)
   }, [])
@@ -38,7 +38,7 @@ export function HistoryPage({
   useEffect(() => { void loadSaved() }, [loadSaved])
 
   const handleDelete = useCallback(async (id: string) => {
-    const ok = await deleteHistoryEntry(id)
+    const ok = await getTransport().deleteHistory(id)
     if (ok) {
       setSaved(p => p.filter(e => e.id !== id))
     } else {
@@ -50,7 +50,7 @@ export function HistoryPage({
     if (!onLoadEntry) return
     setReopening(id)
     setReopenError(null)
-    const entry = await fetchHistoryEntry(id)
+    const entry = await getTransport().getHistory(id)
     setReopening(null)
     if (entry) {
       onLoadEntry(entry)

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { checkHealth } from '../api'
+import { getTransport } from '../transport'
 
 export type ApiStatus = 'checking' | 'connected' | 'offline'
 
@@ -13,7 +13,7 @@ export function useApiStatus(): ApiStatus {
     const controller = new AbortController()
 
     async function poll() {
-      const ok = await checkHealth(controller.signal)
+      const ok = await getTransport().health(controller.signal)
       if (!cancelled) setStatus(ok ? 'connected' : 'offline')
     }
 

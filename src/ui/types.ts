@@ -106,7 +106,7 @@ export interface RecentAnalysis {
   bias?: string
 }
 
-export type { HistoryMeta, HistoryEntry } from './api'
+export type { HistoryMeta, HistoryEntry } from './transport'
 
 export type AppTab =
   | 'summary'

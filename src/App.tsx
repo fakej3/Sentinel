@@ -6,9 +6,9 @@ import { SkeletonDashboard } from './ui/components/shared/Skeleton'
 import { useAnalyze } from './ui/hooks/useAnalyze'
 import { useLocalStorage } from './ui/hooks/useLocalStorage'
 import { resolveSymbol } from './ui/utils/symbolSearch'
-import { saveAnalysis } from './ui/api'
+import { getTransport } from './ui/transport'
 import type { AppPage, RecentAnalysis } from './ui/types'
-import type { HistoryEntry, HistoryMeta } from './ui/api'
+import type { HistoryEntry, HistoryMeta } from './ui/transport'
 
 const DashboardPage = lazy(() => import('./ui/pages/DashboardPage').then(m => ({ default: m.DashboardPage })))
 const ChartPage     = lazy(() => import('./ui/pages/ChartPage').then(m => ({ default: m.ChartPage })))
@@ -62,7 +62,7 @@ export default function App() {
     if (!data || savingRef.current) return
     savingRef.current = true
     setSaving(true)
-    const meta = await saveAnalysis(data, symbol, interval)
+    const meta = await getTransport().saveHistory(data, symbol, interval)
     savingRef.current = false
     setSaving(false)
     if (meta) setSavedEntry(meta)
