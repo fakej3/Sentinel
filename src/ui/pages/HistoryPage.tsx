@@ -26,6 +26,7 @@ export function HistoryPage({
   const [saved,       setSaved      ] = useState<HistoryMeta[]>([])
   const [loadingS,    setLoadingS   ] = useState(true)
   const [reopening,   setReopening  ] = useState<string | null>(null)
+  const [reopenError, setReopenError] = useState<string | null>(null)
 
   const loadSaved = useCallback(async () => {
     setLoadingS(true)
@@ -44,12 +45,15 @@ export function HistoryPage({
   const handleReopen = useCallback(async (id: string) => {
     if (!onLoadEntry) return
     setReopening(id)
+    setReopenError(null)
     const entry = await fetchHistoryEntry(id)
+    setReopening(null)
     if (entry) {
       onLoadEntry(entry)
       onNavigate('analysis')
+    } else {
+      setReopenError('Failed to load analysis. It may have been deleted.')
     }
-    setReopening(null)
   }, [onLoadEntry, onNavigate])
 
   const filteredSaved = saved.filter(e => {
@@ -117,6 +121,14 @@ export function HistoryPage({
         </select>
       </div>
 
+      {/* Reopen error */}
+      {reopenError && (
+        <div className="flex items-center gap-2 px-3 py-2 bg-red-500/10 border border-red-500/30 rounded-lg text-xs text-red-400">
+          {reopenError}
+          <button onClick={() => setReopenError(null)} className="ml-auto text-red-400/60 hover:text-red-400">✕</button>
+        </div>
+      )}
+
       {/* ── Saved analyses (server) ── */}
       <div>
         <div className="flex items-center justify-between mb-2">
@@ -171,7 +183,7 @@ export function HistoryPage({
                     <span className="text-[10px] text-slate-600">{formatTimeAgo(e.savedAt)}</span>
                   </div>
                 </div>
-                <div className="flex items-center gap-1 flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
+                <div className="flex items-center gap-1 flex-shrink-0 opacity-100 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity">
                   {onLoadEntry && (
                     <button
                       onClick={() => handleReopen(e.id)}

@@ -40,7 +40,10 @@ server.use(createApp(analyzeFn) as express.RequestHandler)
 if (IS_PROD) {
   const dist = path.join(__dirname, '..', 'dist')
   server.use('/Sentinel', express.static(dist))
-  server.get('/Sentinel/*', (_req, res) => {
+  // SPA fallback: serve index.html for any /Sentinel route not matched by static files.
+  // Using server.use instead of server.get with a wildcard avoids Express 5's
+  // requirement that wildcard path segments must be named (path-to-regexp v8).
+  server.use('/Sentinel', (_req, res) => {
     res.sendFile(path.join(dist, 'index.html'))
   })
   server.get('/', (_req, res) => res.redirect(301, '/Sentinel/'))

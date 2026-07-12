@@ -14,7 +14,7 @@ interface WatchlistPageProps {
   onAddToWatchlist: (sym: string) => void
   onRemoveFromWatchlist: (sym: string) => void
   onSelectSymbol: (sym: string, interval?: string) => void
-  onAnalyze: () => void
+  onAnalyze: (symOverride?: string) => void
 }
 
 export function WatchlistPage({
@@ -125,7 +125,7 @@ export function WatchlistPage({
 
               <div className="flex items-center gap-1 flex-shrink-0">
                 <button
-                  onClick={e => { e.stopPropagation(); onSelectSymbol(sym); onAnalyze() }}
+                  onClick={e => { e.stopPropagation(); onSelectSymbol(sym); onAnalyze(sym) }}
                   title={`Analyze ${sym}`}
                   className="opacity-0 group-hover:opacity-100 text-[10px] text-blue-400 hover:text-blue-300
                              px-2 py-1 rounded border border-blue-500/30 hover:border-blue-500/50

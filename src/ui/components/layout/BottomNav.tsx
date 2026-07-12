@@ -1,5 +1,5 @@
 import { clsx } from 'clsx'
-import { LayoutGrid, BarChart2, Activity, Star, Settings, type LucideIcon } from 'lucide-react'
+import { LayoutGrid, BarChart2, Activity, Star, Clock, Settings, type LucideIcon } from 'lucide-react'
 import type { AppPage } from '../../types'
 
 interface NavItem {
@@ -13,6 +13,7 @@ const NAV_ITEMS: NavItem[] = [
   { page: 'chart',     label: 'Chart',     icon: BarChart2 },
   { page: 'analysis',  label: 'Analysis',  icon: Activity },
   { page: 'watchlist', label: 'Watchlist', icon: Star },
+  { page: 'history',   label: 'History',   icon: Clock },
   { page: 'settings',  label: 'Settings',  icon: Settings },
 ]
 

@@ -35,8 +35,8 @@ export default function App() {
 
   const { data, loading, stage, error, analyze, loadData } = useAnalyze()
 
-  const handleAnalyze = useCallback(async () => {
-    const sym = resolveSymbol(symbol)
+  const handleAnalyze = useCallback(async (symOverride?: string) => {
+    const sym = resolveSymbol(symOverride ?? symbol)
     if (!sym) return
     if (sym !== symbol.trim().toUpperCase()) setSymbol(sym)
     setSavedEntry(null)
@@ -56,7 +56,7 @@ export default function App() {
         return [entry, ...filtered].slice(0, MAX_RECENT)
       })
     }
-  }, [symbol, interval, analyze, setRecentAnalyses])
+  }, [symbol, interval, analyze, setRecentAnalyses, setSymbol])
 
   const handleSaveAnalysis = useCallback(async () => {
     if (!data || saving) return
@@ -75,10 +75,11 @@ export default function App() {
   const handleAddToWatchlist      = useCallback((sym: string) => setWatchlist(p => p.includes(sym) ? p : [...p, sym]), [setWatchlist])
   const handleRemoveFromWatchlist = useCallback((sym: string) => setWatchlist(p => p.filter(s => s !== sym)), [setWatchlist])
   const handleLoadEntry = useCallback((entry: HistoryEntry) => {
+    const { result, ...meta } = entry
     setSymbol(entry.symbol)
     setInterval(entry.interval)
-    setSavedEntry({ id: entry.id, savedAt: entry.savedAt, symbol: entry.symbol, interval: entry.interval, decision: entry.decision, grade: entry.grade, confidence: entry.confidence, trust: entry.trust, riskLevel: entry.riskLevel, rr: entry.rr, entry: entry.entry, stop: entry.stop, targets: entry.targets, trend: entry.trend, binancePost: entry.binancePost })
-    loadData(entry.result)
+    setSavedEntry(meta)
+    loadData(result)
   }, [setSymbol, setInterval, loadData])
 
   const handleClearHistory        = useCallback(() => setRecentAnalyses([]), [setRecentAnalyses])

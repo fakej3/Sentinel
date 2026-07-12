@@ -44,7 +44,8 @@ function load(): HistoryEntry[] {
   ensureDir()
   try {
     const raw = fs.readFileSync(HISTORY_FILE, 'utf-8')
-    return JSON.parse(raw) as HistoryEntry[]
+    const parsed: unknown = JSON.parse(raw)
+    return Array.isArray(parsed) ? parsed as HistoryEntry[] : []
   } catch {
     return []
   }
