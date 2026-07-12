@@ -20,9 +20,9 @@
  *   60–74 Mature     — 93.6% WR
  *   75–100 Peak      — 100% WR but lower avgRR (more conservative setups)
  */
-import type { MarketAnalysisResult } from '../analysis/types'
+import type { MarketAnalysisResult } from '../../analysis/types'
 import type { MarketStructureResult } from '../../market-structure/types'
-import type { ConfidenceResult } from '../confidence/types'
+import type { ConfidenceResult } from '../../confidence/types'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 

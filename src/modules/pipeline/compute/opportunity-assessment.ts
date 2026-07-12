@@ -33,7 +33,7 @@ export function computeOpportunityAssessment(
 function deriveMarketQuality(
   analysis: MarketAnalysisResult,
   confidence: ConfidenceResult,
-  marketContext: MarketContext,
+  _marketContext: MarketContext,
 ): QualityLevel {
   const { score, analysisQuality } = confidence
   const adxStrong = analysis.indicatorSummary.adx.trendStrength === 'strong'
