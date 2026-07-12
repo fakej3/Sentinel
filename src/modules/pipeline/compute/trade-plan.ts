@@ -94,7 +94,7 @@ export function computeTradePlan(
   const { setupQuality, setupQualityReason } = classifySetupQuality(
     entryZone, invalidationLevel, targetLevel,
     geometryValid, riskRewardRatio,
-    confidence, validation, mtfAgreement,
+    confidence, validation, mtfAgreement, trend,
   )
 
   // excellent / good / average are actionable; poor / avoid / no_setup are not
@@ -133,7 +133,12 @@ function classifySetupQuality(
   confidence: ConfidenceResult,
   validation: ValidationResult,
   mtfAgreement?: MultiTimeframeAgreement,
+  trend?: string,
 ): { setupQuality: TradeSetupQuality; setupQualityReason: string } {
+  // Weak trend (weak bullish / weak bearish / ranging) reduces setup reliability.
+  // Evidence: 8/10 synthetic validation losses had weak trend labels despite high
+  // confidence scores — weak-trend excellent scored 83.3% WR vs 96.6% for strong/moderate.
+  const isWeakTrend = trend !== undefined && (trend.includes('weak') || trend === 'ranging')
   // 1. Insufficient S/R data — no trade levels available
   if (entryZone === null || invalidationLevel === null || targetLevel === null) {
     return {
@@ -183,9 +188,16 @@ function classifySetupQuality(
   const mtfNote = mtfConflict
     ? ` — MTF conflict: ${mtfAgreement!.conflictingCount} opposing timeframe(s) reduce quality`
     : ''
+  const weakTrendNote = isWeakTrend ? ' — weak trend reduces setup reliability' : ''
 
   // 5. Excellent: RR ≥ 2.0, confidence ≥ 7.5, trust ≥ 70 — all conditions met
   if (riskRewardRatio >= 2.0 && confidence.score >= 7.5 && confidence.trust.score >= 70) {
+    if (isWeakTrend) {
+      return {
+        setupQuality: 'good',
+        setupQualityReason: `Setup downgraded: RR ${riskRewardRatio.toFixed(2)}, confidence ${confidence.score.toFixed(1)}${weakTrendNote}${mtfNote}`,
+      }
+    }
     if (mtfConflict) {
       return {
         setupQuality: 'good',
@@ -200,6 +212,12 @@ function classifySetupQuality(
 
   // 6. Good: RR ≥ 1.5 and confidence ≥ 5.0
   if (confidence.score >= 5.0) {
+    if (isWeakTrend) {
+      return {
+        setupQuality: 'average',
+        setupQualityReason: `Setup downgraded: RR ${riskRewardRatio.toFixed(2)}, confidence ${confidence.score.toFixed(1)}${weakTrendNote}${mtfNote}`,
+      }
+    }
     if (mtfConflict) {
       return {
         setupQuality: 'average',
@@ -278,15 +296,22 @@ function buildPatienceMessage(
     }
 
     case 'good': {
+      const isWeak = trend.includes('weak') || trend === 'ranging'
       if (entryZone !== null && invalidationLevel !== null && targetLevel !== null) {
         const mid = fmtPrice((entryZone.lower + entryZone.upper) / 2)
         const stop = fmtPrice(invalidationLevel)
         const target = fmtPrice(targetLevel)
         const rrStr = riskRewardRatio !== null ? `, RR ${riskRewardRatio.toFixed(2)}:1` : ''
+        if (isWeak) {
+          return `Good setup in a weak trend — wait for a confirmation candle before entering; enter near ${mid}, stop at ${stop}, target ${target}${rrStr}`
+        }
         if (srContext.approachingSupport || srContext.approachingResistance) {
           return `Good setup near a key level — wait for a reaction, then enter near ${mid} with stop at ${stop}, target ${target}${rrStr}`
         }
         return `Good setup — enter near ${mid}, stop at ${stop}, target ${target}${rrStr}`
+      }
+      if (isWeak) {
+        return 'Good setup but trend strength is weak — wait for trend confirmation before entering'
       }
       if (srContext.approachingSupport || srContext.approachingResistance) {
         return 'Good setup approaching a key level — wait for a reaction here before entering'
@@ -296,7 +321,12 @@ function buildPatienceMessage(
         : 'Good setup — enter at the entry zone with a clearly defined stop loss'
     }
 
-    case 'average':
+    case 'average': {
+      const isWeak = trend.includes('weak') || trend === 'ranging'
+      if (isWeak) {
+        return 'Weak trend — if entering, wait for a strong confirmation candle, use reduced position size, and strict stop placement'
+      }
       return 'Marginal setup — if entering, use reduced size and strict risk management; wait for confirmation if possible'
+    }
   }
 }

@@ -151,6 +151,85 @@ function makeMTFAligned(): MultiTimeframeAgreement {
   }
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Weak trend downgrade (evidence: 8/10 validation losses had weak trend labels)
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('computeTradePlan — weak trend downgrade', () => {
+  const SR_EXCELLENT = makeSR(
+    { lower: 95, upper: 97, center: 96 },
+    { lower: 110, upper: 112, center: 111 },
+  )
+
+  it('weak bullish trend degrades excellent → good', () => {
+    const plan = computeTradePlan(
+      makeAnalysis('weak bullish', 100),
+      SR_EXCELLENT,
+      makeConfidence(8.0) as ConfidenceResult,
+    )
+    expect(plan.setupQuality).toBe('good')
+    expect(plan.setupQualityReason).toMatch(/downgraded/)
+  })
+
+  it('weak bearish trend degrades excellent → good', () => {
+    const plan = computeTradePlan(
+      makeAnalysis('weak bearish', 100),
+      SR_EXCELLENT,
+      makeConfidence(8.5) as ConfidenceResult,
+    )
+    expect(plan.setupQuality).toBe('good')
+  })
+
+  it('weak bullish trend degrades good → average', () => {
+    // confidence 5.5 → would be good, but weak trend drops to average
+    const plan = computeTradePlan(
+      makeAnalysis('weak bullish', 100),
+      SR_EXCELLENT,
+      makeConfidence(5.5) as ConfidenceResult,
+    )
+    expect(plan.setupQuality).toBe('average')
+    expect(plan.setupQualityReason).toMatch(/downgraded/)
+  })
+
+  it('ranging trend produces no_setup (no directional levels)', () => {
+    // Ranging markets don't set entry zone (not bullish/bearish), so no_setup before weak check
+    const plan = computeTradePlan(
+      makeAnalysis('ranging', 100),
+      SR_EXCELLENT,
+      makeConfidence(8.0) as ConfidenceResult,
+    )
+    expect(plan.setupQuality).toBe('no_setup')
+  })
+
+  it('strong bullish trend is not downgraded', () => {
+    const plan = computeTradePlan(
+      makeAnalysis('strong bullish', 100),
+      SR_EXCELLENT,
+      makeConfidence(8.0) as ConfidenceResult,
+    )
+    expect(plan.setupQuality).toBe('excellent')
+  })
+
+  it('moderate bearish trend is not downgraded', () => {
+    const plan = computeTradePlan(
+      makeAnalysis('moderate bearish', 100),
+      SR_EXCELLENT,
+      makeConfidence(8.0) as ConfidenceResult,
+    )
+    expect(plan.setupQuality).toBe('excellent')
+  })
+
+  it('weak trend patience message warns about weak trend', () => {
+    const plan = computeTradePlan(
+      makeAnalysis('weak bullish', 100),
+      SR_EXCELLENT,
+      makeConfidence(8.0) as ConfidenceResult,
+    )
+    // Quality is 'good' after downgrade — message should mention weak trend or confirmation
+    expect(plan.patienceMessage.toLowerCase()).toMatch(/weak|confirm/)
+  })
+})
+
 describe('computeTradePlan — MTF agreement', () => {
   const SR_EXCELLENT = makeSR(
     { lower: 95, upper: 97, center: 96 },
