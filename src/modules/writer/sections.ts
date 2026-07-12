@@ -191,7 +191,7 @@ export function buildSummary(
   // Volume
   const volumePart = volumeContext.confirmsCurrentMove
     ? ` Volume is backing the move (${volumeContext.relativeVolume.toFixed(1)}× average), adding conviction.`
-    : volumeContext.relativeVolume < 0.8
+    : volumeContext.relativeVolume < 0.7
       ? ` Volume is thin (${volumeContext.relativeVolume.toFixed(1)}× average) — treat the signal with caution.`
       : ''
 

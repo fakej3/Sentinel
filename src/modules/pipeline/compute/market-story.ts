@@ -101,10 +101,10 @@ function buildMomentumSentence(
 ): string {
   const rsiVal = rsi.value
   const rsiDesc = rsiVal === null ? 'RSI unavailable'
-    : rsiVal > 70  ? `RSI is overbought at ${rsiVal.toFixed(0)}`
-    : rsiVal < 30  ? `RSI is oversold at ${rsiVal.toFixed(0)}`
-    : rsiVal >= 55 ? `RSI in bullish zone at ${rsiVal.toFixed(0)}`
-    : rsiVal <= 45 ? `RSI in bearish zone at ${rsiVal.toFixed(0)}`
+    : rsi.classification === 'overbought'      ? `RSI is overbought at ${rsiVal.toFixed(0)}`
+    : rsi.classification === 'oversold'        ? `RSI is oversold at ${rsiVal.toFixed(0)}`
+    : rsi.classification === 'healthy_bullish' ? `RSI in bullish zone at ${rsiVal.toFixed(0)}`
+    : rsi.classification === 'weak_bearish'    ? `RSI in bearish zone at ${rsiVal.toFixed(0)}`
     : `RSI is neutral at ${rsiVal.toFixed(0)}`
 
   const macdDesc = macd.bias === 'bullish' ? 'MACD is bullish'

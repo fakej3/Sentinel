@@ -109,7 +109,7 @@ export function computeBreakdown(
 
   for (const item of evidence) {
     const weight = cfg.factorWeights[item.factor]
-    if (weight === undefined) continue
+    if (weight === undefined || !Number.isFinite(weight)) continue
     const category = FACTOR_CATEGORY[item.factor]
     if (category === undefined) continue
     raw[category] += Math.abs(weight)

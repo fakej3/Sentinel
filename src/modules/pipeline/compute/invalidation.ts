@@ -83,7 +83,7 @@ export function computeInvalidationScenarios(
     }
 
     const rsi = indicatorSummary.rsi
-    if (rsi.value !== null && rsi.classification !== 'overbought') {
+    if (rsi.value !== null && rsi.classification !== 'overbought' && rsi.classification !== 'oversold') {
       minor.push({
         type: 'indicator',
         severity: 'minor',
@@ -115,7 +115,7 @@ export function computeInvalidationScenarios(
     }
 
     const rsi = indicatorSummary.rsi
-    if (rsi.value !== null && rsi.classification !== 'oversold') {
+    if (rsi.value !== null && rsi.classification !== 'oversold' && rsi.classification !== 'overbought') {
       minor.push({
         type: 'indicator',
         severity: 'minor',

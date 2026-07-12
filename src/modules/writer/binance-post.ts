@@ -153,7 +153,7 @@ function buildRiskBullets(analysis: MarketAnalysisResult, confidence: Confidence
     risks.push(`In consolidation (${marketStructure.consolidation.rangePercent?.toFixed(1) ?? '?'}% range) — direction uncertain`)
   }
 
-  if (!volumeContext.confirmsCurrentMove && volumeContext.relativeVolume < 0.8) {
+  if (!volumeContext.confirmsCurrentMove && volumeContext.relativeVolume < 0.7) {
     risks.push(`Low volume (${volumeContext.relativeVolume.toFixed(1)}× average) — weak conviction behind move`)
   }
 
@@ -244,7 +244,7 @@ function buildWaitPost(
   if (indicatorSummary.adx.adx !== null) {
     contextParts.push(`ADX: ${indicatorSummary.adx.adx.toFixed(0)} (${indicatorSummary.adx.trendStrength})`)
   }
-  if (volumeContext.relativeVolume < 0.8) {
+  if (volumeContext.relativeVolume < 0.7) {
     contextParts.push(`Volume: ${volumeContext.relativeVolume.toFixed(1)}× average (below confirmation)`)
   }
   if (contextParts.length > 0) {

@@ -99,7 +99,7 @@ export function computeDecisionExplanation(
   if (volumeContext.confirmsCurrentMove && volumeContext.overallStrength >= 6) {
     volStatus = 'supports'
     volDetail = `${rv.toFixed(1)}× average volume — confirms the move with strong conviction`
-  } else if (!volumeContext.confirmsCurrentMove && rv < 0.8) {
+  } else if (!volumeContext.confirmsCurrentMove && rv < 0.7) {
     volStatus = 'opposes'
     volDetail = `${rv.toFixed(1)}× average volume — thin trading, weak conviction behind the move`
   } else if (volumeContext.confirmsCurrentMove) {
@@ -160,7 +160,7 @@ export function computeDecisionExplanation(
     if (srContext.nearestResistanceDistance !== null && srContext.nearestResistanceDistance < 6) {
       flipToNeutral.push(`Repeated rejection at nearby resistance (${srContext.nearestResistanceDistance.toFixed(1)}% above) establishes a range`)
     }
-    if (volumeContext.relativeVolume > 0.8) {
+    if (volumeContext.relativeVolume > 0.7) {
       flipToNeutral.push('Volume consistently dries up below 0.7× average, removing directional conviction')
     }
   } else if (isBearish) {
@@ -171,7 +171,7 @@ export function computeDecisionExplanation(
     if (srContext.nearestSupportDistance !== null && Math.abs(srContext.nearestSupportDistance) < 6) {
       flipToNeutral.push(`Repeated holding at nearby support (${Math.abs(srContext.nearestSupportDistance).toFixed(1)}% below) stabilises into a range`)
     }
-    if (volumeContext.relativeVolume > 0.8) {
+    if (volumeContext.relativeVolume > 0.7) {
       flipToNeutral.push('Volume dries up below 0.7× average, suggesting sellers are losing momentum')
     }
   } else {

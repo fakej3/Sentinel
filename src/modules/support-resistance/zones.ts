@@ -53,7 +53,7 @@ export function createZoneCandidates(
       failedReactions: 0,
       broken: false,
       retested: false,
-      firstDetectedIndex: swing.index,
+      firstDetectedIndex: swing.index + (config.swingLookback ?? 0),
       lastInteractionIndex: swing.index,
       age,
       strength: 0,

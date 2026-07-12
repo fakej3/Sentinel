@@ -94,7 +94,7 @@ export function computeDecision(
   // Reason 4: Volume context
   if (volumeContext.confirmsCurrentMove) {
     reasons.push(`Volume confirms the move (${volumeContext.relativeVolume.toFixed(1)}× average)`)
-  } else if (!volumeContext.confirmsCurrentMove && volumeContext.relativeVolume < 0.8) {
+  } else if (!volumeContext.confirmsCurrentMove && volumeContext.relativeVolume < 0.7) {
     reasons.push(`Low volume (${volumeContext.relativeVolume.toFixed(1)}× average) — conviction is weak`)
   }
 

@@ -1,5 +1,6 @@
 import type { MarketAnalysisResult } from '../../analysis/types'
 import type { ValidationIssue, ValidationConfig } from '../types'
+import { classifyRSI } from '../../analysis/compute/indicators'
 
 function critical(field: string, message: string, expected: string, actual: string): ValidationIssue {
   return { severity: 'critical', category: 'consistency', field, message, expected, actual }
@@ -258,12 +259,7 @@ export function checkConsistency(
 
   const rsiClassification = result.indicatorSummary.rsi.classification
   if (rawRsi !== null && rsiClassification !== 'unavailable') {
-    let expectedClass: string
-    if (rawRsi < 30) expectedClass = 'oversold'
-    else if (rawRsi < 45) expectedClass = 'weak_bearish'
-    else if (rawRsi <= 55) expectedClass = 'neutral'
-    else if (rawRsi <= 70) expectedClass = 'healthy_bullish'
-    else expectedClass = 'overbought'
+    const expectedClass = classifyRSI(rawRsi)
 
     if (rsiClassification !== expectedClass) {
       issues.push(critical(

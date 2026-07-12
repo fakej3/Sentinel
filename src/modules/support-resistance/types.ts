@@ -73,6 +73,13 @@ export interface SupportResistanceConfig {
    * Default: 50
    */
   strengthDecayAge: number
+  /**
+   * Candles to offset firstDetectedIndex forward after a swing point.
+   * Should match the swingLookback from the market-structure config so zones
+   * are not dated before the swing can actually be observed.
+   * Default: 0 (backwards compatible; pipeline passes the market-structure value).
+   */
+  swingLookback?: number
 }
 
 export interface SupportResistanceResult {

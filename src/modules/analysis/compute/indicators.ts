@@ -8,7 +8,7 @@ import type {
   PriceVsBands,
 } from '../types'
 
-function classifyRSI(rsi: number | null): RSIClassification {
+export function classifyRSI(rsi: number | null): RSIClassification {
   if (rsi === null) return 'unavailable'
   if (rsi < 30) return 'oversold'
   if (rsi < 45) return 'weak_bearish'
