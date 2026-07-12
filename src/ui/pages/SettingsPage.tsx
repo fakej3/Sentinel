@@ -43,8 +43,12 @@ export function SettingsPage({ onClearHistory, onClearWatchlist, onClearAll }: S
           </span>
         </div>
         <p className="text-[11px] text-slate-600 mt-2 leading-relaxed">
-          The Sentinel backend runs locally. Start it with{' '}
-          <code className="font-mono bg-surface-600 px-1 rounded text-slate-400">npm run server</code>.
+          Start the full stack with{' '}
+          <code className="font-mono bg-surface-600 px-1 rounded text-slate-400">npm run dev</code>
+          {' '}(API + frontend). API URL:{' '}
+          <code className="font-mono bg-surface-600 px-1 rounded text-slate-400">
+            {import.meta.env.VITE_API_URL ?? 'http://localhost:3000'}
+          </code>
         </p>
       </div>
 

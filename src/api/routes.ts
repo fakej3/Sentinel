@@ -6,10 +6,12 @@ import type { AnalyzeFn, AnalyzeRequest } from './types'
 import type { Timeframe } from '../modules/binance/types'
 import type { Candle, MarketData } from '../modules/binance/types'
 import type { PipelineConfig } from '../modules/pipeline/types'
+import type { PipelineResult } from '../modules/pipeline/types'
 import { analyzeMarket } from '../modules/pipeline/index'
 import { computeConfidence } from '../modules/confidence/index'
 import type { MarketAnalysisResult, EvidenceItem } from '../modules/analysis/types'
 import type { ValidationResult } from '../modules/validation/types'
+import { listHistory, getHistory, addHistory, deleteHistory } from './history-store'
 
 export function createRouter(analyzeFn: AnalyzeFn): Router {
   const router = Router()
@@ -41,6 +43,49 @@ export function createRouter(analyzeFn: AnalyzeFn): Router {
       }
     },
   )
+
+  // ── History ───────────────────────────────────────────────────────────────────
+
+  router.get('/history', (_req: Request, res: Response) => {
+    res.json({ history: listHistory() })
+  })
+
+  router.get('/history/:id', (req: Request, res: Response) => {
+    const entry = getHistory(String(req.params.id))
+    if (!entry) { res.status(404).json({ error: { code: 'not_found', message: 'Analysis not found.' } }); return }
+    res.json(entry)
+  })
+
+  router.post('/history', (req: Request, res: Response) => {
+    const { result, symbol, interval } = req.body as {
+      result: PipelineResult
+      symbol: string
+      interval: string
+    }
+    if (!result || !symbol || !interval) {
+      res.status(400).json({ error: { code: 'bad_request', message: 'result, symbol and interval are required.' } })
+      return
+    }
+    const meta = addHistory(result, symbol, interval)
+    res.status(201).json(meta)
+  })
+
+  router.delete('/history/:id', (req: Request, res: Response) => {
+    const ok = deleteHistory(String(req.params.id))
+    if (!ok) { res.status(404).json({ error: { code: 'not_found', message: 'Analysis not found.' } }); return }
+    res.status(204).end()
+  })
+
+  // ── Backtest (stub) ───────────────────────────────────────────────────────────
+
+  router.post('/backtest', (_req: Request, res: Response) => {
+    res.status(501).json({
+      error: {
+        code: 'not_implemented',
+        message: 'Walk-forward backtest is available via the CLI: npx tsx src/modules/historical-validation/module38/bin.ts',
+      },
+    })
+  })
 
   // ── Debug Endpoints (SENTINEL_DEBUG=true only) ──────────────────────────────
   if (process.env.SENTINEL_DEBUG === 'true') {

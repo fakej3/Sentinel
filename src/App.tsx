@@ -1,4 +1,4 @@
-import { useCallback, lazy, Suspense } from 'react'
+import { useCallback, lazy, Suspense, useState } from 'react'
 import { Header } from './ui/components/layout/Header'
 import { Sidebar } from './ui/components/layout/Sidebar'
 import { BottomNav } from './ui/components/layout/BottomNav'
@@ -6,7 +6,9 @@ import { SkeletonDashboard } from './ui/components/shared/Skeleton'
 import { useAnalyze } from './ui/hooks/useAnalyze'
 import { useLocalStorage } from './ui/hooks/useLocalStorage'
 import { resolveSymbol } from './ui/utils/symbolSearch'
+import { saveAnalysis } from './ui/api'
 import type { AppPage, RecentAnalysis } from './ui/types'
+import type { HistoryEntry, HistoryMeta } from './ui/api'
 
 const DashboardPage = lazy(() => import('./ui/pages/DashboardPage').then(m => ({ default: m.DashboardPage })))
 const ChartPage     = lazy(() => import('./ui/pages/ChartPage').then(m => ({ default: m.ChartPage })))
@@ -27,13 +29,17 @@ export default function App() {
   const [watchlist,        setWatchlist       ] = useLocalStorage<string[]>('sentinel_watchlist', [])
   const [recentAnalyses,   setRecentAnalyses  ] = useLocalStorage<RecentAnalysis[]>('sentinel_recent', [])
 
-  const { data, loading, error, analyze } = useAnalyze()
+  // Track save state for the current analysis
+  const [savedEntry,  setSavedEntry ] = useState<HistoryMeta | null>(null)
+  const [saving,      setSaving     ] = useState(false)
+
+  const { data, loading, stage, error, analyze, loadData } = useAnalyze()
 
   const handleAnalyze = useCallback(async () => {
     const sym = resolveSymbol(symbol)
     if (!sym) return
-    // Update the displayed symbol to the resolved form (e.g. "ETH" → "ETHUSDT")
     if (sym !== symbol.trim().toUpperCase()) setSymbol(sym)
+    setSavedEntry(null)
     const result = await analyze({ symbol: sym, interval })
     if (result) {
       setRecentAnalyses(prev => {
@@ -52,13 +58,29 @@ export default function App() {
     }
   }, [symbol, interval, analyze, setRecentAnalyses])
 
+  const handleSaveAnalysis = useCallback(async () => {
+    if (!data || saving) return
+    setSaving(true)
+    const meta = await saveAnalysis(data, symbol, interval)
+    setSaving(false)
+    if (meta) setSavedEntry(meta)
+  }, [data, saving, symbol, interval])
+
   const handleSelectSymbol = useCallback((sym: string, iv?: string) => {
     setSymbol(sym)
     if (iv) setInterval(iv)
+    setSavedEntry(null)
   }, [setSymbol, setInterval])
 
   const handleAddToWatchlist      = useCallback((sym: string) => setWatchlist(p => p.includes(sym) ? p : [...p, sym]), [setWatchlist])
   const handleRemoveFromWatchlist = useCallback((sym: string) => setWatchlist(p => p.filter(s => s !== sym)), [setWatchlist])
+  const handleLoadEntry = useCallback((entry: HistoryEntry) => {
+    setSymbol(entry.symbol)
+    setInterval(entry.interval)
+    setSavedEntry({ id: entry.id, savedAt: entry.savedAt, symbol: entry.symbol, interval: entry.interval, decision: entry.decision, grade: entry.grade, confidence: entry.confidence, trust: entry.trust, riskLevel: entry.riskLevel, rr: entry.rr, entry: entry.entry, stop: entry.stop, targets: entry.targets, trend: entry.trend, binancePost: entry.binancePost })
+    loadData(entry.result)
+  }, [setSymbol, setInterval, loadData])
+
   const handleClearHistory        = useCallback(() => setRecentAnalyses([]), [setRecentAnalyses])
   const handleClearWatchlist      = useCallback(() => setWatchlist([]), [setWatchlist])
   const handleClearAll            = useCallback(() => { setRecentAnalyses([]); setWatchlist([]) }, [setRecentAnalyses, setWatchlist])
@@ -73,6 +95,7 @@ export default function App() {
         symbol={symbol}
         interval={interval}
         loading={loading}
+        stage={stage}
         onSymbolChange={setSymbol}
         onIntervalChange={setInterval}
         onAnalyze={handleAnalyze}
@@ -96,10 +119,14 @@ export default function App() {
                 symbol={symbol}
                 interval={interval}
                 loading={loading}
+                stage={stage}
                 error={error}
                 data={data}
                 recentAnalyses={recentAnalyses}
+                savedEntry={savedEntry}
+                saving={saving}
                 onAnalyze={handleAnalyze}
+                onSave={handleSaveAnalysis}
                 onSymbolSelect={handleSelectSymbol}
                 onNavigate={setPage}
               />
@@ -115,7 +142,11 @@ export default function App() {
               <AnalysisPage
                 data={data}
                 loading={loading}
+                stage={stage}
+                savedEntry={savedEntry}
+                saving={saving}
                 onAnalyze={handleAnalyze}
+                onSave={handleSaveAnalysis}
                 symbol={symbol}
               />
             )}
@@ -136,6 +167,7 @@ export default function App() {
                 onSelectSymbol={handleSelectSymbol}
                 onClearHistory={handleClearHistory}
                 onNavigate={setPage}
+                onLoadEntry={handleLoadEntry}
               />
             )}
             {page === 'settings' && (

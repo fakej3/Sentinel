@@ -120,3 +120,75 @@ export async function checkHealth(signal?: AbortSignal): Promise<boolean> {
     return false
   }
 }
+
+// ── history ───────────────────────────────────────────────────────────────────
+
+export interface HistoryMeta {
+  id: string
+  savedAt: number
+  symbol: string
+  interval: string
+  decision: string
+  grade: string
+  confidence: number
+  trust: string | null
+  riskLevel: string | null
+  rr: number | null
+  entry: [number, number] | null
+  stop: number | null
+  targets: number[]
+  trend: string
+  binancePost: string
+}
+
+export interface HistoryEntry extends HistoryMeta {
+  result: PipelineResult
+}
+
+export async function fetchHistory(): Promise<HistoryMeta[]> {
+  try {
+    const res = await fetch(`${API_BASE}/history`)
+    if (!res.ok) return []
+    const data = (await res.json()) as { history: HistoryMeta[] }
+    return data.history
+  } catch {
+    return []
+  }
+}
+
+export async function fetchHistoryEntry(id: string): Promise<HistoryEntry | null> {
+  try {
+    const res = await fetch(`${API_BASE}/history/${id}`)
+    if (!res.ok) return null
+    return (await res.json()) as HistoryEntry
+  } catch {
+    return null
+  }
+}
+
+export async function saveAnalysis(
+  result: PipelineResult,
+  symbol: string,
+  interval: string,
+): Promise<HistoryMeta | null> {
+  try {
+    const res = await fetch(`${API_BASE}/history`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ result, symbol, interval }),
+    })
+    if (!res.ok) return null
+    return (await res.json()) as HistoryMeta
+  } catch {
+    return null
+  }
+}
+
+export async function deleteHistoryEntry(id: string): Promise<boolean> {
+  try {
+    const res = await fetch(`${API_BASE}/history/${id}`, { method: 'DELETE' })
+    return res.ok
+  } catch {
+    return false
+  }
+}

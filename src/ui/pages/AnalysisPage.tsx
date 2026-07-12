@@ -1,9 +1,9 @@
 import { lazy, Suspense } from 'react'
-import { Activity } from 'lucide-react'
+import { Activity, Save, Check } from 'lucide-react'
 import { Tabs, TabPanel } from '../components/shared/Tabs'
 import { SkeletonDashboard } from '../components/shared/Skeleton'
 import { useLocalStorage } from '../hooks/useLocalStorage'
-import type { AppTab, PipelineResult } from '../types'
+import type { AppTab, PipelineResult, HistoryMeta } from '../types'
 import type { TabDef } from '../components/shared/Tabs'
 
 const SummaryTab    = lazy(() => import('../components/tabs/SummaryTab').then(m => ({ default: m.SummaryTab })))
@@ -20,11 +20,15 @@ const BenchmarkTab  = lazy(() => import('../components/tabs/BenchmarkTab').then(
 interface AnalysisPageProps {
   data: PipelineResult | null
   loading: boolean
+  stage: string | null
+  savedEntry: HistoryMeta | null
+  saving: boolean
   onAnalyze: () => void
+  onSave: () => void
   symbol: string
 }
 
-export function AnalysisPage({ data, loading, onAnalyze, symbol }: AnalysisPageProps) {
+export function AnalysisPage({ data, loading, onAnalyze, onSave, symbol, savedEntry, saving }: AnalysisPageProps) {
   const [activeTab, setActiveTab] = useLocalStorage<AppTab>('sentinel_analysis_tab', 'summary')
 
   if (loading) return <SkeletonDashboard />
@@ -70,6 +74,33 @@ export function AnalysisPage({ data, loading, onAnalyze, symbol }: AnalysisPageP
 
   return (
     <div className="animate-fade-in">
+      {/* Save action bar */}
+      <div className="flex items-center justify-end gap-2 px-3 py-1.5 border-b border-border-subtle bg-surface-900/50">
+        <button
+          onClick={onSave}
+          disabled={saving || !!savedEntry}
+          className="flex items-center gap-1.5 h-7 px-3 text-[11px] font-medium rounded-md border transition-colors
+                     disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-blue-500
+                     text-slate-400 hover:text-slate-200 border-border-subtle hover:border-slate-500 disabled:opacity-50"
+        >
+          {saving ? (
+            <>
+              <span aria-hidden="true" className="w-3 h-3 border border-slate-500 border-t-slate-300 rounded-full animate-spin" />
+              Saving…
+            </>
+          ) : savedEntry ? (
+            <>
+              <Check size={11} className="text-emerald-400" />
+              <span className="text-emerald-400">Saved</span>
+            </>
+          ) : (
+            <>
+              <Save size={11} />
+              Save analysis
+            </>
+          )}
+        </button>
+      </div>
       <Tabs tabs={tabs} active={activeTab} onChange={tab => setActiveTab(tab as AppTab)} />
       <Suspense fallback={<SkeletonDashboard />}>
         <TabPanel>

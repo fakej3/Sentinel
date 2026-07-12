@@ -1,4 +1,4 @@
-import { Activity, RefreshCw, ArrowRight, Clock, BarChart2, TrendingUp, TrendingDown, Minus } from 'lucide-react'
+import { Activity, RefreshCw, ArrowRight, Clock, BarChart2, TrendingUp, TrendingDown, Minus, Save, Check } from 'lucide-react'
 import { ConfidenceMeter } from '../components/shared/ConfidenceMeter'
 import { TrendBadge } from '../components/shared/Badge'
 import { Card } from '../components/shared/Card'
@@ -6,23 +6,27 @@ import { SkeletonDashboard } from '../components/shared/Skeleton'
 import { formatPrice, formatPercent, formatScore, formatTimeAgo } from '../utils/format'
 import { changeColor, gradeColor } from '../utils/colors'
 import { trendLabel } from '../utils/tradingLanguage'
-import type { PipelineResult, RecentAnalysis, ConfidenceGrade, AppPage } from '../types'
+import type { PipelineResult, RecentAnalysis, ConfidenceGrade, AppPage, HistoryMeta } from '../types'
 
 interface DashboardPageProps {
   symbol: string
   interval: string
   loading: boolean
+  stage: string | null
   error: string | null
   data: PipelineResult | null
   recentAnalyses: RecentAnalysis[]
+  savedEntry: HistoryMeta | null
+  saving: boolean
   onAnalyze: () => void
+  onSave: () => void
   onSymbolSelect: (sym: string, interval?: string) => void
   onNavigate: (page: AppPage) => void
 }
 
 export function DashboardPage({
   symbol, interval, loading, error, data, recentAnalyses,
-  onAnalyze, onSymbolSelect, onNavigate,
+  savedEntry, saving, onAnalyze, onSave, onSymbolSelect, onNavigate,
 }: DashboardPageProps) {
   if (loading) return <SkeletonDashboard />
 
@@ -263,6 +267,24 @@ export function DashboardPage({
         >
           <BarChart2 size={13} />
           Chart
+        </button>
+        <button
+          onClick={onSave}
+          disabled={saving || !!savedEntry}
+          title={savedEntry ? 'Analysis saved' : 'Save this analysis'}
+          className="h-9 px-3.5 flex items-center justify-center gap-1.5 text-xs font-medium
+                     border rounded-lg transition-colors disabled:cursor-not-allowed
+                     focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-blue-500
+                     text-slate-400 hover:text-slate-200 border-border-subtle hover:border-slate-500
+                     disabled:opacity-50"
+        >
+          {saving ? (
+            <span aria-hidden="true" className="w-3.5 h-3.5 border border-slate-500 border-t-slate-300 rounded-full animate-spin" />
+          ) : savedEntry ? (
+            <Check size={13} className="text-emerald-400" />
+          ) : (
+            <Save size={13} />
+          )}
         </button>
       </div>
 

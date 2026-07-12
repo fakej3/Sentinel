@@ -12,6 +12,7 @@ interface HeaderProps {
   symbol: string
   interval: string
   loading: boolean
+  stage: string | null
   onSymbolChange: (s: string) => void
   onIntervalChange: (i: string) => void
   onAnalyze: () => void
@@ -50,6 +51,7 @@ export function Header({
   symbol,
   interval,
   loading,
+  stage,
   onSymbolChange,
   onIntervalChange,
   onAnalyze,
@@ -239,6 +241,14 @@ export function Header({
       {/* Separator */}
       <div className="w-px h-4 bg-border-subtle flex-shrink-0 mx-0.5" />
 
+      {/* Pipeline stage label shown while loading */}
+      {loading && stage && (
+        <span className="hidden md:flex items-center gap-1.5 text-[10px] text-slate-400 font-mono max-w-[180px] truncate flex-shrink-0">
+          <span aria-hidden="true" className="w-2 h-2 border border-slate-500 border-t-blue-400 rounded-full animate-spin flex-shrink-0" />
+          {stage}
+        </span>
+      )}
+
       {/* Analyze button */}
       <button
         onClick={onAnalyze}
@@ -251,7 +261,7 @@ export function Header({
         {loading ? (
           <>
             <span aria-hidden="true" className="w-3 h-3 border border-white/30 border-t-white rounded-full animate-spin" />
-            Analyzing…
+            <span className="hidden sm:inline">Analyzing…</span>
           </>
         ) : (
           'Analyze'
