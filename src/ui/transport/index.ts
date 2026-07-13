@@ -6,7 +6,7 @@ import type { AnalysisTransport } from './types'
 
 // Tauri v2 injects __TAURI_INTERNALS__ into the webview before any JS runs.
 // Checking typeof window first makes this safe in Node (test) environments too.
-function isTauriEnv(): boolean {
+export function isTauriEnv(): boolean {
   return typeof window !== 'undefined' && '__TAURI_INTERNALS__' in window
 }
 
