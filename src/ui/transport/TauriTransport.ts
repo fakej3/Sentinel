@@ -3,6 +3,7 @@ import { SentinelApiError } from './types'
 import type { AnalysisTransport, AnalyzeOptions, HistoryMeta, HistoryEntry } from './types'
 import type { PipelineResult } from '../types'
 import type { Timeframe } from '../../modules/binance/types'
+import * as historyStore from './TauriHistoryStore'
 
 // ── Error mapping ─────────────────────────────────────────────────────────────
 
@@ -88,10 +89,21 @@ export class TauriTransport implements AnalysisTransport {
     return true
   }
 
-  // ── History — implemented in Module 4 ────────────────────────────────────────
+  // ── History — AppData JSON store via Tauri FS plugin ─────────────────────────
 
-  async listHistory(): Promise<HistoryMeta[]>                                             { return [] }
-  async getHistory(_id: string): Promise<HistoryEntry | null>                            { return null }
-  async saveHistory(_r: PipelineResult, _s: string, _i: string): Promise<HistoryMeta | null> { return null }
-  async deleteHistory(_id: string): Promise<boolean>                                     { return false }
+  async listHistory(): Promise<HistoryMeta[]> {
+    return historyStore.listHistory()
+  }
+
+  async getHistory(id: string): Promise<HistoryEntry | null> {
+    return historyStore.getHistory(id)
+  }
+
+  async saveHistory(result: PipelineResult, symbol: string, interval: string): Promise<HistoryMeta | null> {
+    return historyStore.addHistory(result, symbol, interval)
+  }
+
+  async deleteHistory(id: string): Promise<boolean> {
+    return historyStore.deleteHistory(id)
+  }
 }
