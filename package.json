@@ -19,6 +19,7 @@
   "dependencies": {
     "@tauri-apps/api": "^2.11.1",
     "@tauri-apps/plugin-fs": "^2.5.1",
+    "@tauri-apps/plugin-window-state": "^2.4.1",
     "clsx": "^2.1.1",
     "express": "^5.2.1",
     "lucide-react": "^1.23.0",

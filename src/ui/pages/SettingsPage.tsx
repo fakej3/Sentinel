@@ -16,7 +16,7 @@ export function SettingsPage({ onClearHistory, onClearWatchlist, onClearAll }: S
   const apiStatus = useApiStatus()
 
   return (
-    <div className="p-4 pb-20 lg:pb-4 space-y-4 animate-fade-in max-w-xl">
+    <div className="p-4 pb-20 md:pb-4 space-y-4 animate-fade-in max-w-xl">
       <div className="flex items-center gap-2">
         <Settings size={14} className="text-slate-500" />
         <h1 className="text-sm font-semibold text-slate-300">Settings</h1>
@@ -107,7 +107,10 @@ export function SettingsPage({ onClearHistory, onClearWatchlist, onClearAll }: S
 
       {/* About */}
       <div className="card p-4">
-        <p className="text-xs font-semibold text-slate-300 mb-2">About Sentinel</p>
+        <div className="flex items-center justify-between mb-2">
+          <p className="text-xs font-semibold text-slate-300">About Sentinel</p>
+          <span className="text-[10px] text-slate-600 font-mono">v{__APP_VERSION__}</span>
+        </div>
         <p className="text-[11px] text-slate-600 leading-relaxed">
           AI-powered crypto analysis platform. Runs a multi-module analysis engine locally,
           providing trend analysis, technical indicators, market structure, volume analysis,

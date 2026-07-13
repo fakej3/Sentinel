@@ -26,7 +26,7 @@ interface BottomNavProps {
 export function BottomNav({ activePage, onNavigate, hasData }: BottomNavProps) {
   return (
     <nav
-      className="lg:hidden fixed bottom-0 inset-x-0 z-30 h-14 bg-surface-900 border-t border-border-subtle"
+      className="md:hidden fixed bottom-0 inset-x-0 z-30 h-14 bg-surface-900 border-t border-border-subtle"
       aria-label="Mobile navigation"
     >
       <div className="flex items-center justify-around h-full px-2">

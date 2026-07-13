@@ -1,4 +1,4 @@
-import { useCallback, lazy, Suspense, useState, useRef } from 'react'
+import { useCallback, lazy, Suspense, useState, useRef, useEffect } from 'react'
 import { Header } from './ui/components/layout/Header'
 import { Sidebar } from './ui/components/layout/Sidebar'
 import { BottomNav } from './ui/components/layout/BottomNav'
@@ -6,8 +6,10 @@ import { SkeletonDashboard } from './ui/components/shared/Skeleton'
 import { useAnalyze } from './ui/hooks/useAnalyze'
 import { useLocalStorage } from './ui/hooks/useLocalStorage'
 import { resolveSymbol } from './ui/utils/symbolSearch'
-import { getTransport } from './ui/transport'
+import { getTransport, isTauriEnv } from './ui/transport'
 import type { AppPage, RecentAnalysis } from './ui/types'
+
+const isDesktop = isTauriEnv()
 import type { HistoryEntry, HistoryMeta } from './ui/transport'
 
 const DashboardPage = lazy(() => import('./ui/pages/DashboardPage').then(m => ({ default: m.DashboardPage })))
@@ -33,7 +35,7 @@ export default function App() {
   const [saving,      setSaving     ] = useState(false)
   const savingRef = useRef(false)
 
-  const { data, loading, stage, error, analyze, loadData } = useAnalyze()
+  const { data, loading, stage, error, analyze, cancel, loadData } = useAnalyze()
 
   const handleAnalyze = useCallback(async (symOverride?: string) => {
     const sym = resolveSymbol(symOverride ?? symbol)
@@ -87,6 +89,35 @@ export default function App() {
   const handleClearHistory        = useCallback(() => setRecentAnalyses([]), [setRecentAnalyses])
   const handleClearWatchlist      = useCallback(() => setWatchlist([]), [setWatchlist])
   const handleClearAll            = useCallback(() => { setRecentAnalyses([]); setWatchlist([]) }, [setRecentAnalyses, setWatchlist])
+
+  // Global keyboard shortcuts
+  useEffect(() => {
+    function onKeyDown(e: KeyboardEvent) {
+      const inInput = (e.target as Element)?.tagName === 'INPUT' || (e.target as Element)?.tagName === 'TEXTAREA'
+      if ((e.ctrlKey || e.metaKey) && e.key === 'r' && !e.shiftKey && !inInput) {
+        e.preventDefault()
+        handleAnalyze()
+      }
+      if (e.key === 'F5' && !inInput) {
+        e.preventDefault()
+        handleAnalyze()
+      }
+      if (e.key === 'Escape' && loading) {
+        cancel()
+      }
+    }
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, [handleAnalyze, loading, cancel])
+
+  // Window title — update to reflect current symbol in Tauri
+  useEffect(() => {
+    if (!isDesktop) return
+    import('@tauri-apps/api/window').then(({ getCurrentWindow }) => {
+      const title = symbol.trim() ? `Sentinel — ${symbol.trim()} · ${interval}` : 'Sentinel'
+      getCurrentWindow().setTitle(title).catch(() => {})
+    }).catch(() => {})
+  }, [symbol, interval])
 
   const isChartPage = page === 'chart'
 

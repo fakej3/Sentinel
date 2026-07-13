@@ -41,7 +41,7 @@ export function WatchlistPage({
   }
 
   return (
-    <div className="p-4 pb-20 lg:pb-4 space-y-4 animate-fade-in">
+    <div className="p-4 pb-20 md:pb-4 space-y-4 animate-fade-in">
       <div className="flex items-center gap-2">
         <Star size={14} className="text-slate-500 flex-shrink-0" />
         <h1 className="text-sm font-semibold text-slate-300">Watchlist</h1>

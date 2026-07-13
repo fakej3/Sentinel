@@ -1,10 +1,13 @@
 import { useState, useRef, useCallback, useEffect } from 'react'
 import { clsx } from 'clsx'
-import { PanelLeftClose, PanelLeftOpen, TrendingUp, Wifi, WifiOff } from 'lucide-react'
+import { PanelLeftClose, PanelLeftOpen, TrendingUp, Wifi, WifiOff, Cpu } from 'lucide-react'
 import { QUICK_TIMEFRAMES, EXTRA_TIMEFRAMES } from '../../utils/timeframes'
 import { useApiStatus } from '../../hooks/useApiStatus'
+import { isTauriEnv } from '../../transport'
 import { searchSymbols } from '../../utils/symbolSearch'
 import type { SymbolSuggestion } from '../../utils/symbolSearch'
+
+const isDesktop = isTauriEnv()
 
 interface HeaderProps {
   sidebarCollapsed: boolean
@@ -20,6 +23,19 @@ interface HeaderProps {
 
 function ApiDot() {
   const status = useApiStatus()
+
+  if (isDesktop) {
+    return (
+      <div
+        className="flex items-center gap-1 text-[10px] font-medium flex-shrink-0 text-emerald-400"
+        title="Analysis engine running locally"
+      >
+        <Cpu size={11} />
+        <span className="hidden xl:inline">Local</span>
+      </div>
+    )
+  }
+
   return (
     <div
       className={clsx(
@@ -129,7 +145,7 @@ export function Header({
       {/* Sidebar toggle */}
       <button
         onClick={onToggleSidebar}
-        className="hidden lg:flex w-8 h-8 items-center justify-center rounded-md text-slate-500 hover:text-slate-300
+        className="hidden md:flex w-8 h-8 items-center justify-center rounded-md text-slate-500 hover:text-slate-300
                    hover:bg-surface-700 transition-colors duration-150
                    focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-1 focus-visible:ring-offset-surface-900"
         aria-label={sidebarCollapsed ? 'Open sidebar' : 'Close sidebar'}

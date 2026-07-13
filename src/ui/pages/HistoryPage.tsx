@@ -75,7 +75,7 @@ export function HistoryPage({
   })
 
   return (
-    <div className="p-4 pb-20 lg:pb-4 space-y-4 animate-fade-in">
+    <div className="p-4 pb-20 md:pb-4 space-y-4 animate-fade-in">
 
       {/* Header */}
       <div className="flex items-center justify-between">

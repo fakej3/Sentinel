@@ -48,7 +48,7 @@ export function DashboardPage({
   const nearestResistance = supportResistance.nearestResistance
 
   return (
-    <div className="p-4 space-y-4 pb-20 lg:pb-4 animate-fade-in max-w-5xl mx-auto">
+    <div className="p-4 space-y-4 pb-20 md:pb-4 animate-fade-in max-w-5xl mx-auto">
 
       {/* Hero: AI Confidence + Price */}
       <div className="flex flex-col sm:flex-row gap-3">
@@ -342,7 +342,7 @@ function EmptyDashboard({ symbol, loading, error, onAnalyze, recentAnalyses, onS
                    transition-colors active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed
                    focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
       >
-        Analyze {symbol || '…'}
+        {error ? `Retry ${symbol || '…'}` : `Analyze ${symbol || '…'}`}
       </button>
 
       {recentAnalyses.length > 0 && (

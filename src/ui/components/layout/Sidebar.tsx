@@ -27,7 +27,7 @@ export function Sidebar({ collapsed, activePage, onNavigate }: SidebarProps) {
   return (
     <aside
       className={clsx(
-        'hidden lg:flex flex-col flex-shrink-0',
+        'hidden md:flex flex-col flex-shrink-0',
         'border-r border-border-subtle bg-surface-900 overflow-hidden',
         'transition-[width] duration-200 ease-in-out',
         collapsed ? 'w-14' : 'w-[220px]',
