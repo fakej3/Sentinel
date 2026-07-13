@@ -1,69 +1,97 @@
-import { invoke } from '@tauri-apps/api/core'
-import { HttpTransport } from './HttpTransport'
+import { analyzeMarket, PipelineError } from '../../modules/pipeline'
+import { SentinelApiError } from './types'
 import type { AnalysisTransport, AnalyzeOptions, HistoryMeta, HistoryEntry } from './types'
 import type { PipelineResult } from '../types'
+import type { Timeframe } from '../../modules/binance/types'
+
+// ── Error mapping ─────────────────────────────────────────────────────────────
+
+function friendlyForCode(code: string, fallback: string): string {
+  switch (code) {
+    case 'fetch_failure':        return 'Could not reach the data source. The upstream market data API may be unavailable.'
+    case 'insufficient_candles': return 'Not enough candle data for this symbol and timeframe.'
+    case 'configuration_error':  return 'Invalid request configuration.'
+    case 'validation_failure':   return 'The analysis output failed internal validation.'
+    default:                     return fallback
+  }
+}
 
 // ── TauriTransport ────────────────────────────────────────────────────────────
 
 /**
- * Tauri desktop implementation of AnalysisTransport.
+ * Desktop implementation of AnalysisTransport.
  *
- * On first use it calls the `get_engine_url` Rust command (implemented in
- * Desktop Module 3) to discover the sidecar's HTTP base URL, then delegates
- * every method to an HttpTransport pointed at that URL.
+ * Runs the full analysis pipeline directly in the Tauri webview renderer —
+ * no sidecar, no Express, no HTTP round-trip. All pipeline modules use only
+ * Web APIs (fetch, AbortController, URLSearchParams) and are browser-safe.
  *
- * Until Module 3 is in place, the invoke call throws and the fallback URL
- * (localhost:3000) is used instead — keeping `tauri dev` functional when
- * `npm run dev:api` is running alongside `npm run tauri:dev`.
+ * Gemini API key is injected at call time from localStorage (Module 5 wires
+ * the UI for this). History is implemented in Module 4.
  */
 export class TauriTransport implements AnalysisTransport {
-  private http: HttpTransport | null = null
-
-  private async getHttp(): Promise<HttpTransport> {
-    if (!this.http) {
-      let baseUrl = 'http://localhost:3000'
-      try {
-        // Module 3 implements this Rust command.
-        // Until then, invoke throws and we use the fallback URL above.
-        baseUrl = await invoke<string>('get_engine_url')
-      } catch {
-        // get_engine_url not yet available — fall back to dev default
-      }
-      this.http = new HttpTransport(baseUrl)
-    }
-    return this.http
-  }
-
   async analyze(
     symbol: string,
     interval: string,
     options?: AnalyzeOptions,
     signal?: AbortSignal,
   ): Promise<PipelineResult> {
-    return (await this.getHttp()).analyze(symbol, interval, options, signal)
+    if (signal?.aborted) {
+      throw new SentinelApiError({ kind: 'abort', friendly: 'Request cancelled.' })
+    }
+
+    // Gemini key from localStorage — set by Settings UI (Module 5).
+    // Empty string → Gemini disabled; pipeline works without it.
+    const geminiKey = typeof localStorage !== 'undefined'
+      ? (localStorage.getItem('sentinel_gemini_key') ?? '')
+      : ''
+
+    try {
+      const result = await analyzeMarket({
+        symbol:      symbol.trim().toUpperCase(),
+        interval:    interval as Timeframe,
+        candleLimit: options?.candleLimit,
+        ...(geminiKey && {
+          config: { ai: { provider: 'gemini' as const, apiKey: geminiKey } },
+        }),
+      })
+
+      if (signal?.aborted) {
+        throw new SentinelApiError({ kind: 'abort', friendly: 'Request cancelled.' })
+      }
+
+      return result
+    } catch (err) {
+      if (err instanceof SentinelApiError) throw err
+
+      if (err instanceof PipelineError) {
+        throw new SentinelApiError({
+          kind:     'network',
+          friendly: friendlyForCode(err.code, err.message),
+          detail:   err.message,
+          code:     err.code,
+        })
+      }
+
+      const msg = err instanceof Error ? err.message : String(err)
+      throw new SentinelApiError({
+        kind:     'network',
+        friendly: msg.toLowerCase().includes('timeout') || msg.toLowerCase().includes('timed out')
+          ? 'Analysis timed out fetching market data.'
+          : 'Analysis failed. Check your internet connection.',
+        detail: msg,
+      })
+    }
   }
 
-  async health(signal?: AbortSignal): Promise<boolean> {
-    return (await this.getHttp()).health(signal)
+  // Pipeline runs locally — always healthy.
+  async health(): Promise<boolean> {
+    return true
   }
 
-  async listHistory(): Promise<HistoryMeta[]> {
-    return (await this.getHttp()).listHistory()
-  }
+  // ── History — implemented in Module 4 ────────────────────────────────────────
 
-  async getHistory(id: string): Promise<HistoryEntry | null> {
-    return (await this.getHttp()).getHistory(id)
-  }
-
-  async saveHistory(
-    result: PipelineResult,
-    symbol: string,
-    interval: string,
-  ): Promise<HistoryMeta | null> {
-    return (await this.getHttp()).saveHistory(result, symbol, interval)
-  }
-
-  async deleteHistory(id: string): Promise<boolean> {
-    return (await this.getHttp()).deleteHistory(id)
-  }
+  async listHistory(): Promise<HistoryMeta[]>                                             { return [] }
+  async getHistory(_id: string): Promise<HistoryEntry | null>                            { return null }
+  async saveHistory(_r: PipelineResult, _s: string, _i: string): Promise<HistoryMeta | null> { return null }
+  async deleteHistory(_id: string): Promise<boolean>                                     { return false }
 }
