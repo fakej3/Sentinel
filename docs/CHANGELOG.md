@@ -8,7 +8,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
-## [Unreleased]
+## [1.0.0-rc.1] — 2026-07-14
 
 ### Added
 - Tauri v2 desktop application packaging (.deb and .rpm on Linux; .dmg on macOS; .msi on Windows)
@@ -16,7 +16,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Gemini API key management in desktop Settings (stored locally via localStorage)
 - Analysis history stored in `$APPDATA/sentinel/history.json` (desktop) or `data/history.json` (web server)
 - **Reset All Data** now clears every Sentinel setting, the Gemini key, and all saved history, then reloads to first-launch state
-- App version number displayed in Settings → About (`v0.1.0`)
+- App version number displayed in Settings → About (`v1.0.0-rc.1`)
 
 ### Changed
 - Desktop transport runs the full analysis pipeline directly in the Tauri webview — no backend server required for desktop builds

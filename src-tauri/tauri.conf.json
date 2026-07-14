@@ -1,8 +1,8 @@
 {
   "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
   "productName": "Sentinel",
-  "version": "0.1.0",
-  "identifier": "com.sentinel.desktop",
+  "version": "1.0.0-rc.1",
+  "identifier": "io.github.fakej3.sentinel",
   "build": {
     "frontendDist": "../dist",
     "devUrl": "http://localhost:5173",
