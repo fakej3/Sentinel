@@ -9,10 +9,8 @@ interface BenchmarkTabProps {
 }
 
 // ── Confidence Debug Panel ────────────────────────────────────────────────────
-// Shows the raw PipelineResult.confidence object exactly as received from the
-// API — no reconstruction, no recomputation. Every value displayed is a direct
-// property read from the object the component received as a prop.
-// TEMPORARY — Module 28 Production Investigation.
+// Shows the raw PipelineResult.confidence object exactly as received —
+// no reconstruction, no recomputation. Every value is a direct property read.
 
 function ConfidenceDebugPanel({ result }: { result: PipelineResult }) {
   const { confidence, analysis, metadata } = result
@@ -163,9 +161,6 @@ function ConfidenceDebugPanel({ result }: { result: PipelineResult }) {
         </div>
       </div>
 
-      <p className="text-[9px] text-slate-700 text-center leading-relaxed">
-        TEMPORARY DEBUG PANEL — Module 28 Production Investigation
-      </p>
     </div>
   )
 }

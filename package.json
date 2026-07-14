@@ -8,6 +8,7 @@
     "dev:api": "tsx watch src/server.ts",
     "dev:frontend": "vite",
     "start": "NODE_ENV=production tsx src/server.ts",
+    "start:api": "NODE_ENV=production tsx src/server.ts",
     "build": "tsc -b && vite build",
     "preview": "vite preview",
     "typecheck": "tsc -b tsconfig.app.json --noEmit",

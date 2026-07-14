@@ -11,7 +11,7 @@ The system separates data collection, mathematical analysis, reasoning, validati
 ## Analysis Pipeline
 
 > For the stage-by-stage breakdown with exact file paths, inputs, and outputs
-> see [Pipeline.md](Pipeline.md).
+> see [PIPELINE.md](PIPELINE.md).
 
 ```
 Official Binance API
@@ -635,53 +635,61 @@ change when these features are added. New fields are additive only.
 
 ## CORS and API Access
 
-Direct browser calls to the Binance REST API are blocked by CORS policy on
-`api.binance.com`. The canonical solution for this project is a **thin server-side
-proxy** that forwards requests from the browser to Binance and relays the response.
+Direct browser calls to the Binance REST API are blocked by CORS policy on `api.binance.com`.
 
-### Required proxy behaviour
+**Desktop app (Tauri):** The webview renderer calls Binance directly — CORS does not apply in the Tauri webview context. The CSP in `src-tauri/tauri.conf.json` explicitly allows `https://api.binance.com` and `https://fapi.binance.com`.
 
-| Concern | Rule |
-|---------|------|
-| Forwarding | Pass all query parameters to Binance unchanged |
-| Headers | Strip `Origin` / `Referer`; do NOT forward user cookies or auth headers |
-| Caching | Cache candle responses in memory for 30 s to avoid rate-limit hits |
-| Rate limits | Respect Binance weight limits (1200 weight/min on spot) |
-| Error relay | Forward Binance HTTP status codes to the client |
-
-The proxy is **out of scope for Modules 1–8** (pure computation). It will be
-introduced when the PWA shell (Module 9+) is built. During development, use
-`vite.config.ts` `server.proxy` to rewrite `/api/binance/**` to `api.binance.com`.
-
-### Development workaround
-
-Add the following to `vite.config.ts` during local development:
-
-```ts
-server: {
-  proxy: {
-    '/api/binance': {
-      target: 'https://api.binance.com',
-      changeOrigin: true,
-      rewrite: path => path.replace(/^\/api\/binance/, ''),
-    },
-  },
-},
-```
-
-This must **never** be shipped to production. The production app requires the
-server-side proxy described above.
+**Web / server mode:** The Express API server (`src/server.ts`) runs on port 3000 and acts as the proxy. The React frontend calls the local server, which forwards requests to Binance server-side. CORS headers are added by `src/server.ts` to allow the Vite dev server on port 5173 to reach the API on port 3000.
 
 ---
 
-## Platform Requirements
+## Deployment Modes
 
-- Progressive Web App (PWA)
-- Single codebase for all platforms
-- Installable on Android, iOS, Windows, macOS
-- Fully responsive (mobile, tablet, desktop)
-- Works offline for previously loaded data (cached)
-- Requires a thin server-side proxy for Binance API access (see CORS section above)
+### Desktop (Tauri v2)
+
+The analysis pipeline runs entirely inside the Tauri webview renderer — no backend server is required. Binance data is fetched directly from the webview using the Web `fetch` API (CORS-free in this context).
+
+```
+Tauri webview
+  └─ React UI
+       └─ TauriTransport → analyzeMarket() [runs in-process]
+            └─ Binance REST API (direct fetch, no proxy)
+```
+
+History is stored in `$APPDATA/sentinel/history.json` via `tauri-plugin-fs`.
+Window state (size, position) is persisted via `tauri-plugin-window-state`.
+
+Key files:
+- `src-tauri/src/lib.rs` — Tauri app setup, plugin registration
+- `src-tauri/tauri.conf.json` — window config, CSP, bundle identifiers
+- `src/ui/transport/TauriTransport.ts` — desktop transport implementation
+- `src/ui/transport/TauriHistoryStore.ts` — AppData file-based history store
+
+### Web Server
+
+The Express API server hosts the analysis engine behind a REST API. The React frontend communicates with it over HTTP.
+
+```
+Browser
+  └─ React UI
+       └─ HttpTransport → POST http://localhost:3000/analyze
+            └─ Express API → analyzeMarket() [runs in-process on server]
+                  └─ Binance REST API (server-side fetch, no CORS issue)
+```
+
+Key files:
+- `src/server.ts` — Express app entry point (port 3000)
+- `src/api/routes.ts` — route definitions
+- `src/api/history-store.ts` — file-based history (`data/history.json`)
+- `src/ui/transport/HttpTransport.ts` — web transport implementation
+
+### CLI
+
+```
+Terminal
+  └─ src/cli/index.ts → analyzeMarket() [runs in-process]
+        └─ Binance REST API (direct fetch from Node.js, no CORS)
+```
 
 ---
 

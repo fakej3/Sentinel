@@ -1,81 +1,121 @@
 # Local Development
 
-This project has two independent processes that need to run at the same time
-during development:
-
-| Process | Command | Port | Purpose |
-|---|---|---|---|
-| API server | `npm run start:api` | 3000 | Analysis engine + REST API |
-| Frontend | `npm run dev` | 5173 | React dev server (Vite) |
+Sentinel has three modes: **desktop** (Tauri), **web server** (Express + React), and **CLI**.
+This document covers all three.
 
 ---
 
-## Quick Start
+## Prerequisites
+
+- **Node.js 20+** and npm
+- **Rust toolchain** (for desktop builds only) — install via [rustup.rs](https://rustup.rs)
+- **Linux desktop deps** (for desktop builds on Linux):
+  ```bash
+  sudo apt-get install libgtk-3-dev libwebkit2gtk-4.1-dev libayatana-appindicator3-dev librsvg2-dev
+  ```
+
+---
+
+## Desktop App (Tauri)
+
+The desktop app runs the full analysis pipeline in the webview renderer — no API server needed.
 
 ```bash
-# Terminal 1 — API server
-npm run start:api
+npm install
+npm run tauri:dev        # launch with hot reload
+npm run tauri:build      # build installer (.deb / .rpm on Linux)
+```
 
-# Terminal 2 — frontend dev server
+The `tauri:dev` command starts a Vite dev server and wraps it with Tauri.
+Changes to `src/` hot-reload automatically; changes to `src-tauri/` require a full restart.
+
+### Gemini AI Key (desktop)
+
+Open the app → Settings → Gemini AI Key. Enter your key and click Save.
+The key is stored in browser localStorage inside the Tauri webview.
+It is never sent anywhere except directly to the Gemini API.
+
+---
+
+## Web Server Mode
+
+Two processes must run simultaneously during development:
+
+| Process | Command | Port | Purpose |
+|---------|---------|------|---------|
+| API server | `npm run dev:api` | 3000 | Analysis engine + REST API |
+| Frontend | `npm run dev:frontend` | 5173 | React UI (Vite dev server) |
+
+The single convenience command starts both:
+
+```bash
+npm install
 npm run dev
 ```
 
 Open `http://localhost:5173` in your browser.
 
----
-
-## Environment Variables
+### Environment Variables
 
 Copy `.env.example` to `.env.local` and adjust as needed.
-`.env.local` is gitignored and never committed.
 
 ```bash
 cp .env.example .env.local
 ```
 
 | Variable | Default | Description |
-|---|---|---|
-| `VITE_API_URL` | `http://localhost:3000` | Base URL of the API server. Used by the frontend at runtime. |
+|----------|---------|-------------|
+| `VITE_API_URL` | `http://localhost:3000` | API server base URL used by the frontend |
+| `PORT` | `3000` | Port the API server listens on |
 
-The Vite dev server also has a built-in proxy at `/api` that forwards requests
-to `http://localhost:3000`. If `VITE_API_URL` is not set in `.env.local`, the
-frontend defaults to `http://localhost:3000` and communicates with the API
-directly (CORS headers are added by `src/server.ts`).
+To run the API on a different port:
+
+```bash
+PORT=3001 npm run dev:api
+# Then set VITE_API_URL=http://localhost:3001 in .env.local
+```
+
+### Production Server
+
+```bash
+npm run build          # build the frontend into dist/
+npm run start:api      # start the API server (port 3000)
+```
+
+The production API server (`npm run start:api` or `npm start`) does not serve the
+frontend. Host the `dist/` folder separately (Nginx, GitHub Pages, etc.) and point
+`VITE_API_URL` at the API server.
+
+### Gemini AI Key (server mode)
+
+Set `GEMINI_API_KEY` in `.env.local`. The server reads it at startup and uses it for
+AI-enhanced analysis. If unset, the deterministic writer runs without AI commentary.
 
 ---
 
-## Ports
-
-- **3000** — Sentinel API (`npm run start:api`)
-- **5173** — Vite dev server (`npm run dev`)
-
-If port 3000 is taken, override it with the `PORT` environment variable:
+## CLI
 
 ```bash
-PORT=3001 npm run start:api
-```
-
-Then update `.env.local` to match:
-
-```
-VITE_API_URL=http://localhost:3001
+npm install
+npx tsx src/cli/index.ts analyze BTCUSDT 1h
+npx tsx src/cli/index.ts analyze ETHUSDT 4h --template json
+npx tsx src/cli/index.ts analyze SOLUSDT 15m --output report.txt
 ```
 
 ---
 
 ## API Endpoints
 
-All endpoints are served relative to the API base URL:
+All endpoints are served on `http://localhost:3000` (web server mode):
 
 | Method | Path | Description |
-|---|---|---|
-| `GET` | `/health` | Health check — returns `{ status: "ok", version: "..." }` |
+|--------|------|-------------|
+| `GET` | `/health` | Returns `{ status: "ok", version: "..." }` |
 | `GET` | `/version` | Current engine version |
 | `POST` | `/analyze` | Run market analysis |
 
-### POST /analyze
-
 ```json
+POST /analyze
 {
   "symbol": "BTCUSDT",
   "interval": "1h",
@@ -83,47 +123,28 @@ All endpoints are served relative to the API base URL:
 }
 ```
 
-Response: `PipelineResult` (see `src/modules/pipeline/types.ts`)
-
----
-
-## API Status Indicator
-
-The frontend shows a small dot in the top-right corner:
-
-- **Green / API Connected** — `/health` returned 200
-- **Red / Offline** — `/health` failed or timed out
-- **Pulsing / Checking…** — initial check in progress
-
-The indicator polls every 30 seconds automatically.
+Response: `PipelineResult` — see `src/modules/pipeline/types.ts`.
 
 ---
 
 ## Running Tests
 
 ```bash
-npm test          # run all tests + typecheck
-npm run test:watch  # interactive mode
+npm test              # all tests + typecheck
+npm run test:watch    # interactive watch mode
+npm run typecheck     # TypeScript type-check only
 ```
 
-The test suite covers the API server (integration), the UI API client
-(unit, with mocked fetch), and all analysis engine modules.
+The test suite covers all 10 analysis engine modules, the REST API, and the UI transport layer.
 
 ---
 
-## Project Structure
+## API Status Indicator
 
-```
-src/
-  api/         # Express API server (Module 12) — do not modify
-  cli/         # CLI tool (Module 13) — do not modify
-  modules/     # Analysis engine (Modules 1–11) — do not modify
-  ui/          # React frontend (Module 14+)
-    api.ts           # Centralized API client
-    hooks/           # React hooks (useAnalyze, useApiStatus, useLocalStorage)
-    components/      # UI components
-    utils/           # Formatting and color helpers
-    types.ts         # Re-exported engine types + UI-specific types
-  server.ts    # API server entry point (starts on port 3000)
-  main.tsx     # React app entry point
-```
+The web frontend shows a small dot in the top-right corner:
+
+- Green — API `/health` returned 200
+- Red — API unreachable or timed out
+- Pulsing — initial check in progress
+
+In desktop mode, this is replaced by "Engine running locally" (always green).
