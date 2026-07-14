@@ -490,9 +490,8 @@ product.
 **Risk level:** N/A (planned future work, not a tradeoff)
 
 **Planned resolution:**
-Module 9 will use the Claude API (model: claude-sonnet-4-6 or equivalent) with a
-structured prompt format, strict evidence injection, and output validation through
-Module 7.
+The AI writing stage uses a Gemini API call with a structured prompt format,
+strict evidence injection, and output validation.
 
 **Target:** After Module 8 is complete (target: v1.5.0).
 

@@ -91,11 +91,11 @@ Price closes above the most recent confirmed swing high (in a bullish sequence) 
 
 BOS requires a **candle close** — not just a wick breach.
 
-### Change of Character (CHOCH)
+### Change of Character (CHoCH)
 In an uptrend: price closes below the most recent confirmed swing low.
 In a downtrend: price closes above the most recent confirmed swing high.
 
-CHOCH signals a potential trend reversal. It does not confirm one.
+CHoCH signals a potential trend reversal. It does not confirm one.
 
 ### Consolidation
 No new HH or LL for at least 5 consecutive swing points within a price range of ≤ 3% from high to low.
@@ -1011,7 +1011,7 @@ All findings are `category: 'structural'`.
 | `choch.detected` vs `choch.events` | critical | `choch.detected === (choch.events.length > 0)` |
 | `choch.last` consistency | critical | Same rules as `bos.last` |
 | BOS events chronological order | critical | `bos.events[i].index < bos.events[i+1].index` for all i |
-| CHOCH events chronological order | critical | Same rule for `choch.events` |
+| CHoCH events chronological order | critical | Same rule for `choch.events` |
 | `events` count | critical | `events.length === bos.events.length + choch.events.length` |
 | `events` chronological order | critical | `events[i].index < events[i+1].index` for all i |
 
@@ -1107,7 +1107,7 @@ Every report must end with: **"This is not financial advice."**
 | `maxReasonsDisplayed` | 3 | Max confidence reasons shown |
 | `maxRiskFactors` | 3 | Max risk factors in risk section |
 
-*Last updated: Module 9 — AI Writing Engine (v0.10.4)*
+*Last updated: RC1*
 
 ---
 

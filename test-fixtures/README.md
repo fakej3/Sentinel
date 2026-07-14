@@ -1,6 +1,6 @@
 # Sentinel — Test Fixtures
 
-Benchmark datasets and expected output files for Module 11 (Historical Replay & Benchmark Engine).
+Benchmark datasets and expected output files for the Historical Replay & Benchmark Engine.
 
 ---
 

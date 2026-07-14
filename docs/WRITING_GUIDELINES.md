@@ -227,5 +227,4 @@ Incorrect AI output (rejected):
 
 ---
 
-*Last updated: project initialization*
-*Next update: when Module 9 (AI Writing Engine) implementation begins*
+*Last updated: RC1*

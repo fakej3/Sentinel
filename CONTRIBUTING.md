@@ -39,7 +39,7 @@ src/
 │   ├── analysis/      # Stage 6: Trend synthesis + evidence
 │   ├── validation/    # Stage 7: Consistency checks
 │   ├── confidence/    # Stage 8: Evidence-weighted scoring
-│   ├── pipeline/      # Stage 9–10: Decisions, trade plan, orchestration
+│   ├── pipeline/      # Stage 9: Decisions, trade plan, orchestration
 │   ├── writer/        # Stage 10: Report generation
 │   ├── ai/            # Stage 11: Optional LLM enhancement
 │   ├── historical-validation/  # Walk-forward backtesting

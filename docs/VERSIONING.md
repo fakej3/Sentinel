@@ -95,7 +95,7 @@ The goal is to build and validate all deterministic analysis modules.
 - Full JSON analysis payload produced end-to-end for any Binance symbol.
 - No Critical or High issues open in `KNOWN_LIMITATIONS.md`.
 - `tsc --noEmit` clean.
-- Full test suite passing with ≥ 400 tests.
+- Full test suite passing with ≥ 1000 tests.
 - All public APIs documented and stable.
 
 The `1.0.0` release represents the complete non-AI analysis engine. No content
@@ -179,4 +179,4 @@ These are treated as feature branches and follow the same merge rules.
 
 ---
 
-*Last updated: Milestone 0.4 — Engineering Standards*
+*Last updated: RC1*

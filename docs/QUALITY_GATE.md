@@ -83,7 +83,7 @@ If a requirement cannot be met, the limitation must be recorded in
 
 - [ ] No LLM call appears anywhere in the analysis pipeline (Modules 1–8).
 - [ ] All numbers are produced by deterministic mathematical formulas.
-- [ ] AI is used only in Module 9 (Writing Engine) and only to transform pre-validated structured JSON into prose.
+- [ ] AI is used only in the Writing Engine and only to transform pre-validated structured JSON into prose.
 
 ### 2.4 No Silent Failures
 
@@ -260,4 +260,4 @@ A module is **complete** when:
 
 ---
 
-*Last updated: Milestone 0.4 — Engineering Standards*
+*Last updated: RC1*

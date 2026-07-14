@@ -76,9 +76,9 @@ AI-generated analysis cannot be.
 
 ### Decision
 
-AI (Claude or any LLM) is used exclusively in Module 9 (Writing Engine) to
-transform pre-validated, structured JSON into professional prose. AI must never
-perform calculations, make inferences from raw data, or generate numbers.
+An LLM is used exclusively in the Writing Engine to transform pre-validated,
+structured JSON into professional prose. AI must never perform calculations,
+make inferences from raw data, or generate numbers.
 
 ### Reason
 

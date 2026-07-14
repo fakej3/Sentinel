@@ -1,7 +1,7 @@
 # Sentinel — Pipeline Data Flow
 
 This document traces every stage of the analysis pipeline from raw API data to a
-published Binance Square post. Each stage lists the exact source files, its inputs,
+finished analysis report. Each stage lists the exact source files, its inputs,
 and its outputs.
 
 ---

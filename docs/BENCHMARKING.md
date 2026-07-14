@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Module 11 (Historical Replay & Benchmark Engine) allows Sentinel to:
+The Historical Replay & Benchmark Engine allows Sentinel to:
 
 - **Replay** historical OHLCV datasets through the complete analysis pipeline (Modules 1–10).
 - **Compare** generated outputs against pinned expected values.

@@ -39,7 +39,7 @@ Before the JSON payload is passed to the AI Writing Engine, validate that:
 | No contradiction in trend | Trend label matches derived label; condition-met counts match boolean tallies | `checkContradictions` |
 | Zone geometry valid | lower ≤ center ≤ upper; lower < upper for all S/R zones | `checkStructural` |
 | Active zone type correct | activeSupport zones have type='support'; activeResistance have type='resistance' | `checkStructural` |
-| BOS/CHOCH event integrity | detected flag matches event array; last pointer correct; events chronological | `checkStructural` |
+| BOS/CHoCH event integrity | detected flag matches event array; last pointer correct; events chronological | `checkStructural` |
 
 **Checks deferred to later modules:**
 

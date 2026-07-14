@@ -110,7 +110,7 @@ sentinel/
 │   │   ├── analysis/              # Stage 6: Trend synthesis + evidence
 │   │   ├── validation/            # Stage 7: Consistency checks
 │   │   ├── confidence/            # Stage 8: Evidence-weighted scoring
-│   │   ├── pipeline/              # Stage 9–10: Orchestrator + decisions
+│   │   ├── pipeline/              # Stage 9: Orchestrator + decisions
 │   │   ├── writer/                # Stage 10: Report generation
 │   │   ├── ai/                    # Stage 11: Optional AI enhancement
 │   │   ├── historical-validation/ # Walk-forward backtesting engine
@@ -145,7 +145,7 @@ sentinel/
 
 ### Desktop App
 
-Download the latest installer from [Releases](../../releases):
+Download the latest installer from [Releases](https://github.com/fakej3/Sentinel/releases):
 
 - **Linux:** `Sentinel_x.x.x_amd64.deb` or `Sentinel-x.x.x-1.x86_64.rpm`
 - **macOS:** `Sentinel_x.x.x_x64.dmg` _(requires macOS build runner)_
@@ -256,7 +256,7 @@ In **desktop mode**, the Gemini key is set in the UI (Settings → Gemini AI Key
 
 ## Project Philosophy
 
-**The AI only writes. It never calculates, decides, or invent.**
+**The AI only writes. It never calculates, decides, or invents.**
 
 Every number in a Sentinel analysis has a deterministic source:
 

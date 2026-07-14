@@ -2,9 +2,9 @@
 
 ## Overview
 
-Sentinel is a professional crypto market analysis platform designed to produce technically accurate, data-backed content for Binance Square. It is not a trading signal generator and not a trading bot.
+Sentinel is a professional crypto market analysis platform designed to produce technically accurate, evidence-backed market analysis. It is not a trading signal generator and not a trading bot.
 
-The system separates data collection, mathematical analysis, reasoning, validation, and writing into fully independent modules. The AI only writes. It never calculates, decides, or invent.
+The system separates data collection, mathematical analysis, reasoning, validation, and writing into fully independent modules. The AI only writes. It never calculates, decides, or invents.
 
 ---
 
@@ -26,7 +26,7 @@ src/modules/indicators/         — computeIndicators()
         │
         ▼
 src/modules/market-structure/   — computeMarketStructure()
-  Deterministic structure detection (HH/HL/LH/LL, BOS, CHOCH)
+  Deterministic structure detection (HH/HL/LH/LL, BOS, CHoCH)
         │
         ▼
 src/modules/support-resistance/ — computeSupportResistance()
@@ -124,7 +124,7 @@ PipelineResult  →  src/api/routes.ts  /  src/cli/  /  src/ui/
   - **Completeness** (`checkCompleteness`): price > 0, non-empty symbol, minimum evidence count, valid condition-met ranges.
   - **Consistency** (`checkConsistency`): each `TrendConditions` boolean matches its raw upstream source (RSI, MACD, EMA values, market structure swing counts, S/R zone type, volume context fields).
   - **Contradictions** (`checkContradictions`): `priceAboveAllEMAs`/`priceBelowAllEMAs` consistency, EMA order exclusivity, condition-met counts match the boolean tally, trend label matches the `deriveTrendLabel` priority order, evidence sorted high → medium → low.
-  - **Structural** (`checkStructural`): price zone geometry (lower ≤ center ≤ upper, lower < upper), active zone type and broken-flag correctness, BOS/CHOCH detected-flag vs event array consistency, `last` pointer accuracy, chronological event order.
+  - **Structural** (`checkStructural`): price zone geometry (lower ≤ center ≤ upper, lower < upper), active zone type and broken-flag correctness, BOS/CHoCH detected-flag vs event array consistency, `last` pointer accuracy, chronological event order.
 - Returns `ValidationResult`: `passed`, `clean`, `issues[]`, `criticalCount`, `warningCount`, `infoCount`, `summary`.
 - Public API: `validateAnalysis(result, config?)` — deterministic, pure, no side effects.
 - Configuration: `ValidationConfig` with `DEFAULT_VALIDATION_CONFIG` (thresholds for evidence counts, zone geometry tolerance, etc.).
@@ -190,8 +190,8 @@ PipelineResult  →  src/api/routes.ts  /  src/cli/  /  src/ui/
 
 ### `src/ui/` — React Dashboard
 - **Presentation layer only** — zero analysis logic, zero pipeline calls, zero data transformations.
-- Renders `PipelineResult` returned by the API across 8 tab views: Overview, Evidence, Indicators, Structure, Volume, Validation, Writer, Benchmark.
-- Key components: `TradingViewChart` (embeds TradingView widget), `PriceHeader`, `LeftSidebar`, `RightPanel`, tab content components.
+- Renders `PipelineResult` returned by the transport layer across 9 analysis tab views: Summary, Trade, Evidence, Overview, Indicators, Structure, Volume, Validation, Writer.
+- Key components: `TradingViewChart` (embeds TradingView widget), `PriceHeader`, `LeftSidebar`, `BottomNav`, tab content components.
 - Shared component library: `Card`, `Badge`, `Skeleton`, `Tabs`, `ConfidenceMeter`, `ProgressBar`, `NumberTicker`, `CopyButton`.
 - Utility modules: `src/ui/utils/format.ts` (number/price/time formatting), `src/ui/utils/colors.ts` (grade and direction color helpers), `src/ui/utils/timeframes.ts` (timeframe constants).
 - Source: `src/ui/`. React 18, TypeScript, Vite, TailwindCSS v3.4.
