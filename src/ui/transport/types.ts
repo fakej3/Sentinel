@@ -95,4 +95,7 @@ export interface AnalysisTransport {
 
   /** Delete a saved analysis. Returns true on success. */
   deleteHistory(id: string): Promise<boolean>
+
+  /** Delete all saved analyses and return to first-launch state. */
+  clearAllHistory(): Promise<void>
 }

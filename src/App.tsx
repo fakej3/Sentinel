@@ -88,7 +88,26 @@ export default function App() {
 
   const handleClearHistory        = useCallback(() => setRecentAnalyses([]), [setRecentAnalyses])
   const handleClearWatchlist      = useCallback(() => setWatchlist([]), [setWatchlist])
-  const handleClearAll            = useCallback(() => { setRecentAnalyses([]); setWatchlist([]) }, [setRecentAnalyses, setWatchlist])
+  const handleClearAll = useCallback(async () => {
+    // Remove every Sentinel key from localStorage (symbol, interval, page,
+    // sidebar state, gemini key, recent list, watchlist, active tab, etc.)
+    const toRemove: string[] = []
+    for (let i = 0; i < localStorage.length; i++) {
+      const k = localStorage.key(i)
+      if (k?.startsWith('sentinel_')) toRemove.push(k)
+    }
+    toRemove.forEach(k => localStorage.removeItem(k))
+
+    // Clear in-memory React state so the current render is consistent
+    setRecentAnalyses([])
+    setWatchlist([])
+
+    // Delete the AppData history file (Tauri) or no-op (web)
+    await getTransport().clearAllHistory()
+
+    // Reload to reset all React state to first-launch defaults
+    window.location.reload()
+  }, [setRecentAnalyses, setWatchlist])
 
   // Global keyboard shortcuts
   useEffect(() => {

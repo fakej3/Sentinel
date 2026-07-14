@@ -142,4 +142,8 @@ export class HttpTransport implements AnalysisTransport {
       return false
     }
   }
+
+  async clearAllHistory(): Promise<void> {
+    // Web transport: history is server-managed; no-op for client-side reset
+  }
 }

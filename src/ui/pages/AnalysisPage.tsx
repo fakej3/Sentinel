@@ -15,7 +15,6 @@ const StructureTab  = lazy(() => import('../components/tabs/StructureTab').then(
 const VolumeTab     = lazy(() => import('../components/tabs/VolumeTab').then(m => ({ default: m.VolumeTab })))
 const ValidationTab = lazy(() => import('../components/tabs/ValidationTab').then(m => ({ default: m.ValidationTab })))
 const WriterTab     = lazy(() => import('../components/tabs/WriterTab').then(m => ({ default: m.WriterTab })))
-const BenchmarkTab  = lazy(() => import('../components/tabs/BenchmarkTab').then(m => ({ default: m.BenchmarkTab })))
 
 interface AnalysisPageProps {
   data: PipelineResult | null
@@ -68,7 +67,6 @@ export function AnalysisPage({ data, loading, onAnalyze, onSave, symbol, savedEn
     { id: 'volume',     label: 'Volume' },
     { id: 'validation', label: 'Validation', count: issueCount },
     { id: 'writer',     label: 'Writer' },
-    { id: 'benchmark',  label: 'Benchmark' },
   ]
 
   return (
@@ -112,7 +110,6 @@ export function AnalysisPage({ data, loading, onAnalyze, onSave, symbol, savedEn
           {activeTab === 'volume'     && <VolumeTab     result={data} />}
           {activeTab === 'validation' && <ValidationTab result={data} />}
           {activeTab === 'writer'     && <WriterTab     result={data} />}
-          {activeTab === 'benchmark'  && <BenchmarkTab result={data} />}
         </TabPanel>
       </Suspense>
     </div>

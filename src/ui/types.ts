@@ -118,7 +118,6 @@ export type AppTab =
   | 'volume'
   | 'validation'
   | 'writer'
-  | 'benchmark'
 
 export type AppPage =
   | 'dashboard'

@@ -106,4 +106,8 @@ export class TauriTransport implements AnalysisTransport {
   async deleteHistory(id: string): Promise<boolean> {
     return historyStore.deleteHistory(id)
   }
+
+  async clearAllHistory(): Promise<void> {
+    await historyStore.clearHistory()
+  }
 }

@@ -101,3 +101,7 @@ export async function deleteHistory(id: string): Promise<boolean> {
   await persist(filtered)
   return true
 }
+
+export async function clearHistory(): Promise<void> {
+  await persist([])
+}
