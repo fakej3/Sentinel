@@ -2,6 +2,7 @@
   "name": "sentinel",
   "private": true,
   "version": "0.1.0",
+  "license": "MIT",
   "type": "module",
   "scripts": {
     "dev": "concurrently --kill-others-on-fail -n \"API,WEB\" -c \"cyan,blue\" \"npm run dev:api\" \"npm run dev:frontend\"",

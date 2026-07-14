@@ -172,7 +172,7 @@ sudo apt-get install libgtk-3-dev libwebkit2gtk-4.1-dev \
 ### Clone and install
 
 ```bash
-git clone https://github.com/fakej3/sentinel.git
+git clone https://github.com/fakej3/Sentinel.git
 cd sentinel
 npm install
 ```
