@@ -1,0 +1,118 @@
+name: Release Desktop Builds
+
+# Triggers on version tags (e.g. v1.0.0, v1.0.0-rc.1) and manual dispatch.
+# Push a tag with: git tag v1.0.0-rc.1 && git push origin v1.0.0-rc.1
+on:
+  push:
+    tags:
+      - 'v[0-9]+.[0-9]+.[0-9]+*'
+  workflow_dispatch:
+    inputs:
+      draft:
+        description: 'Create as draft release'
+        required: false
+        default: 'true'
+        type: boolean
+
+# Required secrets — configure these in Settings → Secrets → Actions:
+#
+#   TAURI_SIGNING_PRIVATE_KEY          (required for updater signatures)
+#   TAURI_SIGNING_PRIVATE_KEY_PASSWORD (passphrase for the key above)
+#
+# macOS notarization (required for Gatekeeper approval on macOS):
+#   APPLE_CERTIFICATE                  (base64-encoded .p12 Developer ID certificate)
+#   APPLE_CERTIFICATE_PASSWORD         (passphrase for the .p12)
+#   APPLE_SIGNING_IDENTITY             (e.g. "Developer ID Application: ...")
+#   APPLE_ID                           (Apple ID email used for notarization)
+#   APPLE_TEAM_ID                      (10-character Apple team ID)
+#   APPLE_PASSWORD                     (app-specific password for the Apple ID above)
+#
+# GITHUB_TOKEN is provided automatically by Actions — no setup needed.
+#
+# See docs/RELEASING.md for step-by-step instructions to generate each secret.
+
+permissions:
+  contents: write   # required to create GitHub Releases and upload artifacts
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: ubuntu-22.04
+            artifact-label: linux
+          - platform: windows-latest
+            artifact-label: windows
+          - platform: macos-latest
+            artifact-label: macos
+
+    runs-on: ${{ matrix.platform }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # ── Node.js ────────────────────────────────────────────────────────────
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - run: npm ci
+
+      # ── Rust ───────────────────────────────────────────────────────────────
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+
+      # ── Linux system dependencies ──────────────────────────────────────────
+      - name: Install Linux build dependencies
+        if: matrix.platform == 'ubuntu-22.04'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libwebkit2gtk-4.1-dev \
+            libappindicator3-dev \
+            librsvg2-dev \
+            patchelf \
+            libgtk-3-dev \
+            libssl-dev
+
+      # ── macOS code signing ─────────────────────────────────────────────────
+      - name: Import macOS code-signing certificate
+        if: matrix.platform == 'macos-latest' && env.APPLE_CERTIFICATE != ''
+        env:
+          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+        run: |
+          echo "$APPLE_CERTIFICATE" | base64 --decode > certificate.p12
+          security create-keychain -p actions build.keychain
+          security default-keychain -s build.keychain
+          security unlock-keychain -p actions build.keychain
+          security import certificate.p12 -k build.keychain \
+            -P "$APPLE_CERTIFICATE_PASSWORD" -T /usr/bin/codesign
+          security set-key-partition-list \
+            -S apple-tool:,apple: -s -k actions build.keychain
+          rm certificate.p12
+
+      # ── Build and release ──────────────────────────────────────────────────
+      - name: Build and publish Tauri release
+        uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
+          APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
+        with:
+          tagName: ${{ github.ref_name }}
+          releaseName: 'Sentinel ${{ github.ref_name }}'
+          releaseBody: |
+            See [CHANGELOG](https://github.com/${{ github.repository }}/blob/main/docs/CHANGELOG.md)
+            for what changed in this release.
+          releaseDraft: ${{ github.event.inputs.draft == 'true' || github.event_name == 'push' }}
+          prerelease: ${{ contains(github.ref_name, '-rc') || contains(github.ref_name, '-beta') || contains(github.ref_name, '-alpha') }}

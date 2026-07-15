@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Settings, Trash2, Database, Wifi, Key, Eye, EyeOff, Check } from 'lucide-react'
+import { Settings, Trash2, Database, Wifi, Key, Eye, EyeOff, Check, AlertTriangle } from 'lucide-react'
 import { clsx } from 'clsx'
 import { useApiStatus } from '../hooks/useApiStatus'
 import { isTauriEnv } from '../transport'
@@ -14,6 +14,16 @@ interface SettingsPageProps {
 
 export function SettingsPage({ onClearHistory, onClearWatchlist, onClearAll }: SettingsPageProps) {
   const apiStatus = useApiStatus()
+  const [confirmReset, setConfirmReset] = useState(false)
+
+  function handleResetRequest() {
+    setConfirmReset(true)
+  }
+
+  function handleResetConfirm() {
+    setConfirmReset(false)
+    onClearAll()
+  }
 
   return (
     <div className="p-4 pb-20 md:pb-4 space-y-4 animate-fade-in max-w-xl">
@@ -60,14 +70,16 @@ export function SettingsPage({ onClearHistory, onClearWatchlist, onClearAll }: S
         <p className="text-[11px] text-slate-600 mt-2 leading-relaxed">
           {isDesktop
             ? 'The analysis pipeline runs directly in the desktop app. No backend server is required.'
-            : <>
-                Start the full stack with{' '}
-                <code className="font-mono bg-surface-600 px-1 rounded text-slate-400">npm run dev</code>
-                {' '}(API + frontend). API URL:{' '}
-                <code className="font-mono bg-surface-600 px-1 rounded text-slate-400">
-                  {import.meta.env.VITE_API_URL ?? 'http://localhost:3000'}
-                </code>
-              </>
+            : import.meta.env.DEV
+              ? <>
+                  Start the full stack with{' '}
+                  <code className="font-mono bg-surface-600 px-1 rounded text-slate-400">npm run dev</code>
+                  {' '}(API + frontend). API URL:{' '}
+                  <code className="font-mono bg-surface-600 px-1 rounded text-slate-400">
+                    {import.meta.env.VITE_API_URL ?? 'http://localhost:3000'}
+                  </code>
+                </>
+              : 'Sentinel connects to a backend API server to run analysis.'
           }
         </p>
       </div>
@@ -97,8 +109,8 @@ export function SettingsPage({ onClearHistory, onClearWatchlist, onClearAll }: S
           <div className="border-t border-border-subtle" />
           <DataRow
             label="Reset All Data"
-            description="Clears all local storage"
-            onAction={onClearAll}
+            description="Clears all local storage and saved history — cannot be undone"
+            onAction={handleResetRequest}
             danger
           />
 
@@ -117,6 +129,14 @@ export function SettingsPage({ onClearHistory, onClearWatchlist, onClearAll }: S
           support & resistance, confidence scoring, and trade setup generation.
         </p>
       </div>
+
+      {/* Reset All Data confirmation dialog */}
+      {confirmReset && (
+        <ResetConfirmDialog
+          onConfirm={handleResetConfirm}
+          onCancel={() => setConfirmReset(false)}
+        />
+      )}
     </div>
   )
 }
@@ -207,6 +227,54 @@ function DataRow({ label, description, onAction, danger = false }: {
         <Trash2 size={11} />
         {danger ? 'Reset' : 'Clear'}
       </button>
+    </div>
+  )
+}
+
+function ResetConfirmDialog({ onConfirm, onCancel }: {
+  onConfirm: () => void
+  onCancel: () => void
+}) {
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="reset-dialog-title"
+    >
+      <div className="w-full max-w-sm rounded-xl border border-border-subtle bg-surface-900 p-5 space-y-4 shadow-2xl">
+        <div className="flex items-center gap-2.5">
+          <AlertTriangle size={15} className="text-red-400 flex-shrink-0" />
+          <p id="reset-dialog-title" className="text-sm font-semibold text-slate-200">
+            Reset all data?
+          </p>
+        </div>
+
+        <p className="text-xs text-slate-500 leading-relaxed">
+          This will permanently delete all saved analyses, watchlist entries, and
+          settings. This action cannot be undone.
+        </p>
+
+        <div className="flex gap-2 justify-end">
+          <button
+            onClick={onCancel}
+            autoFocus
+            className="text-xs px-3 py-2 rounded-lg border border-border-subtle text-slate-400
+                       hover:text-slate-300 hover:border-slate-500 transition-colors
+                       focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-slate-500"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={onConfirm}
+            className="text-xs px-3 py-2 rounded-lg border border-red-500/40 text-red-400
+                       hover:text-red-300 hover:border-red-400/60 transition-colors
+                       focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-red-500"
+          >
+            Reset everything
+          </button>
+        </div>
+      </div>
     </div>
   )
 }

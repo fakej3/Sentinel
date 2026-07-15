@@ -11,6 +11,9 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const DATA_DIR  = path.join(__dirname, '..', '..', 'data')
 const HISTORY_FILE = path.join(DATA_DIR, 'history.json')
 
+// Bump when the HistoryEntry shape changes in a way that requires migration.
+const SCHEMA_VERSION = 1
+
 // ── Types ─────────────────────────────────────────────────────────────────────
 
 export interface HistoryEntry {
@@ -34,18 +37,33 @@ export interface HistoryEntry {
 
 export type HistoryMeta = Omit<HistoryEntry, 'result'>
 
+interface HistoryFile {
+  schemaVersion: number
+  entries: HistoryEntry[]
+}
+
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 function ensureDir(): void {
   if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true })
 }
 
+function migrate(raw: unknown): HistoryEntry[] {
+  // Pre-versioning: the file was a plain HistoryEntry[]
+  if (Array.isArray(raw)) return raw as HistoryEntry[]
+
+  const file = raw as Partial<HistoryFile>
+  if (!Array.isArray(file.entries)) return []
+
+  // Future schema versions: add migration steps here before returning entries.
+  return file.entries as HistoryEntry[]
+}
+
 function load(): HistoryEntry[] {
   ensureDir()
   try {
     const raw = fs.readFileSync(HISTORY_FILE, 'utf-8')
-    const parsed: unknown = JSON.parse(raw)
-    return Array.isArray(parsed) ? parsed as HistoryEntry[] : []
+    return migrate(JSON.parse(raw) as unknown)
   } catch {
     return []
   }
@@ -53,7 +71,8 @@ function load(): HistoryEntry[] {
 
 function save(entries: HistoryEntry[]): void {
   ensureDir()
-  fs.writeFileSync(HISTORY_FILE, JSON.stringify(entries, null, 2), 'utf-8')
+  const file: HistoryFile = { schemaVersion: SCHEMA_VERSION, entries }
+  fs.writeFileSync(HISTORY_FILE, JSON.stringify(file, null, 2), 'utf-8')
 }
 
 function makeId(): string {

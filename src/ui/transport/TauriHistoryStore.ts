@@ -10,6 +10,14 @@ const BASE         = BaseDirectory.AppData
 const MAX_ENTRIES  = 200
 const DEDUP_WINDOW = 60_000
 
+// Bump when the HistoryEntry shape changes in a way that requires migration.
+const SCHEMA_VERSION = 1
+
+interface HistoryFile {
+  schemaVersion: number
+  entries: HistoryEntry[]
+}
+
 function makeId(): string {
   return `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
 }
@@ -19,6 +27,17 @@ function stripResult(e: HistoryEntry): HistoryMeta {
   return meta
 }
 
+function migrate(raw: unknown): HistoryEntry[] {
+  // Pre-versioning: the file was a plain HistoryEntry[]
+  if (Array.isArray(raw)) return raw as HistoryEntry[]
+
+  const file = raw as Partial<HistoryFile>
+  if (!Array.isArray(file.entries)) return []
+
+  // Future schema versions: add migration steps here before returning entries.
+  return file.entries as HistoryEntry[]
+}
+
 async function load(): Promise<HistoryEntry[]> {
   try {
     const dirExists = await exists(HISTORY_DIR, { baseDir: BASE })
@@ -26,8 +45,7 @@ async function load(): Promise<HistoryEntry[]> {
     const fileExists = await exists(HISTORY_FILE, { baseDir: BASE })
     if (!fileExists) return []
     const raw = await readTextFile(HISTORY_FILE, { baseDir: BASE })
-    const parsed: unknown = JSON.parse(raw)
-    return Array.isArray(parsed) ? (parsed as HistoryEntry[]) : []
+    return migrate(JSON.parse(raw) as unknown)
   } catch {
     return []
   }
@@ -38,7 +56,8 @@ async function persist(entries: HistoryEntry[]): Promise<void> {
   if (!dirExists) {
     await mkdir(HISTORY_DIR, { baseDir: BASE, recursive: true })
   }
-  await writeTextFile(HISTORY_FILE, JSON.stringify(entries, null, 2), { baseDir: BASE })
+  const file: HistoryFile = { schemaVersion: SCHEMA_VERSION, entries }
+  await writeTextFile(HISTORY_FILE, JSON.stringify(file, null, 2), { baseDir: BASE })
 }
 
 // ── Public API ────────────────────────────────────────────────────────────────

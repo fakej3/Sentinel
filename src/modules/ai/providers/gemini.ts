@@ -67,14 +67,17 @@ export class GeminiProvider implements AIProvider {
   }
 
   async enhance(input: AIEnhancementInput): Promise<AIEnhancement> {
-    const url = `${GEMINI_BASE_URL}/${this.model}:generateContent?key=${this.apiKey}`
+    const url = `${GEMINI_BASE_URL}/${this.model}:generateContent`
     const controller = new AbortController()
     const timer = setTimeout(() => controller.abort(), this.timeoutMs)
 
     try {
       const response = await fetch(url, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'x-goog-api-key': this.apiKey,
+        },
         body: JSON.stringify({
           contents: [{ parts: [{ text: buildPrompt(input) }] }],
           generationConfig: {
