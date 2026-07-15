@@ -1,4 +1,4 @@
-import type { Candle } from '../binance/types'
+import type { Candle } from '../market/types'
 import type { SwingPoint } from '../market-structure/types'
 import type { PriceZone, SupportResistanceConfig } from './types'
 

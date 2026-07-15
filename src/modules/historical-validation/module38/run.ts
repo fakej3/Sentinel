@@ -14,7 +14,7 @@
  *   const { metrics, html } = await runModule38()
  */
 import { writeFileSync } from 'node:fs'
-import type { Timeframe } from '../../binance/types'
+import type { Timeframe } from '../../market/types'
 import type { CalibrationDashboard } from '../types'
 import { walkCandles } from '../walk'
 import { buildDashboard } from '../dashboard'

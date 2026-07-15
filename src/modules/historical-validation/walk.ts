@@ -1,4 +1,4 @@
-import type { Candle, Timeframe } from '../binance/types'
+import type { Candle, Timeframe } from '../market/types'
 import type { ValidationRecord, ValidationSnapshot, WalkConfig } from './types'
 import { DEFAULT_WALK_CONFIG } from './types'
 import { replayDataset } from '../benchmark/index'

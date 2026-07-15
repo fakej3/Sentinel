@@ -8,7 +8,7 @@
  *          srContext, volumeContext, evidence)
  * Deps:    binance, indicators, market-structure, support-resistance, volume-analysis
  */
-import type { MarketData } from '../binance/types'
+import type { MarketData } from '../market/types'
 import type { IndicatorResult } from '../indicators/types'
 import type { MarketStructureResult } from '../market-structure/types'
 import type { SupportResistanceResult } from '../support-resistance/types'

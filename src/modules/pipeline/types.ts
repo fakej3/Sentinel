@@ -1,4 +1,4 @@
-import type { Candle, Timeframe, FetchOptions, MarketData } from '../binance/types'
+import type { Candle, Timeframe, FetchOptions, MarketData } from '../market/types'
 import type { IndicatorResult } from '../indicators/types'
 import type { MarketStructureResult, MarketStructureConfig } from '../market-structure/types'
 import type { SupportResistanceResult, SupportResistanceConfig } from '../support-resistance/types'

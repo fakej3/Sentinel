@@ -1,4 +1,4 @@
-import type { MarketData } from '../../binance/types'
+import type { MarketData } from '../../market/types'
 import type { IndicatorResult } from '../../indicators/types'
 import type { PriceSummary } from '../types'
 

@@ -5,7 +5,7 @@
  * in order, with price continuity across segment boundaries.
  * Deterministic: same symbol + timeframe → identical candles every run.
  */
-import type { Candle, Timeframe } from '../../binance/types'
+import type { Candle, Timeframe } from '../../market/types'
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 

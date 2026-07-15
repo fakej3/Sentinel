@@ -1,6 +1,7 @@
 import { readTextFile, writeTextFile, mkdir, exists, BaseDirectory } from '@tauri-apps/plugin-fs'
 import type { PipelineResult } from '../types'
 import type { HistoryMeta, HistoryEntry } from './types'
+import { buildHistoryEntry, stripResult } from '../../modules/pipeline/history-utils'
 
 // Stored under $APPDATA/sentinel/history.json
 const HISTORY_DIR  = 'sentinel'
@@ -16,15 +17,6 @@ const SCHEMA_VERSION = 1
 interface HistoryFile {
   schemaVersion: number
   entries: HistoryEntry[]
-}
-
-function makeId(): string {
-  return `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
-}
-
-function stripResult(e: HistoryEntry): HistoryMeta {
-  const { result: _result, ...meta } = e
-  return meta
 }
 
 function migrate(raw: unknown): HistoryEntry[] {
@@ -64,7 +56,7 @@ async function persist(entries: HistoryEntry[]): Promise<void> {
 
 export async function listHistory(): Promise<HistoryMeta[]> {
   const entries = await load()
-  return entries.map(stripResult).sort((a, b) => b.savedAt - a.savedAt)
+  return entries.map(e => stripResult(e)).sort((a, b) => b.savedAt - a.savedAt)
 }
 
 export async function getHistory(id: string): Promise<HistoryEntry | null> {
@@ -79,27 +71,8 @@ export async function addHistory(
 ): Promise<HistoryMeta> {
   const entries = await load()
 
-  const plan       = result.tradePlan
-  const confidence = result.confidence
-  const decision   = result.decision
-  const binancePost = result.generatedAnalysis?.fullReport ?? result.generatedAnalysis?.summary ?? ''
-
   const entry: HistoryEntry = {
-    id:         makeId(),
-    savedAt:    Date.now(),
-    symbol:     symbol.toUpperCase(),
-    interval,
-    decision:   decision?.label ?? 'No Trade',
-    grade:      confidence.grade,
-    confidence: confidence.score,
-    trust:      confidence.trust?.level ?? null,
-    riskLevel:  decision?.riskLevel ?? null,
-    rr:         plan?.riskRewardRatio ?? null,
-    entry:      plan?.entryZone ? [plan.entryZone.lower, plan.entryZone.upper] : null,
-    stop:       plan?.invalidationLevel ?? null,
-    targets:    plan?.targetLevel ? [plan.targetLevel] : [],
-    trend:      result.analysis.fullTrend.trend,
-    binancePost,
+    ...buildHistoryEntry(result, symbol, interval),
     result,
   }
 

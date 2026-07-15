@@ -6,6 +6,7 @@ import fs from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import type { PipelineResult } from '../modules/pipeline/types'
+import { buildHistoryEntry, stripResult } from '../modules/pipeline/history-utils'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const DATA_DIR  = path.join(__dirname, '..', '..', 'data')
@@ -75,19 +76,10 @@ function save(entries: HistoryEntry[]): void {
   fs.writeFileSync(HISTORY_FILE, JSON.stringify(file, null, 2), 'utf-8')
 }
 
-function makeId(): string {
-  return `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
-}
-
-function stripResult(e: HistoryEntry): HistoryMeta {
-  const { result: _result, ...meta } = e
-  return meta
-}
-
 // ── Public API ────────────────────────────────────────────────────────────────
 
 export function listHistory(): HistoryMeta[] {
-  return load().map(stripResult).sort((a, b) => b.savedAt - a.savedAt)
+  return load().map(e => stripResult(e)).sort((a, b) => b.savedAt - a.savedAt)
 }
 
 export function getHistory(id: string): HistoryEntry | null {
@@ -97,28 +89,8 @@ export function getHistory(id: string): HistoryEntry | null {
 export function addHistory(result: PipelineResult, symbol: string, interval: string): HistoryMeta {
   const entries = load()
 
-  const plan = result.tradePlan
-  const confidence = result.confidence
-  const decision = result.decision
-
-  const binancePost = result.generatedAnalysis?.fullReport ?? result.generatedAnalysis?.summary ?? ''
-
   const entry: HistoryEntry = {
-    id:          makeId(),
-    savedAt:     Date.now(),
-    symbol:      symbol.toUpperCase(),
-    interval,
-    decision:    decision?.label ?? 'No Trade',
-    grade:       confidence.grade,
-    confidence:  confidence.score,
-    trust:       confidence.trust?.level ?? null,
-    riskLevel:   decision?.riskLevel ?? null,
-    rr:          plan?.riskRewardRatio ?? null,
-    entry:       plan?.entryZone ? [plan.entryZone.lower, plan.entryZone.upper] : null,
-    stop:        plan?.invalidationLevel ?? null,
-    targets:     plan?.targetLevel ? [plan.targetLevel] : [],
-    trend:       result.analysis.fullTrend.trend,
-    binancePost,
+    ...buildHistoryEntry(result, symbol, interval),
     result,
   }
 

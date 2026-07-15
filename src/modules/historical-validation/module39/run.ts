@@ -6,7 +6,7 @@
  * importance, combination analysis, and improvement candidates on top.
  */
 import { writeFileSync } from 'node:fs'
-import type { Timeframe } from '../../binance/types'
+import type { Timeframe } from '../../market/types'
 import { walkCandles } from '../walk'
 import { SYMBOLS, TIMEFRAMES, generateMultiRegimeCandles } from '../module38/scenarios'
 import type { ValidationRecord } from '../types'

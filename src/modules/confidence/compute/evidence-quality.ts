@@ -1,6 +1,7 @@
 import type { EvidenceItem } from '../../analysis/types'
 import type { ConfidenceConfig, EvidenceQuality, EvidenceQualityRating } from '../types'
 import { FACTOR_CATEGORY } from './breakdown'
+import type { EvidenceFactor } from '../../analysis/evidence-factors'
 
 function rateCount(count: number): EvidenceQualityRating {
   if (count >= 3) return 'excellent'
@@ -23,7 +24,7 @@ export function computeEvidenceQuality(
 
   for (const item of evidence) {
     if (cfg.factorWeights[item.factor] === undefined) continue
-    const category = FACTOR_CATEGORY[item.factor]
+    const category = FACTOR_CATEGORY[item.factor as EvidenceFactor]
     if (category !== undefined) counts[category]++
   }
 

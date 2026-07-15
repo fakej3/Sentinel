@@ -3,6 +3,7 @@ import { Settings, Trash2, Database, Wifi, Key, Eye, EyeOff, Check, AlertTriangl
 import { clsx } from 'clsx'
 import { useApiStatus } from '../hooks/useApiStatus'
 import { isTauriEnv } from '../transport'
+import { STORAGE_KEYS } from '../constants/storageKeys'
 
 const isDesktop = isTauriEnv()
 
@@ -142,12 +143,12 @@ export function SettingsPage({ onClearHistory, onClearWatchlist, onClearAll }: S
 }
 
 function GeminiKeySection() {
-  const [key, setKey]         = useState(() => localStorage.getItem('sentinel_gemini_key') ?? '')
+  const [key, setKey]         = useState(() => localStorage.getItem(STORAGE_KEYS.geminiKey) ?? '')
   const [visible, setVisible] = useState(false)
   const [saved, setSaved]     = useState(false)
 
   function handleSave() {
-    localStorage.setItem('sentinel_gemini_key', key.trim())
+    localStorage.setItem(STORAGE_KEYS.geminiKey, key.trim())
     setSaved(true)
     setTimeout(() => setSaved(false), 2000)
   }

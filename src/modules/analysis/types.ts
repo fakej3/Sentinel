@@ -1,4 +1,4 @@
-import type { Timeframe } from '../binance/types'
+import type { Timeframe } from '../market/types'
 import type { IndicatorResult } from '../indicators/types'
 import type { MarketStructureResult } from '../market-structure/types'
 import type { PriceZone, SupportResistanceResult } from '../support-resistance/types'

@@ -1,4 +1,4 @@
-import type { Candle } from '../binance/types'
+import type { Candle } from '../market/types'
 import type { TradePlan } from '../pipeline/types'
 import type { TradeOutcome } from './types'
 

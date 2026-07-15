@@ -1,5 +1,5 @@
 import { fetchMarketData, DEFAULT_CANDLE_LIMIT } from '../binance/index'
-import type { MarketData } from '../binance/types'
+import type { MarketData } from '../market/types'
 import { computeIndicators } from '../indicators/index'
 import type { IndicatorResult } from '../indicators/types'
 import { computeMarketStructure } from '../market-structure/index'

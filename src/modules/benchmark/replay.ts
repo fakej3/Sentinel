@@ -1,6 +1,6 @@
 import { analyzeMarket } from '../pipeline/index'
 import type { PipelineResult, PipelineConfig } from '../pipeline/types'
-import type { Ticker24h } from '../binance/types'
+import type { Ticker24h } from '../market/types'
 import type { BenchmarkDataset } from './types'
 
 function buildTicker(dataset: BenchmarkDataset): Ticker24h {

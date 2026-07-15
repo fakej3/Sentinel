@@ -1,4 +1,4 @@
-import type { Candle, Timeframe } from '../binance/types'
+import type { Candle, Timeframe } from '../market/types'
 import type { PipelineResult, PipelineConfig } from '../pipeline/types'
 
 export interface BenchmarkDataset {

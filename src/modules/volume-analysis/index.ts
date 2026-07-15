@@ -9,7 +9,7 @@
  *          obvAnalysis, vwapAnalysis, overallStrength, evidence[])
  * Deps:    binance, indicators, market-structure, support-resistance
  */
-import type { Candle } from '../binance/types'
+import type { Candle } from '../market/types'
 import type { IndicatorResult } from '../indicators/types'
 import type { MarketStructureResult } from '../market-structure/types'
 import type { SupportResistanceResult } from '../support-resistance/types'

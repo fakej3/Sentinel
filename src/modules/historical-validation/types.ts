@@ -1,4 +1,4 @@
-import type { Timeframe } from '../binance/types'
+import type { Timeframe } from '../market/types'
 import type { PipelineConfig } from '../pipeline/types'
 import type { TradeSetupQuality } from '../pipeline/types'
 

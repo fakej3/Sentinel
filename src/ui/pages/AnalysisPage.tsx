@@ -3,6 +3,7 @@ import { Activity, Save, Check } from 'lucide-react'
 import { Tabs, TabPanel } from '../components/shared/Tabs'
 import { SkeletonDashboard } from '../components/shared/Skeleton'
 import { useLocalStorage } from '../hooks/useLocalStorage'
+import { STORAGE_KEYS } from '../constants/storageKeys'
 import type { AppTab, PipelineResult, HistoryMeta } from '../types'
 import type { TabDef } from '../components/shared/Tabs'
 
@@ -27,7 +28,7 @@ interface AnalysisPageProps {
 }
 
 export function AnalysisPage({ data, loading, onAnalyze, onSave, symbol, savedEntry, saving }: AnalysisPageProps) {
-  const [activeTab, setActiveTab] = useLocalStorage<AppTab>('sentinel_analysis_tab', 'summary')
+  const [activeTab, setActiveTab] = useLocalStorage<AppTab>(STORAGE_KEYS.analysisTab, 'summary')
 
   if (loading) return <SkeletonDashboard />
 

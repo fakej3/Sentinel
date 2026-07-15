@@ -8,7 +8,7 @@
  *          nearestSupport, nearestResistance, currentZone)
  * Deps:    binance, market-structure, indicators (ATR)
  */
-import type { Candle } from '../binance/types'
+import type { Candle } from '../market/types'
 import type { MarketStructureResult } from '../market-structure/types'
 import type { PriceZone, SupportResistanceConfig, SupportResistanceResult } from './types'
 import { DEFAULT_CONFIG } from './config'

@@ -1,4 +1,4 @@
-import type { Candle } from '../../binance/types'
+import type { Candle } from '../../market/types'
 import type { ClimaxResult, VolumeAnalysisConfig } from '../types'
 
 const CLIMAX_LOOKBACK = 10

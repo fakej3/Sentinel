@@ -8,7 +8,7 @@
  *          evidence, trade-plan, and post-traceability reports)
  * Deps:    binance, pipeline (full stack), writer, benchmark
  */
-import type { Candle, Timeframe } from '../binance/types'
+import type { Candle, Timeframe } from '../market/types'
 import type { WalkConfig, CalibrationDashboard } from './types'
 import { DEFAULT_WALK_CONFIG } from './types'
 import { walkCandles } from './walk'

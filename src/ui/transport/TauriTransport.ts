@@ -2,8 +2,9 @@ import { analyzeMarket, PipelineError } from '../../modules/pipeline'
 import { SentinelApiError } from './types'
 import type { AnalysisTransport, AnalyzeOptions, HistoryMeta, HistoryEntry } from './types'
 import type { PipelineResult } from '../types'
-import type { Timeframe } from '../../modules/binance/types'
+import type { Timeframe } from '../../modules/market/types'
 import * as historyStore from './TauriHistoryStore'
+import { STORAGE_KEYS } from '../constants/storageKeys'
 
 // ── Error mapping ─────────────────────────────────────────────────────────────
 
@@ -43,7 +44,7 @@ export class TauriTransport implements AnalysisTransport {
     // Gemini key from localStorage — set by Settings UI (Module 5).
     // Empty string → Gemini disabled; pipeline works without it.
     const geminiKey = typeof localStorage !== 'undefined'
-      ? (localStorage.getItem('sentinel_gemini_key') ?? '')
+      ? (localStorage.getItem(STORAGE_KEYS.geminiKey) ?? '')
       : ''
 
     try {

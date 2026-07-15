@@ -1,4 +1,4 @@
-import type { Candle } from '../../binance/types'
+import type { Candle } from '../../market/types'
 import type { OBVAnalysisResult, VolumeAnalysisConfig } from '../types'
 import { localOBVSeries, linearRegression } from './utils'
 

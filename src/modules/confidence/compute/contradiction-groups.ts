@@ -1,6 +1,7 @@
 import type { EvidenceItem } from '../../analysis/types'
 import type { ConfidenceConfig, ContradictionGroup } from '../types'
 import { FACTOR_CATEGORY } from './breakdown'
+import type { EvidenceFactor } from '../../analysis/evidence-factors'
 
 const CATEGORY_NAMES: Record<string, string> = {
   trendQuality:    'Trend/EMAs',
@@ -29,7 +30,7 @@ export function groupContradictions(
   for (const item of evidence) {
     const weight = cfg.factorWeights[item.factor]
     if (weight === undefined) continue
-    const category = FACTOR_CATEGORY[item.factor]
+    const category = FACTOR_CATEGORY[item.factor as EvidenceFactor]
     if (category === undefined) continue
     if (item.direction === 'neutral') continue  // neutral items don't contradict any trend
 

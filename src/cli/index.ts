@@ -1,6 +1,6 @@
 import { writeFile } from 'fs/promises'
 import { analyzeMarket, PipelineError } from '../modules/pipeline/index'
-import type { Timeframe } from '../modules/binance/types'
+import type { Timeframe } from '../modules/market/types'
 import { parseArgs, HELP_TEXT, VERSION_TEXT } from './args'
 import { formatOutput, formatFileContent } from './format'
 import type { CliAnalyzeFn, IoImpl } from './types'
