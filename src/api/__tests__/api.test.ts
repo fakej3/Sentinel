@@ -328,7 +328,7 @@ describe('POST /analyze — PipelineError mapping', () => {
     expect(res.status).toBe(400)
     expect(res.body.error.code).toBe('configuration_error')
     expect(res.body.error.message).toBe('symbol is required')
-    expect(res.body.error.module).toBe('pipeline')
+    expect(res.body.error.module).toBeUndefined()
   })
 
   it('maps fetch_failure to 502', async () => {
@@ -361,14 +361,14 @@ describe('POST /analyze — PipelineError mapping', () => {
     const res = await request(app).post('/analyze').send({ symbol: 'BTCUSDT', interval: '1h' })
     expect(res.status).toBe(500)
     expect(res.body.error.code).toBe('internal_module_failure')
-    expect(res.body.error.module).toBe('indicators')
+    expect(res.body.error.module).toBeUndefined()
   })
 
-  it('error response includes module field from PipelineError', async () => {
+  it('error response does not include module field (internal detail suppressed)', async () => {
     const err = new PipelineError('fetch_failure', 'binance', 'timeout')
     const app = createApp(throwingAnalyze(err))
     const res = await request(app).post('/analyze').send({ symbol: 'BTCUSDT', interval: '1h' })
-    expect(res.body.error.module).toBe('binance')
+    expect(res.body.error.module).toBeUndefined()
   })
 
   it('includes X-Response-Time header on PipelineError', async () => {
@@ -382,12 +382,12 @@ describe('POST /analyze — PipelineError mapping', () => {
 // ── POST /analyze — unexpected errors ────────────────────────────────────────
 
 describe('POST /analyze — unexpected errors', () => {
-  it('returns 500 for generic Error', async () => {
+  it('returns 500 for generic Error with generic message (details suppressed)', async () => {
     const app = createApp(throwingAnalyze(new Error('Something broke')))
     const res = await request(app).post('/analyze').send({ symbol: 'BTCUSDT', interval: '1h' })
     expect(res.status).toBe(500)
     expect(res.body.error.code).toBe('internal_error')
-    expect(res.body.error.message).toBe('Something broke')
+    expect(res.body.error.message).toBe('An unexpected error occurred.')
   })
 
   it('returns 500 for non-Error thrown value', async () => {

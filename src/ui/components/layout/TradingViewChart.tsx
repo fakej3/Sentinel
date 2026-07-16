@@ -37,7 +37,7 @@ export function TradingViewChart({ symbol, interval }: TradingViewChartProps) {
     script.type = 'text/javascript'
     script.src = 'https://s3.tradingview.com/external-embedding/embed-widget-advanced-chart.js'
     script.async = true
-    script.innerHTML = JSON.stringify({
+    script.textContent = JSON.stringify({
       autosize: true,
       symbol: `BINANCE:${symbol}`,
       interval: tvInterval,

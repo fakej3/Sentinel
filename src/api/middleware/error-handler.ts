@@ -17,12 +17,13 @@ function pipelineErrorStatus(code: PipelineErrorCode): number {
   }
 }
 
-interface BodyParserError extends SyntaxError {
+interface HttpError extends Error {
   status: number
+  type?: string
 }
 
-function isBodyParserError(err: unknown): err is BodyParserError {
-  return err instanceof SyntaxError && 'status' in (err as object) && (err as BodyParserError).status === 400
+function isHttpError(err: unknown): err is HttpError {
+  return err instanceof Error && typeof (err as HttpError).status === 'number'
 }
 
 export function errorHandler(
@@ -36,27 +37,28 @@ export function errorHandler(
       error: {
         code: err.code,
         message: err.reason,
-        module: err.module,
       },
     })
     return
   }
 
-  if (isBodyParserError(err)) {
-    res.status(400).json({
-      error: {
-        code: 'invalid_json',
-        message: 'Malformed JSON in request body',
-      },
-    })
-    return
+  if (isHttpError(err)) {
+    if (err.status === 400 && err instanceof SyntaxError) {
+      res.status(400).json({ error: { code: 'invalid_json', message: 'Malformed JSON in request body' } })
+      return
+    }
+    if (err.status === 413) {
+      res.status(413).json({ error: { code: 'payload_too_large', message: 'Request body is too large.' } })
+      return
+    }
   }
 
-  const message = err instanceof Error ? err.message : 'An unexpected error occurred'
+  const internalMessage = err instanceof Error ? err.message : String(err)
+  console.error('[sentinel] Unhandled error:', internalMessage)
   res.status(500).json({
     error: {
       code: 'internal_error',
-      message,
+      message: 'An unexpected error occurred.',
     },
   })
 }

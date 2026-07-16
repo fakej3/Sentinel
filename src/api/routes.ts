@@ -1,6 +1,6 @@
 import { Router } from 'express'
 import type { Request, Response, NextFunction } from 'express'
-import { PIPELINE_VERSION } from './config'
+import { PIPELINE_VERSION, VALID_TIMEFRAMES } from './config'
 import { validateAnalyzeInput } from './middleware/validation'
 import type { AnalyzeFn, AnalyzeRequest } from './types'
 import type { Timeframe } from '../modules/market/types'
@@ -12,6 +12,22 @@ import { computeConfidence } from '../modules/confidence/index'
 import type { MarketAnalysisResult, EvidenceItem } from '../modules/analysis/types'
 import type { ValidationResult } from '../modules/validation/types'
 import { listHistory, getHistory, addHistory, deleteHistory } from './history-store'
+
+const HISTORY_ID_RE = /^\d{13}-[a-z0-9]{6}$/
+
+function isValidHistoryId(id: string): boolean {
+  return HISTORY_ID_RE.test(id)
+}
+
+function isValidResult(val: unknown): val is PipelineResult {
+  if (!val || typeof val !== 'object' || Array.isArray(val)) return false
+  const r = val as Record<string, unknown>
+  return (
+    r.confidence !== null && typeof r.confidence === 'object' &&
+    r.analysis   !== null && typeof r.analysis   === 'object' &&
+    typeof (r.confidence as Record<string, unknown>).score === 'number'
+  )
+}
 
 export function createRouter(analyzeFn: AnalyzeFn): Router {
   const router = Router()
@@ -51,27 +67,42 @@ export function createRouter(analyzeFn: AnalyzeFn): Router {
   })
 
   router.get('/history/:id', (req: Request, res: Response) => {
-    const entry = getHistory(String(req.params.id))
+    const id = String(req.params.id)
+    if (!isValidHistoryId(id)) {
+      res.status(404).json({ error: { code: 'not_found', message: 'Analysis not found.' } }); return
+    }
+    const entry = getHistory(id)
     if (!entry) { res.status(404).json({ error: { code: 'not_found', message: 'Analysis not found.' } }); return }
     res.json(entry)
   })
 
   router.post('/history', (req: Request, res: Response) => {
-    const { result, symbol, interval } = req.body as {
-      result: PipelineResult
-      symbol: string
-      interval: string
-    }
-    if (!result || !symbol || !interval) {
-      res.status(400).json({ error: { code: 'bad_request', message: 'result, symbol and interval are required.' } })
+    const body = req.body as Record<string, unknown>
+    const { result, symbol, interval } = body
+
+    if (typeof symbol !== 'string' || symbol.trim() === '' || symbol.trim().length > 20) {
+      res.status(400).json({ error: { code: 'bad_request', message: 'symbol must be a non-empty string (max 20 characters).' } })
       return
     }
-    const meta = addHistory(result, symbol, interval)
+    if (typeof interval !== 'string' || !VALID_TIMEFRAMES.has(interval)) {
+      res.status(400).json({ error: { code: 'bad_request', message: `interval must be one of: ${[...VALID_TIMEFRAMES].sort().join(', ')}.` } })
+      return
+    }
+    if (!isValidResult(result)) {
+      res.status(400).json({ error: { code: 'bad_request', message: 'result must be a valid analysis object.' } })
+      return
+    }
+
+    const meta = addHistory(result, symbol.trim(), interval)
     res.status(201).json(meta)
   })
 
   router.delete('/history/:id', (req: Request, res: Response) => {
-    const ok = deleteHistory(String(req.params.id))
+    const id = String(req.params.id)
+    if (!isValidHistoryId(id)) {
+      res.status(404).json({ error: { code: 'not_found', message: 'Analysis not found.' } }); return
+    }
+    const ok = deleteHistory(id)
     if (!ok) { res.status(404).json({ error: { code: 'not_found', message: 'Analysis not found.' } }); return }
     res.status(204).end()
   })

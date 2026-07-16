@@ -23,12 +23,22 @@ const analyzeFn = GEMINI_API_KEY
 
 const server = express()
 
-// CORS — allows the Vite dev server (port 5173) to reach the API
-server.use((_req, res, next) => {
-  res.setHeader('Access-Control-Allow-Origin', '*')
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type')
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, DELETE, OPTIONS')
-  if (_req.method === 'OPTIONS') { res.sendStatus(200); return }
+// CORS — restrict to an explicit origin allowlist.
+// In production the frontend is served by this same process (same origin), so no
+// CORS header is needed.  In development the Vite dev server runs on a different
+// port.  Set CORS_ORIGIN=<origin> to override for non-standard setups.
+const rawCorsOrigins = process.env.CORS_ORIGIN ?? (IS_PROD ? '' : 'http://localhost:5173')
+const CORS_ORIGINS = new Set(rawCorsOrigins.split(',').map(s => s.trim()).filter(Boolean))
+
+server.use((req, res, next) => {
+  const origin = req.headers.origin
+  if (origin && CORS_ORIGINS.has(origin)) {
+    res.setHeader('Access-Control-Allow-Origin', origin)
+    res.setHeader('Vary', 'Origin')
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type')
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, DELETE, OPTIONS')
+  }
+  if (req.method === 'OPTIONS') { res.sendStatus(204); return }
   next()
 })
 

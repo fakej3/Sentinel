@@ -11,9 +11,10 @@ export function validateAnalyzeInput(req: Request, res: Response, next: NextFunc
     return
   }
 
-  if (!body.symbol || typeof body.symbol !== 'string' || body.symbol.trim() === '') {
+  const sym = typeof body.symbol === 'string' ? body.symbol.trim() : ''
+  if (!sym || sym.length > 20) {
     res.status(400).json({
-      error: { code: 'invalid_request', message: 'symbol is required and must be a non-empty string' },
+      error: { code: 'invalid_request', message: 'symbol is required and must be a non-empty string (max 20 characters)' },
     })
     return
   }
