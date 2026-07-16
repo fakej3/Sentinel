@@ -1,3 +1,4 @@
+import { memo } from 'react'
 import { clsx } from 'clsx'
 import { LayoutGrid, BarChart2, Activity, Star, Clock, Settings, type LucideIcon } from 'lucide-react'
 import type { AppPage } from '../../types'
@@ -23,7 +24,7 @@ interface BottomNavProps {
   hasData: boolean
 }
 
-export function BottomNav({ activePage, onNavigate, hasData }: BottomNavProps) {
+export const BottomNav = memo(function BottomNav({ activePage, onNavigate, hasData }: BottomNavProps) {
   return (
     <nav
       className="md:hidden fixed bottom-0 inset-x-0 z-30 h-14 bg-surface-900 border-t border-border-subtle"
@@ -60,4 +61,4 @@ export function BottomNav({ activePage, onNavigate, hasData }: BottomNavProps) {
       </div>
     </nav>
   )
-}
+})

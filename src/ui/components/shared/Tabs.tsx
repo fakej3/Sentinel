@@ -1,3 +1,4 @@
+import { memo } from 'react'
 import { clsx } from 'clsx'
 import type { AppTab } from '../../types'
 
@@ -13,7 +14,7 @@ interface TabsProps {
   onChange: (tab: AppTab) => void
 }
 
-export function Tabs({ tabs, active, onChange }: TabsProps) {
+export const Tabs = memo(function Tabs({ tabs, active, onChange }: TabsProps) {
   return (
     <div className="sticky top-0 z-20 overflow-x-auto scrollbar-none bg-surface-900 border-b border-border-subtle">
       <div className="flex items-center gap-0.5 px-4 min-w-max">
@@ -51,7 +52,7 @@ export function Tabs({ tabs, active, onChange }: TabsProps) {
       </div>
     </div>
   )
-}
+})
 
 interface TabPanelProps {
   children: React.ReactNode

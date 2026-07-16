@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
 import { Clock, Search, Trash2, FolderOpen, RefreshCw } from 'lucide-react'
 import { clsx } from 'clsx'
 import { getTransport } from '../transport'
@@ -60,19 +60,19 @@ export function HistoryPage({
     }
   }, [onLoadEntry, onNavigate])
 
-  const filteredSaved = saved.filter(e => {
+  const filteredSaved = useMemo(() => saved.filter(e => {
     const matchSearch   = !search || e.symbol.includes(search.toUpperCase())
     const matchDecision = decision === 'All' || e.decision.toLowerCase().includes(decision.toLowerCase())
     const matchInterval = intervalF === 'All' || e.interval === intervalF
     return matchSearch && matchDecision && matchInterval
-  })
+  }), [saved, search, decision, intervalF])
 
-  const filteredRecent = recentAnalyses.filter(r => {
+  const filteredRecent = useMemo(() => recentAnalyses.filter(r => {
     const matchSearch   = !search || r.symbol.includes(search.toUpperCase())
     const matchDecision = decision === 'All' || (r.decision ?? '').toLowerCase().includes(decision.toLowerCase())
     const matchInterval = intervalF === 'All' || r.interval === intervalF
     return matchSearch && matchDecision && matchInterval
-  })
+  }), [recentAnalyses, search, decision, intervalF])
 
   return (
     <div className="p-4 pb-20 md:pb-4 space-y-4 animate-fade-in">

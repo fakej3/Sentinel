@@ -64,6 +64,7 @@ export function useAppState() {
     setSavedEntry(null)
   }, [setSymbol, setInterval])
 
+  const handleToggleSidebar       = useCallback(() => setSidebarCollapsed(c => !c), [setSidebarCollapsed])
   const handleAddToWatchlist      = useCallback((sym: string) => setWatchlist(p => p.includes(sym) ? p : [...p, sym]), [setWatchlist])
   const handleRemoveFromWatchlist = useCallback((sym: string) => setWatchlist(p => p.filter(s => s !== sym)), [setWatchlist])
 
@@ -107,6 +108,7 @@ export function useAppState() {
     handleAnalyze,
     handleSaveAnalysis,
     handleSelectSymbol,
+    handleToggleSidebar,
     handleAddToWatchlist,
     handleRemoveFromWatchlist,
     handleLoadEntry,

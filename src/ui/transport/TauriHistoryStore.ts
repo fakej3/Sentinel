@@ -19,6 +19,10 @@ interface HistoryFile {
   entries: HistoryEntry[]
 }
 
+// In-memory cache — avoids re-reading and re-parsing history.json on every
+// listHistory / getHistory call. Invalidated on every write.
+let _cache: HistoryEntry[] | null = null
+
 function migrate(raw: unknown): HistoryEntry[] {
   // Pre-versioning: the file was a plain HistoryEntry[]
   if (Array.isArray(raw)) return raw as HistoryEntry[]
@@ -31,19 +35,22 @@ function migrate(raw: unknown): HistoryEntry[] {
 }
 
 async function load(): Promise<HistoryEntry[]> {
+  if (_cache) return _cache
   try {
     const dirExists = await exists(HISTORY_DIR, { baseDir: BASE })
-    if (!dirExists) return []
+    if (!dirExists) return (_cache = [])
     const fileExists = await exists(HISTORY_FILE, { baseDir: BASE })
-    if (!fileExists) return []
+    if (!fileExists) return (_cache = [])
     const raw = await readTextFile(HISTORY_FILE, { baseDir: BASE })
-    return migrate(JSON.parse(raw) as unknown)
+    return (_cache = migrate(JSON.parse(raw) as unknown))
   } catch {
-    return []
+    return (_cache = [])
   }
 }
 
 async function persist(entries: HistoryEntry[]): Promise<void> {
+  // Update cache before the async write so in-flight reads see the new data.
+  _cache = entries
   const dirExists = await exists(HISTORY_DIR, { baseDir: BASE })
   if (!dirExists) {
     await mkdir(HISTORY_DIR, { baseDir: BASE, recursive: true })

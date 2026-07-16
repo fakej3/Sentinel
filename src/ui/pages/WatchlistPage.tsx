@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { Star, Plus, X, Search } from 'lucide-react'
 import { clsx } from 'clsx'
 import { formatScore, formatTimeAgo } from '../utils/format'
@@ -24,15 +24,22 @@ export function WatchlistPage({
   const [search,    setSearch   ] = useState('')
   const [newSymbol, setNewSymbol] = useState('')
 
-  const effectiveWatchlist = watchlist.length > 0 ? watchlist : DEFAULT_WATCHLIST
+  const effectiveWatchlist = useMemo(
+    () => watchlist.length > 0 ? watchlist : DEFAULT_WATCHLIST,
+    [watchlist],
+  )
 
-  const recentBySymbol = new Map<string, RecentAnalysis>()
-  for (const r of recentAnalyses) {
-    if (!recentBySymbol.has(r.symbol)) recentBySymbol.set(r.symbol, r)
-  }
+  const recentBySymbol = useMemo(() => {
+    const map = new Map<string, RecentAnalysis>()
+    for (const r of recentAnalyses) {
+      if (!map.has(r.symbol)) map.set(r.symbol, r)
+    }
+    return map
+  }, [recentAnalyses])
 
-  const filtered = effectiveWatchlist.filter(sym =>
-    sym.toLowerCase().includes(search.toLowerCase())
+  const filtered = useMemo(
+    () => effectiveWatchlist.filter(sym => sym.toLowerCase().includes(search.toLowerCase())),
+    [effectiveWatchlist, search],
   )
 
   const handleAdd = () => {

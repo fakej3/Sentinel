@@ -1,4 +1,4 @@
-import { useEffect, lazy, Suspense } from 'react'
+import { useEffect, useRef, lazy, Suspense } from 'react'
 import { Header } from './ui/components/layout/Header'
 import { Sidebar } from './ui/components/layout/Sidebar'
 import { BottomNav } from './ui/components/layout/BottomNav'
@@ -22,7 +22,7 @@ export default function App() {
     symbol, setSymbol,
     interval, setInterval,
     page, setPage,
-    sidebarCollapsed, setSidebarCollapsed,
+    sidebarCollapsed,
     watchlist,
     recentAnalyses,
     savedEntry,
@@ -31,6 +31,7 @@ export default function App() {
     handleAnalyze,
     handleSaveAnalysis,
     handleSelectSymbol,
+    handleToggleSidebar,
     handleAddToWatchlist,
     handleRemoveFromWatchlist,
     handleLoadEntry,
@@ -39,25 +40,33 @@ export default function App() {
     handleClearAll,
   } = useAppState()
 
-  // Global keyboard shortcuts
+  // Refs so the keyboard handler is installed once and always sees current values.
+  const handleAnalyzeRef = useRef(handleAnalyze)
+  const cancelRef        = useRef(cancel)
+  const loadingRef       = useRef(loading)
+  useEffect(() => { handleAnalyzeRef.current = handleAnalyze }, [handleAnalyze])
+  useEffect(() => { cancelRef.current        = cancel        }, [cancel])
+  useEffect(() => { loadingRef.current       = loading       }, [loading])
+
+  // Global keyboard shortcuts — registered once, never torn down.
   useEffect(() => {
     function onKeyDown(e: KeyboardEvent) {
       const inInput = (e.target as Element)?.tagName === 'INPUT' || (e.target as Element)?.tagName === 'TEXTAREA'
       if ((e.ctrlKey || e.metaKey) && e.key === 'r' && !e.shiftKey && !inInput) {
         e.preventDefault()
-        handleAnalyze()
+        handleAnalyzeRef.current()
       }
       if (e.key === 'F5' && !inInput) {
         e.preventDefault()
-        handleAnalyze()
+        handleAnalyzeRef.current()
       }
-      if (e.key === 'Escape' && loading) {
-        cancel()
+      if (e.key === 'Escape' && loadingRef.current) {
+        cancelRef.current()
       }
     }
     window.addEventListener('keydown', onKeyDown)
     return () => window.removeEventListener('keydown', onKeyDown)
-  }, [handleAnalyze, loading, cancel])
+  }, []) // empty deps — install once, use refs for current values
 
   // Window title — update to reflect current symbol in Tauri
   useEffect(() => {
@@ -74,7 +83,7 @@ export default function App() {
     <div className="h-screen flex flex-col overflow-hidden bg-surface-950 text-slate-200">
       <Header
         sidebarCollapsed={sidebarCollapsed}
-        onToggleSidebar={() => setSidebarCollapsed(c => !c)}
+        onToggleSidebar={handleToggleSidebar}
         symbol={symbol}
         interval={interval}
         loading={loading}

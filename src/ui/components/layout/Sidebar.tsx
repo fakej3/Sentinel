@@ -1,3 +1,4 @@
+import { memo } from 'react'
 import { clsx } from 'clsx'
 import { LayoutGrid, BarChart2, Activity, Star, Clock, Settings, type LucideIcon } from 'lucide-react'
 import type { AppPage } from '../../types'
@@ -23,7 +24,7 @@ interface SidebarProps {
   onNavigate: (page: AppPage) => void
 }
 
-export function Sidebar({ collapsed, activePage, onNavigate }: SidebarProps) {
+export const Sidebar = memo(function Sidebar({ collapsed, activePage, onNavigate }: SidebarProps) {
   return (
     <aside
       className={clsx(
@@ -63,4 +64,4 @@ export function Sidebar({ collapsed, activePage, onNavigate }: SidebarProps) {
       </nav>
     </aside>
   )
-}
+})

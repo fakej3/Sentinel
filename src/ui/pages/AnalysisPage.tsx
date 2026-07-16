@@ -1,4 +1,4 @@
-import { lazy, Suspense } from 'react'
+import { lazy, Suspense, useMemo, useCallback } from 'react'
 import { Activity, Save, Check } from 'lucide-react'
 import { Tabs, TabPanel } from '../components/shared/Tabs'
 import { SkeletonDashboard } from '../components/shared/Skeleton'
@@ -30,6 +30,23 @@ interface AnalysisPageProps {
 export function AnalysisPage({ data, loading, onAnalyze, onSave, symbol, savedEntry, saving }: AnalysisPageProps) {
   const [activeTab, setActiveTab] = useLocalStorage<AppTab>(STORAGE_KEYS.analysisTab, 'summary')
 
+  // Memoized so Tabs receives a stable array reference between renders.
+  // count values are undefined when data is null; the early returns below
+  // ensure the rendered Tabs always has a valid result in hand.
+  const tabs = useMemo((): TabDef[] => [
+    { id: 'summary',    label: 'Summary' },
+    { id: 'trade',      label: 'Trade' },
+    { id: 'evidence',   label: 'Evidence',   count: data?.analysis.evidence.length },
+    { id: 'overview',   label: 'Overview' },
+    { id: 'indicators', label: 'Indicators' },
+    { id: 'structure',  label: 'Structure' },
+    { id: 'volume',     label: 'Volume' },
+    { id: 'validation', label: 'Validation', count: data?.validation.issues.length },
+    { id: 'writer',     label: 'Writer' },
+  ], [data?.analysis.evidence.length, data?.validation.issues.length])
+
+  const handleTabChange = useCallback((tab: AppTab) => setActiveTab(tab), [setActiveTab])
+
   if (loading) return <SkeletonDashboard />
 
   if (!data) {
@@ -54,21 +71,6 @@ export function AnalysisPage({ data, loading, onAnalyze, onSave, symbol, savedEn
       </div>
     )
   }
-
-  const evidenceCount = data.analysis.evidence.length
-  const issueCount    = data.validation.issues.length
-
-  const tabs: TabDef[] = [
-    { id: 'summary',    label: 'Summary' },
-    { id: 'trade',      label: 'Trade' },
-    { id: 'evidence',   label: 'Evidence',   count: evidenceCount },
-    { id: 'overview',   label: 'Overview' },
-    { id: 'indicators', label: 'Indicators' },
-    { id: 'structure',  label: 'Structure' },
-    { id: 'volume',     label: 'Volume' },
-    { id: 'validation', label: 'Validation', count: issueCount },
-    { id: 'writer',     label: 'Writer' },
-  ]
 
   return (
     <div className="animate-fade-in">
@@ -99,7 +101,7 @@ export function AnalysisPage({ data, loading, onAnalyze, onSave, symbol, savedEn
           )}
         </button>
       </div>
-      <Tabs tabs={tabs} active={activeTab} onChange={tab => setActiveTab(tab as AppTab)} />
+      <Tabs tabs={tabs} active={activeTab} onChange={handleTabChange} />
       <Suspense fallback={<SkeletonDashboard />}>
         <TabPanel>
           {activeTab === 'summary'    && <SummaryTab    result={data} />}
