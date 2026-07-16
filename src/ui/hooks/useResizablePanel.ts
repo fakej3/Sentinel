@@ -1,5 +1,4 @@
-import { useCallback } from 'react'
-import { useRef } from 'react'
+import { useCallback, useEffect, useRef } from 'react'
 import { useLocalStorage } from './useLocalStorage'
 
 export const CHART_HEIGHT_MIN = 300
@@ -19,6 +18,23 @@ export function useResizablePanel(
   const [size, setSize] = useLocalStorage(storageKey, defaultSize)
   const containerRef = useRef<HTMLDivElement>(null)
 
+  // Holds the active drag listeners so they can be removed on unmount.
+  const activeDragRef = useRef<{
+    onMove: (e: MouseEvent) => void
+    onUp:   (e: MouseEvent) => void
+  } | null>(null)
+
+  // Remove any in-progress drag listeners when the panel unmounts.
+  useEffect(() => () => {
+    if (activeDragRef.current) {
+      document.removeEventListener('mousemove', activeDragRef.current.onMove)
+      document.removeEventListener('mouseup',   activeDragRef.current.onUp)
+      document.body.style.cursor     = ''
+      document.body.style.userSelect = ''
+      activeDragRef.current = null
+    }
+  }, [])
+
   const startDrag = useCallback(
     (e: React.MouseEvent) => {
       if (!containerRef.current) return
@@ -34,14 +50,16 @@ export function useResizablePanel(
       const onUp = (ue: MouseEvent) => {
         document.removeEventListener('mousemove', onMove)
         document.removeEventListener('mouseup', onUp)
-        document.body.style.cursor = ''
+        activeDragRef.current = null
+        document.body.style.cursor     = ''
         document.body.style.userSelect = ''
         setSize(clampSize(startH + (ue.clientY - startY), min, max))
       }
 
+      activeDragRef.current = { onMove, onUp }
       document.addEventListener('mousemove', onMove)
       document.addEventListener('mouseup', onUp)
-      document.body.style.cursor = 'ns-resize'
+      document.body.style.cursor     = 'ns-resize'
       document.body.style.userSelect = 'none'
       e.preventDefault()
     },

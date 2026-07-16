@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { Settings, Trash2, Database, Wifi, Key, Eye, EyeOff, Check, AlertTriangle } from 'lucide-react'
 import { clsx } from 'clsx'
 import { useApiStatus } from '../hooks/useApiStatus'
@@ -146,11 +146,17 @@ function GeminiKeySection() {
   const [key, setKey]         = useState(() => localStorage.getItem(STORAGE_KEYS.geminiKey) ?? '')
   const [visible, setVisible] = useState(false)
   const [saved, setSaved]     = useState(false)
+  const timerRef              = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  useEffect(() => () => {
+    if (timerRef.current !== null) clearTimeout(timerRef.current)
+  }, [])
 
   function handleSave() {
     localStorage.setItem(STORAGE_KEYS.geminiKey, key.trim())
     setSaved(true)
-    setTimeout(() => setSaved(false), 2000)
+    if (timerRef.current !== null) clearTimeout(timerRef.current)
+    timerRef.current = setTimeout(() => setSaved(false), 2000)
   }
 
   return (

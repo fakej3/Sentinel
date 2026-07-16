@@ -12,6 +12,7 @@ interface State {
 
 export class ErrorBoundary extends Component<Props, State> {
   state: State = { error: null, copied: false }
+  private copyTimer: ReturnType<typeof setTimeout> | null = null
 
   static getDerivedStateFromError(error: Error): State {
     return { error, copied: false }
@@ -22,13 +23,18 @@ export class ErrorBoundary extends Component<Props, State> {
     console.error('[Sentinel] Uncaught error:', error, info.componentStack)
   }
 
+  componentWillUnmount() {
+    if (this.copyTimer !== null) clearTimeout(this.copyTimer)
+  }
+
   private copyDetails = () => {
     const { error } = this.state
     if (!error) return
     const text = `Sentinel ${__APP_VERSION__} — unhandled error\n\n${error.name}: ${error.message}`
     navigator.clipboard.writeText(text).then(() => {
       this.setState({ copied: true })
-      setTimeout(() => this.setState({ copied: false }), 2000)
+      if (this.copyTimer !== null) clearTimeout(this.copyTimer)
+      this.copyTimer = setTimeout(() => this.setState({ copied: false }), 2000)
     }).catch(() => {})
   }
 
