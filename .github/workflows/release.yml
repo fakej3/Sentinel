@@ -29,7 +29,7 @@ on:
 #
 # GITHUB_TOKEN is provided automatically by Actions — no setup needed.
 #
-# See desktop/docs/RELEASING.md for step-by-step instructions to generate each secret.
+# See desktop/docs/VERSIONING.md for the release process and steps to generate each secret.
 
 permissions:
   contents: write   # required to create GitHub Releases and upload artifacts
