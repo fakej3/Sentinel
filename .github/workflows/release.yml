@@ -16,8 +16,8 @@ on:
 
 # Required secrets — configure these in Settings → Secrets → Actions:
 #
-#   TAURI_SIGNING_PRIVATE_KEY          (required for updater signatures)
-#   TAURI_SIGNING_PRIVATE_KEY_PASSWORD (passphrase for the key above)
+#   TAURI_SIGNING_PRIVATE_KEY          (for updater bundle signing — leave unset if updater is not configured)
+#   TAURI_SIGNING_PRIVATE_KEY_PASSWORD (passphrase for the key above — leave unset if key is unset)
 #
 # macOS notarization (required for Gatekeeper approval on macOS):
 #   APPLE_CERTIFICATE                  (base64-encoded .p12 Developer ID certificate)

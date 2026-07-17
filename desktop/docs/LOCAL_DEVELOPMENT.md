@@ -11,7 +11,7 @@ This document covers all three.
 - **Rust toolchain** (for desktop builds only) — install via [rustup.rs](https://rustup.rs)
 - **Linux desktop deps** (for desktop builds on Linux):
   ```bash
-  sudo apt-get install libgtk-3-dev libwebkit2gtk-4.1-dev libayatana-appindicator3-dev librsvg2-dev
+  sudo apt-get install libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf libgtk-3-dev libssl-dev
   ```
 
 ---

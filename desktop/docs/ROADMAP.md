@@ -51,7 +51,8 @@ Detect alignment between timeframes (e.g., 1h and 4h both showing bullish struct
 Let users adjust the weight given to each evidence factor in the confidence scoring system, with a reset-to-defaults option.
 
 ### macOS / Windows Installers
-Currently producing Linux packages (.deb, .rpm). macOS (.dmg) and Windows (.msi) require platform-specific build runners.
+The release CI builds all three platforms (Linux, macOS, Windows) via the `release.yml` workflow matrix.
+macOS installers require a valid `APPLE_CERTIFICATE` and related notarization secrets to pass Gatekeeper. Without them the build still succeeds but the `.dmg` will trigger an unsigned-app warning on macOS.
 
 ---
 
