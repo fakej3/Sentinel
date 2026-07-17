@@ -65,10 +65,3 @@ export function formatInterval(interval: string): string {
   return map[interval] ?? interval
 }
 
-export function clampTo01(v: number): number {
-  return Math.max(0, Math.min(1, v))
-}
-
-export function pctOf10(score: number): number {
-  return clampTo01(score / 10) * 100
-}

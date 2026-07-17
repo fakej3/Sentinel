@@ -27,34 +27,6 @@ export function SkeletonCard({ className }: { className?: string }) {
   )
 }
 
-export function SkeletonRow({ className }: { className?: string }) {
-  return (
-    <div className={clsx('flex items-center gap-3', className)}>
-      <Skeleton rounded className="h-8 w-8 flex-shrink-0" />
-      <div className="flex-1 space-y-2">
-        <Skeleton className="h-3 w-3/4" />
-        <Skeleton className="h-3 w-1/2" />
-      </div>
-    </div>
-  )
-}
-
-export function SkeletonPriceHeader() {
-  return (
-    <div className="px-6 py-4 border-b border-border-subtle space-y-3">
-      <div className="flex items-center gap-4">
-        <Skeleton className="h-7 w-32" />
-        <Skeleton className="h-5 w-20" />
-      </div>
-      <div className="flex items-end gap-4">
-        <Skeleton className="h-10 w-40" />
-        <Skeleton className="h-5 w-16" />
-        <Skeleton className="h-5 w-24" />
-      </div>
-    </div>
-  )
-}
-
 export function SkeletonDashboard() {
   return (
     <div className="p-4 space-y-4 animate-in">

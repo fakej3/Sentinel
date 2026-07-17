@@ -29,18 +29,6 @@ export function rsiLabel(classification: string, rsi: number | null): string {
   }
 }
 
-export function macdLabel(bias: string, histogram?: number | null): string {
-  const histNote = histogram !== undefined && histogram !== null
-    ? ` (histogram ${histogram > 0 ? '+' : ''}${histogram.toFixed(4)})`
-    : ''
-  switch (bias) {
-    case 'bullish':    return `MACD crossing up — bullish momentum building${histNote}`
-    case 'bearish':    return `MACD crossing down — bearish momentum building${histNote}`
-    case 'neutral':    return `MACD near zero — no clear directional momentum${histNote}`
-    default:           return `MACD ${bias}${histNote}`
-  }
-}
-
 export function volumeLabel(classification: string, relVol: number): string {
   const relStr = `${relVol.toFixed(1)}× average`
   switch (classification) {
@@ -67,13 +55,6 @@ export function emaAlignmentLabel(alignment: string): string {
     case 'mixed':         return 'EMAs mixed — no clear stack alignment'
     default:              return alignment.replace(/_/g, ' ')
   }
-}
-
-export function structureLabel(trend: string, strength: string): string {
-  const t = trend === 'uptrend' ? 'Higher highs and higher lows'
-    : trend === 'downtrend' ? 'Lower highs and lower lows'
-    : 'Ranging structure'
-  return `${t} — ${strength} structure`
 }
 
 export function gradeLabel(grade: string): string {

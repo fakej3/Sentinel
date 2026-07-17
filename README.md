@@ -8,7 +8,7 @@ Available as a desktop app (Tauri), a REST API server, and a CLI tool.
 
 ## Features
 
-- **10-stage analysis pipeline** — candle data → indicators → market structure → support/resistance → volume → trend synthesis → validation → confidence → trade plan → AI-enhanced report
+- **11-stage analysis pipeline** — candle data → indicators → market structure → support/resistance → volume → trend synthesis → validation → confidence → trade plan → writer → AI-enhanced report
 - **Deterministic engine** — identical inputs always produce identical outputs; every value is traceable to its source candle
 - **Confidence scoring** — evidence-weighted 0–10 score with A–E grade and trust level
 - **Trade plan generation** — entry zone, stop level, target, risk/reward ratio, and trade maturity score
@@ -249,6 +249,8 @@ cp .env.example .env.local
 | `VITE_API_URL` | `http://localhost:3000` | API server base URL (web mode) |
 | `PORT` | `3000` | API server port |
 | `GEMINI_API_KEY` | _(none)_ | Optional — enables AI narrative enhancement (server mode) |
+| `CORS_ORIGIN` | `http://localhost:5173` (dev) | Comma-separated list of allowed CORS origins; empty disables CORS |
+| `SENTINEL_DEBUG` | _(none)_ | Set to `true` to enable debug endpoints (`/api/debug-confidence`, `/api/debug-pipeline`) |
 
 In **desktop mode**, the Gemini key is set in the UI (Settings → Gemini AI Key) and stored locally.
 

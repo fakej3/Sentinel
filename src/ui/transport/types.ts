@@ -65,8 +65,7 @@ export interface HistoryEntry extends HistoryMeta {
 
 /**
  * Decouples the React UI from any specific transport mechanism.
- * Current implementation: HttpTransport (Express HTTP).
- * Future implementations: TauriTransport, MobileTransport.
+ * Implementations: HttpTransport (Express HTTP) and TauriTransport (in-process).
  */
 export interface AnalysisTransport {
   /** Run the full analysis pipeline for a symbol/interval. */

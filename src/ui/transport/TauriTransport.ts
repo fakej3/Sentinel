@@ -27,8 +27,7 @@ function friendlyForCode(code: string, fallback: string): string {
  * no sidecar, no Express, no HTTP round-trip. All pipeline modules use only
  * Web APIs (fetch, AbortController, URLSearchParams) and are browser-safe.
  *
- * Gemini API key is injected at call time from localStorage (Module 5 wires
- * the UI for this). History is implemented in Module 4.
+ * Gemini API key is injected at call time from localStorage (set by SettingsPage).
  */
 export class TauriTransport implements AnalysisTransport {
   async analyze(
@@ -41,8 +40,7 @@ export class TauriTransport implements AnalysisTransport {
       throw new SentinelApiError({ kind: 'abort', friendly: 'Request cancelled.' })
     }
 
-    // Gemini key from localStorage — set by Settings UI (Module 5).
-    // Empty string → Gemini disabled; pipeline works without it.
+    // Gemini key from localStorage — empty string disables Gemini; pipeline works without it.
     const geminiKey = typeof localStorage !== 'undefined'
       ? (localStorage.getItem(STORAGE_KEYS.geminiKey) ?? '')
       : ''

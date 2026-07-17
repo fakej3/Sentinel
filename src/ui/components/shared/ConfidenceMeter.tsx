@@ -75,29 +75,3 @@ export function ConfidenceMeter({ score, grade, size = 120 }: ConfidenceMeterPro
   )
 }
 
-interface MiniMeterProps {
-  label: string
-  score: number
-  max?: number
-  colorClass?: string
-}
-
-export function MiniMeter({ label, score, max = 10, colorClass }: MiniMeterProps) {
-  const pct = Math.max(0, Math.min(1, score / max)) * 100
-  const color = colorClass ?? (score >= 7 ? 'bg-emerald-400' : score >= 4 ? 'bg-blue-400' : 'bg-red-400')
-
-  return (
-    <div className="space-y-1">
-      <div className="flex items-center justify-between">
-        <span className="text-xs text-slate-400">{label}</span>
-        <span className="text-xs font-mono text-slate-300">{score.toFixed(1)}</span>
-      </div>
-      <div className="h-1 bg-surface-600 rounded-full overflow-hidden">
-        <div
-          className={`h-full rounded-full transition-all duration-700 ${color}`}
-          style={{ width: `${pct}%` }}
-        />
-      </div>
-    </div>
-  )
-}

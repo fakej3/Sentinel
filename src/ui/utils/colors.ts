@@ -35,16 +35,6 @@ export function gradeColor(grade: ConfidenceGrade): string {
   }
 }
 
-export function gradeBg(grade: ConfidenceGrade): string {
-  switch (grade) {
-    case 'very_strong': return 'bg-emerald-400/10 text-emerald-300 border-emerald-400/20'
-    case 'strong': return 'bg-emerald-400/10 text-emerald-400 border-emerald-400/20'
-    case 'moderate': return 'bg-blue-400/10 text-blue-400 border-blue-400/20'
-    case 'mixed': return 'bg-amber-400/10 text-amber-400 border-amber-400/20'
-    case 'weak': return 'bg-red-400/10 text-red-400 border-red-400/20'
-  }
-}
-
 export function trendColor(trend: FullTrendLabel | string): string {
   if (trend.includes('bullish')) return 'text-emerald-400'
   if (trend.includes('bearish')) return 'text-red-400'
@@ -55,14 +45,6 @@ export function trendBg(trend: FullTrendLabel | string): string {
   if (trend.includes('bullish')) return 'bg-emerald-400/10 text-emerald-400 border-emerald-400/20'
   if (trend.includes('bearish')) return 'bg-red-400/10 text-red-400 border-red-400/20'
   return 'bg-slate-400/10 text-slate-400 border-slate-400/20'
-}
-
-export function scoreGradient(score: number): string {
-  if (score >= 8.5) return 'from-emerald-500 to-emerald-400'
-  if (score >= 7.0) return 'from-emerald-600 to-emerald-500'
-  if (score >= 5.0) return 'from-blue-600 to-blue-500'
-  if (score >= 3.0) return 'from-amber-600 to-amber-500'
-  return 'from-red-700 to-red-600'
 }
 
 export function scoreColor(score: number): string {
@@ -85,16 +67,6 @@ export function changeColor(pct: number): string {
   if (pct > 0) return 'text-emerald-400'
   if (pct < 0) return 'text-red-400'
   return 'text-slate-400'
-}
-
-export function validityColor(passed: boolean): string {
-  return passed ? 'text-emerald-400' : 'text-red-400'
-}
-
-export function severityColor(severity: string): string {
-  if (severity === 'critical') return 'text-red-400'
-  if (severity === 'warning') return 'text-amber-400'
-  return 'text-blue-400'
 }
 
 export function severityBg(severity: string): string {

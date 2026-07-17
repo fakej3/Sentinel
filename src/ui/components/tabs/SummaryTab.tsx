@@ -494,7 +494,7 @@ function SanityFlagsPanel({ audit }: { audit: ConfidenceSanityResult }) {
   )
 }
 
-// ── Module 41 — Trade Maturity Widget ────────────────────────────────────────
+// ── Trade Maturity Widget ─────────────────────────────────────────────────────
 
 type MaturityLabel = 'immature' | 'early' | 'developing' | 'mature' | 'peak'
 
@@ -709,7 +709,6 @@ export function SummaryTab({ result }: SummaryTabProps) {
         </Card>
       )}
 
-      {/* Trader's Take (Module 31 — additional opinion layer) */}
       <TraderReviewPanel review={traderReview} />
 
       {/* Q2: Why? — top evidence */}
@@ -725,7 +724,6 @@ export function SummaryTab({ result }: SummaryTabProps) {
         </Card>
       )}
 
-      {/* Market Story — deterministic narrative (Module 31) */}
       <Card className="p-4">
         <p className="section-label mb-2">Market Story</p>
         <p className="text-sm text-slate-300 leading-relaxed">{marketStory.text}</p>
@@ -786,7 +784,6 @@ export function SummaryTab({ result }: SummaryTabProps) {
         </div>
       )}
 
-      {/* Module 41 — Trade Maturity Score */}
       <MaturityWidget
         score={tradePlan.maturityScore}
         label={tradePlan.maturityLabel as MaturityLabel}
@@ -845,7 +842,6 @@ export function SummaryTab({ result }: SummaryTabProps) {
         </div>
       </Card>
 
-      {/* Sanity Flags (Module 31 — diagnostic layer) */}
       <SanityFlagsPanel audit={sanityAudit} />
 
       {/* Validation warning banner */}
