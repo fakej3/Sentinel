@@ -246,9 +246,9 @@ export function HistoryPage({
           <div className="space-y-1">
             {filteredRecent.length === 0 ? (
               <p className="text-xs text-slate-500 text-center py-3">No matching analyses</p>
-            ) : filteredRecent.map((r, i) => (
+            ) : filteredRecent.map((r) => (
               <div
-                key={i}
+                key={`${r.symbol}-${r.interval}-${r.timestamp}`}
                 onClick={() => { onSelectSymbol(r.symbol, r.interval); onNavigate('analysis') }}
                 role="button"
                 tabIndex={0}

@@ -17,10 +17,13 @@ interface TabsProps {
 export const Tabs = memo(function Tabs({ tabs, active, onChange }: TabsProps) {
   return (
     <div className="sticky top-0 z-20 overflow-x-auto scrollbar-none bg-surface-900 border-b border-border-subtle">
-      <div className="flex items-center gap-0.5 px-4 min-w-max">
+      <div role="tablist" aria-label="Analysis tabs" className="flex items-center gap-0.5 px-4 min-w-max">
         {tabs.map(tab => (
           <button
             key={tab.id}
+            role="tab"
+            aria-selected={active === tab.id}
+            id={`tab-${tab.id}`}
             onClick={() => onChange(tab.id)}
             className={clsx(
               'relative px-3.5 py-2.5 text-xs font-medium transition-all duration-150 rounded-t-md',
@@ -61,7 +64,7 @@ interface TabPanelProps {
 
 export function TabPanel({ children, className }: TabPanelProps) {
   return (
-    <div className={clsx('animate-fade-in', className)}>
+    <div role="tabpanel" className={clsx('animate-fade-in', className)}>
       {children}
     </div>
   )

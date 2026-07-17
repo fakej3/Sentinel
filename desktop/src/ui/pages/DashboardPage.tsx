@@ -215,9 +215,9 @@ export function DashboardPage({
             </button>
           </div>
           <div className="space-y-1">
-            {recentAnalyses.slice(0, 3).map((r, i) => (
+            {recentAnalyses.slice(0, 3).map((r) => (
               <div
-                key={i}
+                key={`${r.symbol}-${r.interval}-${r.timestamp}`}
                 onClick={() => { onSymbolSelect(r.symbol, r.interval); onNavigate('analysis') }}
                 role="button"
                 tabIndex={0}
@@ -349,9 +349,9 @@ function EmptyDashboard({ symbol, loading, error, onAnalyze, recentAnalyses, onS
         <div className="mt-10 w-full max-w-xs">
           <p className="section-label mb-2 text-center">Recent</p>
           <div className="space-y-1">
-            {recentAnalyses.slice(0, 3).map((r, i) => (
+            {recentAnalyses.slice(0, 3).map((r) => (
               <div
-                key={i}
+                key={`${r.symbol}-${r.interval}-${r.timestamp}`}
                 onClick={() => onSymbolSelect(r.symbol, r.interval)}
                 role="button"
                 tabIndex={0}
