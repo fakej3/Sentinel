@@ -29,7 +29,7 @@ on:
 #
 # GITHUB_TOKEN is provided automatically by Actions — no setup needed.
 #
-# See docs/RELEASING.md for step-by-step instructions to generate each secret.
+# See desktop/docs/RELEASING.md for step-by-step instructions to generate each secret.
 
 permissions:
   contents: write   # required to create GitHub Releases and upload artifacts
@@ -57,15 +57,17 @@ jobs:
         with:
           node-version: 20
           cache: npm
+          cache-dependency-path: desktop/package-lock.json
 
       - run: npm ci
+        working-directory: desktop
 
       # ── Rust ───────────────────────────────────────────────────────────────
       - uses: dtolnay/rust-toolchain@stable
 
       - uses: swatinem/rust-cache@v2
         with:
-          workspaces: src-tauri
+          workspaces: desktop/src-tauri
 
       # ── Linux system dependencies ──────────────────────────────────────────
       - name: Install Linux build dependencies
@@ -109,10 +111,11 @@ jobs:
           APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
           APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
         with:
+          projectPath: desktop
           tagName: ${{ github.ref_name }}
           releaseName: 'Sentinel ${{ github.ref_name }}'
           releaseBody: |
-            See [CHANGELOG](https://github.com/${{ github.repository }}/blob/main/docs/CHANGELOG.md)
+            See [CHANGELOG](https://github.com/${{ github.repository }}/blob/main/desktop/docs/CHANGELOG.md)
             for what changed in this release.
           releaseDraft: ${{ github.event.inputs.draft == 'true' || github.event_name == 'push' }}
           prerelease: ${{ contains(github.ref_name, '-rc') || contains(github.ref_name, '-beta') || contains(github.ref_name, '-alpha') }}

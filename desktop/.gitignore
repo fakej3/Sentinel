@@ -1,0 +1,15 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+*.tsbuildinfo
+
+# Tauri build artifacts
+src-tauri/target/
+
+# Runtime-generated data
+data/
+
+# Environment files
+.env.local

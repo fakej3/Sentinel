@@ -1,0 +1,88 @@
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --ink: #0a0d14;
+  --surface: #0f1322;
+  --surface-raised: #141a2e;
+  --surface-high: #1a2240;
+  --border: #1e2a45;
+  --border-strong: #2a3a5c;
+  --text: #e8edf5;
+  --text-dim: #7a8ba8;
+  --text-faint: #3d4f6a;
+  --accent: #2f7bff;
+  --accent-glow: rgba(47, 123, 255, 0.15);
+  --accent-dim: #1a4499;
+  --signal: #f0a830;
+  --signal-dim: rgba(240, 168, 48, 0.12);
+  --bull: #22c55e;
+  --bull-dim: rgba(34, 197, 94, 0.12);
+  --bear: #ef4444;
+
+  --font-sans: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-mono: "JetBrains Mono", "Fira Code", ui-monospace, Menlo, monospace;
+
+  color-scheme: dark;
+}
+
+@media (prefers-color-scheme: light) {
+  :root {
+    --ink: #f0f4fc;
+    --surface: #ffffff;
+    --surface-raised: #f5f7ff;
+    --surface-high: #eaeffa;
+    --border: #d0d9ef;
+    --border-strong: #b0bedd;
+    --text: #0d1628;
+    --text-dim: #4a5a78;
+    --text-faint: #9aaac8;
+    --accent-glow: rgba(47, 123, 255, 0.08);
+  }
+}
+
+:root[data-theme="dark"] {
+  --ink: #0a0d14;
+  --surface: #0f1322;
+  --surface-raised: #141a2e;
+  --surface-high: #1a2240;
+  --border: #1e2a45;
+  --border-strong: #2a3a5c;
+  --text: #e8edf5;
+  --text-dim: #7a8ba8;
+  --text-faint: #3d4f6a;
+  --accent-glow: rgba(47, 123, 255, 0.15);
+  color-scheme: dark;
+}
+
+:root[data-theme="light"] {
+  --ink: #f0f4fc;
+  --surface: #ffffff;
+  --surface-raised: #f5f7ff;
+  --surface-high: #eaeffa;
+  --border: #d0d9ef;
+  --border-strong: #b0bedd;
+  --text: #0d1628;
+  --text-dim: #4a5a78;
+  --text-faint: #9aaac8;
+  --accent-glow: rgba(47, 123, 255, 0.08);
+  color-scheme: light;
+}
+
+html { scroll-behavior: smooth; }
+
+body {
+  font-family: var(--font-sans);
+  background: var(--ink);
+  color: var(--text);
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+
+a { color: inherit; text-decoration: none; }
+button { cursor: pointer; font-family: inherit; }
+
+.mono { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+}

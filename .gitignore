@@ -1,23 +1,17 @@
-# Dependencies
-node_modules/
-
-# Build output
-dist/
-*.tsbuildinfo
-
-# Tauri build artifacts
-src-tauri/target/
-
-# Runtime-generated data (created automatically by the API server on first save)
-data/
-
-# Environment files
-.env.local
-*.local
-
 # macOS
 .DS_Store
 
 # Editor
 .vscode/
 .idea/
+
+# Environment files
+*.local
+
+# Build artifacts (each subproject also has its own .gitignore)
+node_modules/
+dist/
+*.tsbuildinfo
+
+# Runtime data
+data/
