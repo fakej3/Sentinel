@@ -91,7 +91,7 @@ npm run tauri:dev      # desktop (Tauri window)
 ```bash
 cd desktop
 npm install
-npm run dev            # frontend + API at http://localhost:5173
+npm run dev            # frontend: http://localhost:5173 · API: http://localhost:3000
 ```
 
 ### Run the website locally
@@ -110,26 +110,27 @@ See [`desktop/docs/LOCAL_DEVELOPMENT.md`](desktop/docs/LOCAL_DEVELOPMENT.md) for
 
 ```
 Sentinel/
-├── desktop/           ← Primary product — Tauri v2 desktop app
-│   ├── src/           ← TypeScript: pipeline, UI, API, CLI
-│   ├── src-tauri/     ← Rust/Tauri shell
-│   ├── docs/          ← Technical documentation
-│   └── CONTRIBUTING.md
+├── desktop/           ← Primary product — Tauri v2 desktop app  ← START HERE
+│   ├── src/           ← TypeScript: analysis engine, UI, API, CLI
+│   ├── src-tauri/     ← Rust/Tauri desktop shell
+│   ├── docs/          ← Technical documentation (architecture, engine rules, roadmap)
+│   └── CONTRIBUTING.md ← Detailed contributor guide
 │
-├── website/           ← Marketing website (React 18 + Vite → GitHub Pages)
-│   └── src/
+├── website/           ← Marketing website (React + Vite → GitHub Pages)
+│   └── src/           ← Static landing page — does not contain application logic
 │
-├── mobile/            ← Placeholder — future iOS/Android app
+├── mobile/            ← Placeholder — future iOS/Android app (not started)
 │   └── README.md
 │
-├── backend/           ← Placeholder — future cloud sync / webhook service
+├── backend/           ← Placeholder — future cloud sync service (not started)
 │   └── README.md
 │
 ├── .github/
 │   └── workflows/
-│       ├── release.yml  ← Builds + publishes installers on version tags
-│       └── deploy.yml   ← Deploys website to GitHub Pages
+│       ├── release.yml  ← Builds and publishes installers on version tags
+│       └── deploy.yml   ← Deploys website to GitHub Pages on push to main
 │
+├── CONTRIBUTING.md    ← Start here if you want to contribute
 └── README.md
 ```
 
@@ -203,22 +204,22 @@ See [`desktop/docs/ROADMAP.md`](desktop/docs/ROADMAP.md) for the full roadmap.
 | Phase | Status |
 |-------|--------|
 | Desktop v1 (11-stage pipeline, Binance, local history) | ✅ RC1 |
-| Marketing website (GitHub Pages) | 🔄 In progress |
-| Mobile app (iOS + Android) | 📋 Planned — Q3 2025 |
-| Backend (cloud sync, webhooks, REST API) | 📋 Planned — Q4 2025 |
-| API & integrations (TradingView, Bybit, Coinbase) | 🔮 Future — 2026 |
+| Marketing website (GitHub Pages) | ✅ Complete |
+| Mobile app (iOS + Android) | 📋 Planned — Q4 2026 |
+| Backend (cloud sync, webhooks, REST API) | 📋 Planned — 2027 |
+| API & integrations (TradingView, Bybit, Coinbase) | 🔮 Future — 2027+ |
 
 ---
 
 ## Contributing
 
-See [`desktop/CONTRIBUTING.md`](desktop/CONTRIBUTING.md) for ground rules, branch conventions, and the PR process.
+See [`CONTRIBUTING.md`](CONTRIBUTING.md) for ground rules, branch conventions, and the PR process.
 
 Core rules:
 - Every change to analysis logic requires a matching test
 - Determinism must be preserved — same input → same output, always
 - No AI calls in the analysis path (Gemini is only in the `writer` module)
-- Every numeric constant must have a documented rule in `docs/ENGINE_RULES.md`
+- Every numeric constant must have a documented rule in [`desktop/docs/ENGINE_RULES.md`](desktop/docs/ENGINE_RULES.md)
 
 ---
 

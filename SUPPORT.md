@@ -8,7 +8,7 @@
 | **Bug reports** | [Open a Bug Report issue](https://github.com/fakej3/Sentinel/issues/new?template=bug_report.yml) |
 | **Feature requests** | [Open a Feature Request issue](https://github.com/fakej3/Sentinel/issues/new?template=feature_request.yml) |
 | **Security vulnerabilities** | See [SECURITY.md](SECURITY.md) — do not use public issues |
-| **Contributing** | See [desktop/CONTRIBUTING.md](desktop/CONTRIBUTING.md) |
+| **Contributing** | See [CONTRIBUTING.md](CONTRIBUTING.md) |
 
 ## Read first
 
