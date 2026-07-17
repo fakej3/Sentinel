@@ -279,7 +279,9 @@ export function collectEvidence(
         `Volume at ${volumeContext.relativeVolume.toFixed(2)}× average confirms the current price move`, 'volume', 'neutral'))
     }
   }
-  if (!volumeContext.confirmsCurrentMove) {
+  if (!volumeContext.confirmsCurrentMove
+      && volumeContext.volumeClassification !== 'high'
+      && volumeContext.volumeClassification !== 'very_high') {
     items.push(item(F_BELOW_AVERAGE_VOLUME, 'medium',
       `Volume at ${volumeContext.relativeVolume.toFixed(2)}× average — move lacks volume confirmation`, 'volume', 'neutral'))
   }
@@ -320,12 +322,14 @@ export function collectEvidence(
     items.push(item(F_OBV_DIVERGING_BULLISH, 'medium',
       'OBV rising while price falls — potential bullish reversal signal', 'volume', 'bullish'))
   }
-  if (volumeContext.priceAboveVWAP) {
-    items.push(item(F_PRICE_ABOVE_VWAP, 'low',
-      `Price is ${volumeContext.vwapDistancePercent.toFixed(2)}% above VWAP — bullish intraday positioning`, 'volume', 'bullish'))
-  } else {
-    items.push(item(F_PRICE_BELOW_VWAP, 'low',
-      `Price is ${Math.abs(volumeContext.vwapDistancePercent).toFixed(2)}% below VWAP — bearish intraday positioning`, 'volume', 'bearish'))
+  if (!volumeContext.respectingVWAP) {
+    if (volumeContext.priceAboveVWAP) {
+      items.push(item(F_PRICE_ABOVE_VWAP, 'low',
+        `Price is ${volumeContext.vwapDistancePercent.toFixed(2)}% above VWAP`, 'volume', 'bullish'))
+    } else {
+      items.push(item(F_PRICE_BELOW_VWAP, 'low',
+        `Price is ${Math.abs(volumeContext.vwapDistancePercent).toFixed(2)}% below VWAP`, 'volume', 'bearish'))
+    }
   }
   if (volumeContext.volumeClassification === 'very_high' || volumeContext.volumeClassification === 'high') {
     items.push(item(F_HIGH_RELATIVE_VOLUME, 'medium',

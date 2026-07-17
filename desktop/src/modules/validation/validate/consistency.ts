@@ -182,28 +182,20 @@ export function checkConsistency(
   // ── MACD conditions ───────────────────────────────────────────────────────
 
   if (indicators.macd !== null) {
-    const { macdLine, signalLine, histogram, previousHistogram } = indicators.macd
-    const expectedMacdBullish =
-      macdLine > signalLine &&
-      histogram > 0 &&
-      previousHistogram !== null &&
-      histogram > previousHistogram
+    const { macdLine, signalLine } = indicators.macd
+    const expectedMacdBullish = macdLine > signalLine
     if (conditions.macdBullish !== expectedMacdBullish) {
       issues.push(critical(
         'fullTrend.conditions.macdBullish',
-        `macdBullish is ${conditions.macdBullish} but full rule (macdLine>signalLine && histogram>0 && histogram>previousHistogram) is ${expectedMacdBullish}`,
+        `macdBullish is ${conditions.macdBullish} but rule (macdLine > signalLine) gives ${expectedMacdBullish}`,
         String(expectedMacdBullish), String(conditions.macdBullish),
       ))
     }
-    const expectedMacdBearish =
-      macdLine < signalLine &&
-      histogram < 0 &&
-      previousHistogram !== null &&
-      histogram < previousHistogram
+    const expectedMacdBearish = macdLine < signalLine
     if (conditions.macdBearish !== expectedMacdBearish) {
       issues.push(critical(
         'fullTrend.conditions.macdBearish',
-        `macdBearish is ${conditions.macdBearish} but full rule (macdLine<signalLine && histogram<0 && histogram<previousHistogram) is ${expectedMacdBearish}`,
+        `macdBearish is ${conditions.macdBearish} but rule (macdLine < signalLine) gives ${expectedMacdBearish}`,
         String(expectedMacdBearish), String(conditions.macdBearish),
       ))
     }

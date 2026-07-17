@@ -26,12 +26,7 @@ export function synthesizeFullTrend(
     recentStructure.higherHighs >= cfg.minBullishSwingsForTrend &&
     recentStructure.higherLows >= cfg.minBullishSwingsForTrend
   const rsiSupportsBullish = rsi !== null && rsi >= cfg.rsiBullishMin
-  const macdBullish =
-    macd !== null &&
-    macd.macdLine > macd.signalLine &&
-    macd.histogram > 0 &&
-    macd.previousHistogram !== null &&
-    macd.histogram > macd.previousHistogram
+  const macdBullish = macd !== null && macd.macdLine > macd.signalLine
 
   // ── Bearish conditions ─────────────────────────────────────────────────────
   const priceBelowEMA20 = ema20 !== null && price < ema20
@@ -48,12 +43,7 @@ export function synthesizeFullTrend(
     recentStructure.lowerHighs >= cfg.minBearishSwingsForTrend &&
     recentStructure.lowerLows >= cfg.minBearishSwingsForTrend
   const rsiSupportsBearish = rsi !== null && rsi <= cfg.rsiBearishMax
-  const macdBearish =
-    macd !== null &&
-    macd.macdLine < macd.signalLine &&
-    macd.histogram < 0 &&
-    macd.previousHistogram !== null &&
-    macd.histogram < macd.previousHistogram
+  const macdBearish = macd !== null && macd.macdLine < macd.signalLine
 
   // ── Neutral conditions ─────────────────────────────────────────────────────
   const adxBelowWeakThreshold =
