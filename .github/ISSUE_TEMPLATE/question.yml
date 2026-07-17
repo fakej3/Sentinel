@@ -1,0 +1,40 @@
+name: Question
+description: Ask a question about how Sentinel works
+labels: ["question"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Check the [documentation](https://github.com/fakej3/Sentinel/tree/main/desktop/docs)
+        and [FAQ](https://fakej3.github.io/Sentinel/#faq) first — your question may already be answered.
+
+  - type: textarea
+    id: question
+    attributes:
+      label: Your question
+      placeholder: "How is the confidence score calculated? Does the Gemini AI affect any of the computed values?"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: Topic
+      options:
+        - How the pipeline works
+        - Confidence scoring
+        - Trade plan generation
+        - AI narration (Gemini)
+        - Building from source
+        - Configuration
+        - Exchange / data source
+        - Contributing
+        - Something else
+    validations:
+      required: true
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Additional context
+      description: Anything that helps clarify what you're trying to understand.

@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Website
+    url: https://fakej3.github.io/Sentinel/
+    about: Visit the Sentinel website for an overview, downloads, and documentation links.
+  - name: Documentation
+    url: https://github.com/fakej3/Sentinel/tree/main/desktop/docs
+    about: Technical documentation — architecture, pipeline, engine rules, roadmap.

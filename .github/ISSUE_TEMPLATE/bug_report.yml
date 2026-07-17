@@ -1,0 +1,74 @@
+name: Bug Report
+description: Report a bug in Sentinel
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to report a bug. Fill in as much detail as you can.
+
+  - type: input
+    id: version
+    attributes:
+      label: Sentinel version
+      placeholder: "e.g. 1.0.0-rc.1"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: platform
+    attributes:
+      label: Platform
+      options:
+        - Windows
+        - macOS (Apple Silicon)
+        - macOS (Intel)
+        - Linux (deb)
+        - Linux (rpm)
+        - Linux (AppImage)
+        - Built from source
+    validations:
+      required: true
+
+  - type: textarea
+    id: description
+    attributes:
+      label: What happened?
+      description: A clear description of the bug.
+      placeholder: "When I run an analysis on BTC/USDT 4h, the confidence score always shows 0..."
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: What did you expect?
+      placeholder: "The confidence score should reflect the evidence items shown in the Evidence tab."
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Open Sentinel
+        2. Enter symbol BTC/USDT, timeframe 4h
+        3. Click Analyze
+        4. Go to the Summary tab
+        5. Observe confidence score
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Error output or logs
+      description: Paste any error messages, stack traces, or relevant console output.
+      render: text
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Additional context
+      description: Anything else that might help — screenshots, specific symbols/timeframes, Gemini enabled or not.
