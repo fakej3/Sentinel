@@ -43,9 +43,9 @@ export interface ValidationConfig {
   // ── Thresholds that mirror M6 AnalysisConfig ─────────────────────────────
   // These must match the values passed to computeAnalysis so that M7 can
   // re-verify config-dependent conditions without re-running M6.
-  /** RSI >= this supports the bullish condition. Default: 45 */
+  /** RSI >= this supports the bullish condition. Default: 55 */
   rsiBullishMin: number
-  /** RSI <= this supports the bearish condition. Default: 55 */
+  /** RSI <= this supports the bearish condition. Default: 45 */
   rsiBearishMax: number
   /** ADX below this = weak trend. Default: 20 */
   adxWeakThreshold: number
