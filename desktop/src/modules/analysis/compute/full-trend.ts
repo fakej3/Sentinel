@@ -52,7 +52,10 @@ export function synthesizeFullTrend(
     rsi !== null && rsi >= cfg.rsiNeutralLow && rsi <= cfg.rsiNeutralHigh
   const noConsistentStructure =
     !hasConsistentHHHL && !hasConsistentLHLL
+  // Requires all 4 EMAs to be available: when any EMA is null every compound condition
+  // above is false, which would make this vacuously true and inflate neutralConditionsMet.
   const priceBetweenEMAsWithoutClearOrder =
+    ema20 !== null && ema50 !== null && ema100 !== null && ema200 !== null &&
     !priceAboveAllEMAs && !priceBelowAllEMAs && !emaInBullishOrder && !emaInBearishOrder
 
   const conditions: TrendConditions = {

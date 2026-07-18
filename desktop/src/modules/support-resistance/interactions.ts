@@ -37,12 +37,13 @@ export function applyInteractions(zone: PriceZone, candles: Candle[]): PriceZone
         if (c.close < z.lower) {
           // Closed below zone bottom — potential bounce (successful reaction)
           const nextCandle = i + 1 < candles.length ? candles[i + 1] : null
-          // Failed only when the next candle closes back at or above the zone (bounce reversed).
-          // No next candle means no evidence of failure; re-entry that closes below is a retest that held.
+          // Bounce is confirmed only when the next candle exists and stays below the zone.
+          // Without a next candle the reaction is inconclusive — no credit awarded either way.
           const failed = nextCandle !== null && nextCandle.close >= z.lower
-          if (!failed) {
+          const confirmed = nextCandle !== null && !failed
+          if (confirmed) {
             z = { ...z, successfulReactions: z.successfulReactions + 1 }
-          } else {
+          } else if (failed) {
             z = { ...z, failedReactions: z.failedReactions + 1 }
           }
         } else if (c.close > z.upper) {
@@ -60,11 +61,13 @@ export function applyInteractions(zone: PriceZone, candles: Candle[]): PriceZone
         if (c.close > z.upper) {
           // Closed above zone top — bounce (successful reaction for support)
           const nextCandle = i + 1 < candles.length ? candles[i + 1] : null
-          // Failed only when the next candle closes back at or below the zone (bounce reversed).
+          // Bounce is confirmed only when the next candle exists and stays above the zone.
+          // Without a next candle the reaction is inconclusive — no credit awarded either way.
           const failed = nextCandle !== null && nextCandle.close <= z.upper
-          if (!failed) {
+          const confirmed = nextCandle !== null && !failed
+          if (confirmed) {
             z = { ...z, successfulReactions: z.successfulReactions + 1 }
-          } else {
+          } else if (failed) {
             z = { ...z, failedReactions: z.failedReactions + 1 }
           }
         } else if (c.close < z.lower) {

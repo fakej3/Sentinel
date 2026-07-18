@@ -237,6 +237,7 @@ export function checkConsistency(
   }
 
   const expectedBetween =
+    allEMAsAvailable &&
     !conditions.priceAboveAllEMAs && !conditions.priceBelowAllEMAs &&
     !conditions.emaInBullishOrder && !conditions.emaInBearishOrder
   if (conditions.priceBetweenEMAsWithoutClearOrder !== expectedBetween) {

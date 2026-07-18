@@ -57,7 +57,7 @@ describe('synthesizeFullTrend', () => {
     const ind = indicators({ rsi: 50, adx: { adx: 15, diPlus: 10, diMinus: 10 } })
     const result = synthesizeFullTrend(100, ind, emptyStructure(), cfg)
     // rsiInNeutralRange=true(50 in 40-60), adxBelowWeakThreshold=true(15<20)
-    // noConsistentStructure=true, priceBetweenEMAs=true (no EMAs)
+    // noConsistentStructure=true; priceBetweenEMAs requires all 4 EMAs (unavailable here → false)
     expect(result.neutralConditionsMet).toBeGreaterThanOrEqual(3)
     expect(result.trend).toBe('ranging')
   })
@@ -130,6 +130,31 @@ describe('synthesizeFullTrend', () => {
   it('macdBullish is false when macd is null', () => {
     const result = synthesizeFullTrend(100, indicators(), emptyStructure(), cfg)
     expect(result.conditions.macdBullish).toBe(false)
+  })
+
+  // ── SR-2 regression: priceBetweenEMAsWithoutClearOrder must NOT fire when EMAs are null ──
+  // Previously: with no EMAs all compound conditions are false → condition was vacuously true,
+  // adding 1 to neutralConditionsMet and potentially forcing 'ranging' in directional markets.
+
+  it('priceBetweenEMAsWithoutClearOrder is false when all EMAs are null (regression: SR-2)', () => {
+    const ind = indicators()  // all EMAs null
+    const result = synthesizeFullTrend(100, ind, emptyStructure(), cfg)
+    expect(result.conditions.priceBetweenEMAsWithoutClearOrder).toBe(false)
+  })
+
+  it('priceBetweenEMAsWithoutClearOrder is false when only some EMAs are available', () => {
+    const ind = indicators({ ema20: 95, ema50: 90, ema100: 85 })  // ema200 null
+    const result = synthesizeFullTrend(100, ind, emptyStructure(), cfg)
+    expect(result.conditions.priceBetweenEMAsWithoutClearOrder).toBe(false)
+  })
+
+  it('priceBetweenEMAsWithoutClearOrder is true when all 4 EMAs are available and mixed', () => {
+    // Mixed: price above ema20 but below ema50 — not in clear bull or bear stack
+    const ind = indicators({ ema20: 95, ema50: 110, ema100: 105, ema200: 108 })
+    const result = synthesizeFullTrend(100, ind, emptyStructure(), cfg)
+    // price (100) < ema50 (110) → not priceAboveAllEMAs; not priceBelowAllEMAs (100 > ema20=95)
+    // ema order is not bullish (95 < 110) nor bearish stack; genuinely mixed
+    expect(result.conditions.priceBetweenEMAsWithoutClearOrder).toBe(true)
   })
 
   it('produces deterministic output for same inputs', () => {
