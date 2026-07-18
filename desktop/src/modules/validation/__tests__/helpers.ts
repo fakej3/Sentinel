@@ -22,7 +22,7 @@ export function makeIndicators(overrides: Partial<IndicatorResult> = {}): Indica
     adx: { adx: 30, diPlus: 25, diMinus: 15 },
     vwap: 92,
     bollingerBands: { upper: 105, middle: 95, lower: 85, bandwidth: 20 },
-    stochRsi: { k: 65, d: 60 },
+    stochRsi: { k: 0.65, d: 0.60 },
     obv: 50_000,
     mfi: null,
     cci: null,
@@ -229,7 +229,7 @@ export function makeValidResult(overrides: Partial<MarketAnalysisResult> = {}): 
       macd: { histogram: 2, bias: 'bullish' },
       adx: { adx: 30, trendStrength: 'strong', dominantDirection: 'bullish' },
       bollinger: { bandwidth: 20, bandwidthState: 'normal', priceRelativeToBands: 'inside' },
-      stochRsi: { k: 65, d: 60, zone: 'neutral' },
+      stochRsi: { k: 0.65, d: 0.60, zone: 'neutral' },
     },
     srContext: {
       nearestSupportDistance: null,

@@ -263,14 +263,16 @@ Bollinger Bands must always be confirmed by RSI and volume.
 
 | Range | Classification |
 |-------|----------------|
-| < 20 | Oversold |
-| 20–80 | Neutral |
-| > 80 | Overbought |
+| < 0.2 | Oversold |
+| 0.2–0.8 | Neutral |
+| > 0.8 | Overbought |
+
+*Note: StochRSI output is in the [0, 1] fractional scale (not 0–100). Thresholds and config values use the same scale.*
 
 | Signal | Condition |
 |--------|-----------|
-| Bullish Crossover | %K crosses above %D while both below 20 |
-| Bearish Crossover | %K crosses below %D while both above 80 |
+| Bullish Crossover | %K crosses above %D while both below 0.2 |
+| Bearish Crossover | %K crosses below %D while both above 0.8 |
 
 StochRSI is a faster oscillator. Do not use it alone for trend conclusions.
 
@@ -847,8 +849,8 @@ Items are sorted by impact (high → medium → low) in `MarketAnalysisResult.ev
 | Parameter | Default | ENGINE_RULES ref |
 |-----------|---------|-----------------|
 | `emaConfluencePercent` | 0.5 | §5 |
-| `stochRsiOverboughtThreshold` | 80 | §10 |
-| `stochRsiOversoldThreshold` | 20 | §10 |
+| `stochRsiOverboughtThreshold` | 0.8 | §10 |
+| `stochRsiOversoldThreshold` | 0.2 | §10 |
 | `adxWeakThreshold` | 20 | §7 |
 | `adxStrongThreshold` | 25 | §7 |
 | `rsiNeutralLow` | 40 | §1 |

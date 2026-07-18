@@ -57,9 +57,9 @@ export function computeTradePlan(
   // Bearish: a close above resistance breaks the thesis.
   let invalidationLevel: number | null = null
   if (isBullish && effectiveSupport) {
-    invalidationLevel = Math.round(effectiveSupport.lower * 0.995 * 100) / 100
+    invalidationLevel = effectiveSupport.lower * 0.995
   } else if (isBearish && effectiveResistance) {
-    invalidationLevel = Math.round(effectiveResistance.upper * 1.005 * 100) / 100
+    invalidationLevel = effectiveResistance.upper * 1.005
   }
 
   // ── Target level ──────────────────────────────────────────────────────────
