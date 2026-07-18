@@ -1,10 +1,14 @@
-import { useEffect, useRef } from 'react'
-
-const TV_INTERVAL_MAP: Record<string, string> = {
-  '1m': '1', '3m': '3', '5m': '5', '15m': '15', '30m': '30',
-  '1h': '60', '2h': '120', '4h': '240', '6h': '360', '8h': '480',
-  '12h': '720', '1d': 'D', '3d': '3D', '1w': 'W', '1M': 'M',
-}
+import { useEffect, useRef, useState } from 'react'
+import {
+  createChart,
+  CandlestickSeries,
+  HistogramSeries,
+  type IChartApi,
+  type ISeriesApi,
+  type UTCTimestamp,
+} from 'lightweight-charts'
+import { fetchCandles } from '../../../modules/binance/endpoints'
+import type { Candle, Timeframe } from '../../../modules/market/types'
 
 interface TradingViewChartProps {
   symbol: string
@@ -13,64 +17,123 @@ interface TradingViewChartProps {
 
 export function TradingViewChart({ symbol, interval }: TradingViewChartProps) {
   const containerRef = useRef<HTMLDivElement>(null)
-  const widgetRef = useRef<HTMLScriptElement | null>(null)
+  const chartRef = useRef<IChartApi | null>(null)
+  const candleSeriesRef = useRef<ISeriesApi<'Candlestick'> | null>(null)
+  const volumeSeriesRef = useRef<ISeriesApi<'Histogram'> | null>(null)
+  const [status, setStatus] = useState<'loading' | 'error' | 'ready'>('loading')
+  const [errorMsg, setErrorMsg] = useState('')
 
-  const tvInterval = TV_INTERVAL_MAP[interval] ?? '60'
-
+  // Create chart and series once — never recreated on prop changes.
   useEffect(() => {
-    const container = containerRef.current
-    if (!container) return
+    const el = containerRef.current
+    if (!el) return
 
-    // Clear previous widget
-    container.innerHTML = ''
-    if (widgetRef.current) {
-      widgetRef.current.remove()
-      widgetRef.current = null
-    }
-
-    const widgetDiv = document.createElement('div')
-    widgetDiv.className = 'tradingview-widget-container__widget'
-    widgetDiv.style.height = '100%'
-    container.appendChild(widgetDiv)
-
-    const script = document.createElement('script')
-    script.type = 'text/javascript'
-    script.src = 'https://s3.tradingview.com/external-embedding/embed-widget-advanced-chart.js'
-    script.async = true
-    script.textContent = JSON.stringify({
-      autosize: true,
-      symbol: `BINANCE:${symbol}`,
-      interval: tvInterval,
-      timezone: 'Etc/UTC',
-      theme: 'dark',
-      style: '1',
-      locale: 'en',
-      backgroundColor: '#0c0f18',
-      gridColor: '#1a2035',
-      hide_top_toolbar: false,
-      hide_legend: false,
-      save_image: false,
-      studies: ['RSI@tv-basicstudies', 'MACD@tv-basicstudies'],
-      show_popup_button: false,
-      popup_width: '1000',
-      popup_height: '650',
+    const chart = createChart(el, {
+      autoSize: true,
+      layout: {
+        background: { color: '#0c0f18' },
+        textColor: '#94a3b8',
+      },
+      grid: {
+        vertLines: { color: '#1a2035' },
+        horzLines: { color: '#1a2035' },
+      },
+      crosshair: {
+        vertLine: { color: '#334155', width: 1, style: 2, labelBackgroundColor: '#1e293b' },
+        horzLine: { color: '#334155', width: 1, style: 2, labelBackgroundColor: '#1e293b' },
+      },
+      timeScale: {
+        borderColor: '#1e2a3a',
+        timeVisible: true,
+        secondsVisible: false,
+      },
+      rightPriceScale: {
+        borderColor: '#1e2a3a',
+      },
     })
-    container.appendChild(script)
-    widgetRef.current = script
+
+    const candleSeries = chart.addSeries(CandlestickSeries, {
+      upColor: '#26a69a',
+      downColor: '#ef5350',
+      borderVisible: false,
+      wickUpColor: '#26a69a',
+      wickDownColor: '#ef5350',
+    })
+
+    const volumeSeries = chart.addSeries(HistogramSeries, {
+      priceFormat: { type: 'volume' },
+      priceScaleId: 'volume',
+    })
+    chart.priceScale('volume').applyOptions({
+      scaleMargins: { top: 0.8, bottom: 0 },
+    })
+
+    chartRef.current = chart
+    candleSeriesRef.current = candleSeries
+    volumeSeriesRef.current = volumeSeries
 
     return () => {
-      if (widgetRef.current) {
-        widgetRef.current.remove()
-        widgetRef.current = null
-      }
+      chart.remove()
+      chartRef.current = null
+      candleSeriesRef.current = null
+      volumeSeriesRef.current = null
     }
-  }, [symbol, tvInterval])
+  }, [])
+
+  // Fetch and load data whenever symbol or interval changes.
+  useEffect(() => {
+    let cancelled = false
+    setStatus('loading')
+    setErrorMsg('')
+
+    fetchCandles(symbol, interval as Timeframe)
+      .then((candles: Candle[]) => {
+        if (cancelled) return
+        const cs = candleSeriesRef.current
+        const vs = volumeSeriesRef.current
+        if (!cs || !vs) return
+
+        cs.setData(candles.map((c: Candle) => ({
+          time: Math.floor(c.openTime / 1000) as UTCTimestamp,
+          open: c.open,
+          high: c.high,
+          low: c.low,
+          close: c.close,
+        })))
+
+        vs.setData(candles.map((c: Candle) => ({
+          time: Math.floor(c.openTime / 1000) as UTCTimestamp,
+          value: c.volume,
+          color: c.close >= c.open ? '#26a69a40' : '#ef535040',
+        })))
+
+        chartRef.current?.timeScale().fitContent()
+        setStatus('ready')
+      })
+      .catch((err: unknown) => {
+        if (cancelled) return
+        setErrorMsg(err instanceof Error ? err.message : 'Failed to fetch chart data')
+        setStatus('error')
+      })
+
+    return () => { cancelled = true }
+  }, [symbol, interval])
 
   return (
-    <div
-      ref={containerRef}
-      className="tradingview-widget-container w-full h-full"
-      style={{ minHeight: 0 }}
-    />
+    <div className="relative w-full h-full">
+      <div ref={containerRef} className="w-full h-full" />
+
+      {status === 'loading' && (
+        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+          <span className="text-slate-400 text-sm">Loading chart…</span>
+        </div>
+      )}
+
+      {status === 'error' && (
+        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+          <span className="text-red-400 text-sm">{errorMsg}</span>
+        </div>
+      )}
+    </div>
   )
 }
