@@ -31,17 +31,17 @@ npm test           # run all tests + typecheck
 ```
 src/
 ├── modules/           # Analysis engine — do not change logic without a test
-│   ├── binance/       # Stage 1: Market data fetch
+│   ├── binance/       # Stage 1: Candle fetch
 │   ├── indicators/    # Stage 2: Technical indicators
-│   ├── market-structure/  # Stage 3: Swing detection, BOS/CHoCH
-│   ├── support-resistance/ # Stage 4: Price zones
-│   ├── volume-analysis/   # Stage 5: Volume metrics
-│   ├── analysis/      # Stage 6: Trend synthesis + evidence
-│   ├── validation/    # Stage 7: Consistency checks
-│   ├── confidence/    # Stage 8: Evidence-weighted scoring
-│   ├── pipeline/      # Stage 9: Decisions, trade plan, orchestration
-│   ├── writer/        # Stage 10: Report generation
-│   ├── ai/            # Stage 11: Optional LLM enhancement
+│   ├── market-structure/  # Stage 3: Market structure (HH/HL/LH/LL, BOS, CHoCH)
+│   ├── support-resistance/ # Stage 4: Support & resistance zones
+│   ├── volume-analysis/   # Stage 5: Volume analysis
+│   ├── analysis/      # Stages 6–7: Trend synthesis and evidence builder
+│   ├── validation/    # Stage 8: Cross-module validation
+│   ├── confidence/    # Stage 9: Evidence-weighted confidence scoring
+│   ├── pipeline/      # Stage 10: Trade plan and pipeline orchestration
+│   ├── writer/        # Stage 11: Report generation
+│   ├── ai/            # Optional: Gemini AI narration (runs after stage 11)
 │   ├── historical-validation/  # Walk-forward backtesting
 │   └── benchmark/     # Field-by-field regression testing
 ├── api/               # Express REST API

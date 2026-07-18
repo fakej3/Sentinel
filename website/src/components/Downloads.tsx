@@ -1,4 +1,4 @@
-import { GITHUB, RELEASES, LATEST_RELEASE } from '../constants'
+import { GITHUB, LATEST_RELEASE } from '../constants'
 import { SectionHeader, GitHubIcon, DownloadIcon } from '../shared'
 
 const PLATFORMS = [

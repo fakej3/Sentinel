@@ -1,4 +1,4 @@
-import { GITHUB, LATEST_RELEASE, BLOB } from '../constants'
+import { LATEST_RELEASE, BLOB } from '../constants'
 
 function ConfidenceRing({ score }: { score: number }) {
   const size = 76

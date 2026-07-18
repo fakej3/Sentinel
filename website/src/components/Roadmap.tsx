@@ -34,7 +34,6 @@ export function Roadmap() {
               const st = ROADMAP_STATUS_STYLE[phase.status]
               const dotColor =
                 phase.status === 'current' ? '#22c55e'
-                : phase.status === 'active' ? '#2f7bff'
                 : 'var(--border-strong)'
 
               return (
