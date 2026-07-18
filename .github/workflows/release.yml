@@ -145,6 +145,26 @@ jobs:
             } >> "$GITHUB_OUTPUT"
           fi
 
+      # ── macOS notarization credentials ────────────────────────────────
+      # Only inject APPLE_ID/TEAM_ID/PASSWORD when all three are present.
+      # Passing them as empty strings causes the Tauri CLI (Rust) to see
+      # them as defined (Ok("")) and attempt notarization, then fail on
+      # team ID validation. Writing them via $GITHUB_ENV only when non-empty
+      # keeps them absent from the environment when secrets are unconfigured.
+      - name: Configure Apple notarization credentials
+        if: matrix.platform == 'macos-latest'
+        shell: bash
+        env:
+          _APPLE_ID: ${{ secrets.APPLE_ID }}
+          _APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          _APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
+        run: |
+          if [ -n "$_APPLE_ID" ] && [ -n "$_APPLE_TEAM_ID" ] && [ -n "$_APPLE_PASSWORD" ]; then
+            echo "APPLE_ID=$_APPLE_ID" >> "$GITHUB_ENV"
+            echo "APPLE_TEAM_ID=$_APPLE_TEAM_ID" >> "$GITHUB_ENV"
+            echo "APPLE_PASSWORD=$_APPLE_PASSWORD" >> "$GITHUB_ENV"
+          fi
+
       # ── Build and release ──────────────────────────────────────────────
       - name: Build and publish Tauri release
         uses: tauri-apps/tauri-action@v0
@@ -152,9 +172,6 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
-          APPLE_ID: ${{ secrets.APPLE_ID }}
-          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
-          APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
           APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY || '-' }}
         with:
           projectPath: desktop
