@@ -47,7 +47,7 @@ Sentinel runs an 11-stage deterministic analysis pipeline — from raw candle da
 - **Local history** — every analysis stored in AppData; no cloud required
 - **Offline-first** — only Binance (candles) and Google (Gemini, if enabled) are called externally
 - **Fully deterministic** — same candle data → same output, to the decimal, every time
-- **1,521 tests** across 77 test files
+- **1,522 tests** across 77 test files
 
 ---
 

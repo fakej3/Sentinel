@@ -210,8 +210,7 @@ export interface ConfidenceConfig {
   factorWeights: Record<string, number>
   /**
    * Raw points are divided by this value to produce the 0–10 score.
-   * Equal to the maximum achievable raw points (≈106).
-   * ENGINE_RULES.md §11: "scale = min(10, max(0, rawPoints / 10.6))"
+   * Default: 10. ENGINE_RULES.md §11: "scale = min(10, max(0, rawPoints / normalizationDivisor))"
    */
   normalizationDivisor: number
   /**

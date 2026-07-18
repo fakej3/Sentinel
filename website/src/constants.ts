@@ -73,7 +73,7 @@ export const FAQ = [
   { q: 'Why do I need a Gemini API key for AI narration?', a: "The Gemini key is stored locally and used to call Google's API directly from your machine. Sentinel never sees or proxies your key. If you don't add a key, the deterministic writer produces a complete analysis report without AI enhancement." },
   { q: 'Is Sentinel free? Will it always be free?', a: "Yes, and yes. Sentinel is MIT licensed. The core analysis engine will always be open source and free. Future premium features like backend sync or team sharing may be optional paid additions, but the desktop app itself stays free." },
   { q: 'How do I build from source?', a: "Clone the repo, install Rust and Node 20, then run `npm install && npm run tauri dev` from the `desktop/` directory. See CONTRIBUTING.md for the full setup guide. Building from source gives you a fully auditable, locally compiled binary." },
-  { q: 'How is confidence calculated?', a: "Each analysis module produces typed evidence items with a direction (bull/bear/neutral) and impact level (strong/moderate/weak). The confidence engine sums bull vs bear evidence, weights by impact, checks for contradictions, and applies a data completeness penalty. Score is 0–10. Grade A = 8+, B = 6–8, C = 4–6, D = 2–4, F below 2." },
+  { q: 'How is confidence calculated?', a: "Each analysis module produces typed evidence items with a direction (bull/bear/neutral) and impact level (strong/moderate/weak). The confidence engine sums bull vs bear evidence, weights by impact, checks for contradictions, and applies a data completeness penalty. Score is 0–10. Grade: very_strong (≥8.5), strong (≥7.0), moderate (≥5.0), mixed (≥3.0), weak (<3.0)." },
 ] as const
 
 export const DOCS_LINKS = [

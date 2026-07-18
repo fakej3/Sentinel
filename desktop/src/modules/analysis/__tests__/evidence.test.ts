@@ -221,4 +221,25 @@ describe('collectEvidence', () => {
     expect(found).toBeDefined()
     expect(found?.impact).toBe('medium')
   })
+
+  // ── Regression: neutral OBV direction must NOT emit F_BULLISH_OBV
+  // When OBV has no directional trend ('neutral') but price confirmation flag is
+  // true, the previous else-branch incorrectly emitted F_BULLISH_OBV (+6).
+
+  it('does not emit "Bullish OBV trend" when OBV direction is neutral (regression: OBV-neutral)', () => {
+    const vol = emptyVolumeAnalysis()
+    vol.obvAnalysis = { direction: 'neutral', confirmingPrice: true, diverging: false }
+    const items = getEvidence(100, indicators(), undefined, undefined, vol)
+    const found = items.find(e => e.factor === 'Bullish OBV trend')
+    expect(found).toBeUndefined()
+  })
+
+  it('still emits "Bullish OBV trend" when OBV direction is bullish and confirming', () => {
+    const vol = emptyVolumeAnalysis()
+    vol.obvAnalysis = { direction: 'bullish', confirmingPrice: true, diverging: false }
+    const items = getEvidence(100, indicators(), undefined, undefined, vol)
+    const found = items.find(e => e.factor === 'Bullish OBV trend')
+    expect(found).toBeDefined()
+    expect(found?.direction).toBe('bullish')
+  })
 })

@@ -306,13 +306,14 @@ export function collectEvidence(
       'Multiple signals indicate distribution — smart money exiting long positions', 'volume', 'bearish'))
   }
   if (volumeContext.obvConfirmingPrice) {
-    if (volumeContext.obvDirection === 'bearish') {
-      items.push(item(F_BEARISH_OBV, 'medium',
-        'OBV trending in same direction as price — volume flow confirms bearish move', 'volume', 'bearish'))
-    } else {
+    if (volumeContext.obvDirection === 'bullish') {
       items.push(item(F_BULLISH_OBV, 'medium',
         'OBV trending in same direction as price — volume flow confirms bullish move', 'volume', 'bullish'))
+    } else if (volumeContext.obvDirection === 'bearish') {
+      items.push(item(F_BEARISH_OBV, 'medium',
+        'OBV trending in same direction as price — volume flow confirms bearish move', 'volume', 'bearish'))
     }
+    // neutral OBV direction: volume flow has no directional conviction — no signal emitted
   }
   if (volumeContext.obvDirection === 'bearish' && !volumeContext.obvConfirmingPrice) {
     items.push(item(F_OBV_DIVERGING, 'medium',
