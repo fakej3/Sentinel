@@ -45,9 +45,9 @@ export const FEATURES = [
 export const ROADMAP = [
   { phase: 'Now', title: 'Desktop v1', items: ['11-stage analysis pipeline', 'Binance spot + futures', 'Local history & persistence', 'Gemini AI narration', 'Windows / macOS / Linux'], status: 'current' },
   { phase: 'Next', title: 'Website', items: ['Public marketing site', 'Documentation portal', 'Download distribution', 'GitHub Pages hosting'], status: 'active' },
-  { phase: 'Q3 2025', title: 'Mobile', items: ['iOS (SwiftUI)', 'Android (Kotlin)', 'Offline-first same pipeline', 'Optional desktop sync'], status: 'planned' },
-  { phase: 'Q4 2025', title: 'Backend', items: ['Self-hostable server', 'Team analysis sharing', 'Webhook alerts', 'REST API'], status: 'planned' },
-  { phase: '2026', title: 'API & Integrations', items: ['Developer REST API', 'TradingView bridge', 'Bybit + Coinbase', 'Custom indicator plugins'], status: 'future' },
+  { phase: 'H2 2026', title: 'Mobile', items: ['iOS (SwiftUI)', 'Android (Kotlin)', 'Offline-first same pipeline', 'Optional desktop sync'], status: 'planned' },
+  { phase: '2027', title: 'Backend', items: ['Self-hostable server', 'Team analysis sharing', 'Webhook alerts', 'REST API'], status: 'planned' },
+  { phase: '2027+', title: 'API & Integrations', items: ['Developer REST API', 'TradingView bridge', 'Bybit + Coinbase', 'Custom indicator plugins'], status: 'future' },
   { phase: 'Future', title: 'More Exchanges', items: ['Bybit', 'Coinbase Advanced', 'OKX', 'Kraken', 'Hyperliquid'], status: 'future' },
 ] as const
 
