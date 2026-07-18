@@ -15,6 +15,7 @@
     "typecheck": "tsc -b tsconfig.app.json --noEmit",
     "test": "vitest run && tsc -b tsconfig.app.json --noEmit",
     "test:watch": "vitest",
+    "tauri": "tauri",
     "tauri:dev": "tauri dev",
     "tauri:build": "tauri build"
   },
