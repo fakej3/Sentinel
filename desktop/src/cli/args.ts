@@ -1,5 +1,5 @@
 import type { WriterTemplate } from '../modules/writer/types'
-import { VALID_TIMEFRAMES, MAX_CANDLE_LIMIT, VALID_TEMPLATES, PIPELINE_VERSION } from './config'
+import { VALID_TIMEFRAMES, MAX_CANDLE_LIMIT, VALID_TEMPLATES, APP_VERSION } from './config'
 import type { ParseResult } from './types'
 
 export const HELP_TEXT = `
@@ -25,7 +25,7 @@ Examples:
   sentinel analyze BTCUSDT 1d --output report.txt
 `.trim()
 
-export const VERSION_TEXT = `sentinel v${PIPELINE_VERSION}`
+export const VERSION_TEXT = `sentinel v${APP_VERSION}`
 
 const OPTIONS_WITH_VALUES = new Set(['candles', 'output', 'template'])
 

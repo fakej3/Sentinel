@@ -125,9 +125,9 @@ export function SettingsPage({ onClearHistory, onClearWatchlist, onClearAll }: S
           <span className="text-[10px] text-slate-600 font-mono">v{__APP_VERSION__}</span>
         </div>
         <p className="text-[11px] text-slate-600 leading-relaxed">
-          AI-powered crypto analysis platform. Runs a multi-module analysis engine locally,
-          providing trend analysis, technical indicators, market structure, volume analysis,
-          support & resistance, confidence scoring, and trade setup generation.
+          Deterministic crypto analysis desktop app. Runs an 11-stage pipeline locally —
+          indicators, market structure, volume, support &amp; resistance, confidence scoring,
+          and trade plan generation. No servers, no subscription, no data leaving your device.
         </p>
       </div>
 

@@ -327,12 +327,12 @@ function EmptyDashboard({ symbol, loading, error, onAnalyze, recentAnalyses, onS
       <div className="mb-4 w-16 h-16 rounded-2xl bg-blue-600/10 border border-blue-500/20 flex items-center justify-center">
         <Activity size={28} className="text-blue-400" />
       </div>
-      <h2 className="text-sm font-semibold text-slate-300 mb-1.5">AI-First Crypto Analysis</h2>
+      <h2 className="text-sm font-semibold text-slate-300 mb-1.5">Crypto Analysis</h2>
       {error ? (
         <p className="text-xs text-red-400 max-w-xs leading-relaxed mb-5">{error}</p>
       ) : (
         <p className="text-xs text-slate-500 max-w-xs leading-relaxed mb-5">
-          Set a symbol in the header and click Analyze to get AI-powered market insights.
+          Set a symbol in the header and click Analyze to run the full 11-stage pipeline.
         </p>
       )}
       <button
