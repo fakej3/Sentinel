@@ -195,8 +195,9 @@ export function Hero() {
             </h1>
 
             <p style={{ marginTop: 24, fontSize: 17, color: 'var(--text-dim)', lineHeight: 1.75, maxWidth: 460 }}>
-              Sentinel runs a deterministic 11-stage analysis pipeline entirely on your machine.
-              No subscription. No cloud. No data leaving your device.
+              Sentinel is a <strong style={{ color: 'var(--text)', fontWeight: 600 }}>desktop application</strong> for Windows, macOS, and Linux.
+              It runs a deterministic 11-stage analysis pipeline entirely on your machine —
+              no subscription, no cloud, no data leaving your device.
             </p>
 
             <div style={{ marginTop: 36, display: 'flex', gap: 12, flexWrap: 'wrap' }}>
@@ -204,7 +205,7 @@ export function Hero() {
                 href={RELEASES}
                 target="_blank"
                 rel="noopener noreferrer"
-                aria-label="Download Sentinel for free (opens GitHub Releases)"
+                aria-label="Download Sentinel (opens GitHub Releases)"
                 style={{
                   display: 'inline-flex', alignItems: 'center', gap: 8,
                   padding: '12px 24px', borderRadius: 8, fontWeight: 700, fontSize: 14,
@@ -216,13 +217,11 @@ export function Hero() {
                 onMouseOver={e => { e.currentTarget.style.opacity = '0.88'; e.currentTarget.style.transform = 'translateY(-1px)' }}
                 onMouseOut={e => { e.currentTarget.style.opacity = '1'; e.currentTarget.style.transform = '' }}
               >
-                Download Free
+                Download Sentinel
               </a>
               <a
-                href={GITHUB}
-                target="_blank"
-                rel="noopener noreferrer"
-                aria-label="View Sentinel source code on GitHub (opens in new tab)"
+                href="#docs"
+                aria-label="View Sentinel documentation"
                 style={{
                   display: 'inline-flex', alignItems: 'center', gap: 8,
                   padding: '12px 24px', borderRadius: 8, fontWeight: 600, fontSize: 14,
@@ -234,7 +233,7 @@ export function Hero() {
                 onMouseOver={e => (e.currentTarget.style.borderColor = 'var(--accent)')}
                 onMouseOut={e => (e.currentTarget.style.borderColor = 'var(--border-strong)')}
               >
-                View Source
+                View Documentation
               </a>
             </div>
 

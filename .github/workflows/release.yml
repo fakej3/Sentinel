@@ -99,6 +99,27 @@ jobs:
             -S apple-tool:,apple: -s -k actions build.keychain
           rm certificate.p12
 
+      # ── Load release notes ─────────────────────────────────────────────────
+      - name: Load release notes
+        id: notes
+        shell: bash
+        run: |
+          TAG="${{ github.ref_name }}"
+          NOTES_FILE="desktop/docs/RELEASE_NOTES_${TAG}.md"
+          if [ -f "$NOTES_FILE" ]; then
+            {
+              echo 'body<<RELEASE_NOTES_EOF'
+              cat "$NOTES_FILE"
+              echo 'RELEASE_NOTES_EOF'
+            } >> "$GITHUB_OUTPUT"
+          else
+            {
+              echo 'body<<RELEASE_NOTES_EOF'
+              echo "See the [Changelog](https://github.com/${{ github.repository }}/blob/main/desktop/docs/CHANGELOG.md) for what changed in this release."
+              echo 'RELEASE_NOTES_EOF'
+            } >> "$GITHUB_OUTPUT"
+          fi
+
       # ── Build and release ──────────────────────────────────────────────────
       - name: Build and publish Tauri release
         uses: tauri-apps/tauri-action@v0
@@ -114,8 +135,6 @@ jobs:
           projectPath: desktop
           tagName: ${{ github.ref_name }}
           releaseName: 'Sentinel ${{ github.ref_name }}'
-          releaseBody: |
-            See [CHANGELOG](https://github.com/${{ github.repository }}/blob/main/desktop/docs/CHANGELOG.md)
-            for what changed in this release.
+          releaseBody: ${{ steps.notes.outputs.body }}
           releaseDraft: ${{ github.event.inputs.draft == 'true' || github.event_name == 'push' }}
           prerelease: ${{ contains(github.ref_name, '-rc') || contains(github.ref_name, '-beta') || contains(github.ref_name, '-alpha') }}
