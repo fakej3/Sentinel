@@ -49,6 +49,9 @@ jobs:
 
     runs-on: ${{ matrix.platform }}
 
+    env:
+      APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
+
     steps:
       - uses: actions/checkout@v4
 
@@ -86,7 +89,6 @@ jobs:
       - name: Import macOS code-signing certificate
         if: matrix.platform == 'macos-latest' && env.APPLE_CERTIFICATE != ''
         env:
-          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
           APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
         run: |
           echo "$APPLE_CERTIFICATE" | base64 --decode > certificate.p12

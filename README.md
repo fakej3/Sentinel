@@ -1,20 +1,20 @@
 # Sentinel
 
-**Crypto analysis. On your machine.**
+**Crypto analysis. On your machine. No subscription, no cloud, no data leaving your device.**
 
-Sentinel is a **desktop application** for Windows, macOS, and Linux. It runs an 11-stage deterministic pipeline — from raw Binance candles to a fully reasoned trade plan — entirely on your device. No subscription. No cloud. No data leaving your machine.
+Sentinel is a **desktop application** for Windows, macOS, and Linux. It runs a deterministic 11-stage analysis pipeline — indicators, market structure, volume, support/resistance, confidence scoring, and a trade plan — entirely on your device. Same input always produces the same output, to the decimal.
 
-[![Release](https://img.shields.io/github/v/release/fakej3/Sentinel?include_prereleases&label=release&color=blue)](https://github.com/fakej3/Sentinel/releases/latest)
+[![Release](https://img.shields.io/github/v/release/fakej3/Sentinel?include_prereleases&label=release&color=2f7bff)](https://github.com/fakej3/Sentinel/releases/latest)
 [![Build](https://img.shields.io/github/actions/workflow/status/fakej3/Sentinel/release.yml?label=build)](https://github.com/fakej3/Sentinel/actions/workflows/release.yml)
-[![Tests](https://img.shields.io/badge/tests-1531%20passing-22c55e)](desktop/docs/TESTING_STRATEGY.md)
+[![Tests](https://img.shields.io/badge/tests-1%2C531%20passing-22c55e)](desktop/docs/TESTING_STRATEGY.md)
 [![License](https://img.shields.io/badge/license-MIT-22c55e)](LICENSE)
 [![Website](https://img.shields.io/badge/website-fakej3.github.io%2FSentinel-2f7bff)](https://fakej3.github.io/Sentinel/)
 
-**[→ Download for Windows · macOS · Linux](https://github.com/fakej3/Sentinel/releases/latest)** &nbsp;·&nbsp; **[→ Website](https://fakej3.github.io/Sentinel/)** &nbsp;·&nbsp; **[→ Documentation](desktop/docs/)**
+**[→ Download](https://github.com/fakej3/Sentinel/releases/latest)** &nbsp;·&nbsp; **[→ Website](https://fakej3.github.io/Sentinel/)** &nbsp;·&nbsp; **[→ Docs](desktop/docs/)**
 
 ---
 
-[![Sentinel app showing a BTC/USDT analysis](docs/screenshots/website.png)](https://fakej3.github.io/Sentinel/)
+[![Sentinel — BTC/USDT analysis with 7.8/10 confidence, Strong Bullish, entry zone and trade plan](docs/screenshots/website.png)](https://fakej3.github.io/Sentinel/)
 
 ---
 
@@ -136,7 +136,7 @@ npm install
 npm run tauri:dev
 ```
 
-### Run in web mode (no Tauri window)
+### Run the frontend only (dev server, no Tauri)
 
 ```bash
 cd desktop

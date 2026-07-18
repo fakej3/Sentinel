@@ -8,7 +8,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
-## [1.0.0-rc.1] — 2026-07-14
+## [1.0.0-rc.1] — 2026-07-18
 
 ### Added
 - Tauri v2 desktop application packaging (.deb and .rpm on Linux; .dmg on macOS; .msi on Windows)
@@ -141,5 +141,5 @@ Initial construction of the analysis engine:
 - **Volume Analysis Engine** — relative volume, buy/sell pressure, climax detection, accumulation/distribution, OBV, VWAP analysis
 - **Analysis Engine** — full trend synthesis, EMA/indicator/S&R/volume context, evidence collection
 - **Validation Engine** — completeness, consistency, contradiction, and structural checks
-- **Confidence Engine** — evidence-weighted scoring (0–10) with grades A through E
+- **Confidence Engine** — evidence-weighted scoring (0–10) with grades A/B/C/D/F
 - **AI Writing Engine** — deterministic report generation in 6 formats; optional LLM enhancement via Gemini

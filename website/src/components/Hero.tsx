@@ -1,4 +1,4 @@
-import { GITHUB, RELEASES } from '../constants'
+import { GITHUB, LATEST_RELEASE, BLOB } from '../constants'
 
 function ConfidenceRing({ score }: { score: number }) {
   const size = 76
@@ -202,7 +202,7 @@ export function Hero() {
 
             <div style={{ marginTop: 36, display: 'flex', gap: 12, flexWrap: 'wrap' }}>
               <a
-                href={RELEASES}
+                href={LATEST_RELEASE}
                 target="_blank"
                 rel="noopener noreferrer"
                 aria-label="Download Sentinel (opens GitHub Releases)"
@@ -220,8 +220,10 @@ export function Hero() {
                 Download Sentinel
               </a>
               <a
-                href="#docs"
-                aria-label="View Sentinel documentation"
+                href={`${BLOB}/desktop/docs`}
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label="View Sentinel documentation on GitHub (opens in new tab)"
                 style={{
                   display: 'inline-flex', alignItems: 'center', gap: 8,
                   padding: '12px 24px', borderRadius: 8, fontWeight: 600, fontSize: 14,

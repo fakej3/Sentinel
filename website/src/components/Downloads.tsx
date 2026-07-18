@@ -1,4 +1,4 @@
-import { GITHUB, RELEASES } from '../constants'
+import { GITHUB, RELEASES, LATEST_RELEASE } from '../constants'
 import { SectionHeader, GitHubIcon, DownloadIcon } from '../shared'
 
 const PLATFORMS = [
@@ -75,7 +75,7 @@ export function Downloads() {
                 </ul>
               </div>
               <a
-                href={RELEASES}
+                href={LATEST_RELEASE}
                 target="_blank"
                 rel="noopener noreferrer"
                 aria-label={`Download Sentinel for ${name} (opens GitHub Releases in new tab)`}

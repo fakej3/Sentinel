@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
-import { GITHUB } from '../constants'
-import { GitHubIcon } from '../shared'
+import { GITHUB, LATEST_RELEASE } from '../constants'
+import { GitHubIcon, DownloadIcon } from '../shared'
 
 function SentinelLogo() {
   return (
@@ -170,15 +170,33 @@ export function Nav() {
             </a>
           ))}
           <a
-            href={GITHUB}
+            href={LATEST_RELEASE}
             target="_blank"
             rel="noopener noreferrer"
             onClick={closeMenu}
+            aria-label="Download Sentinel (opens GitHub Releases)"
             style={{
               marginTop: 20, fontSize: 14, fontWeight: 700,
               display: 'flex', alignItems: 'center', gap: 8,
               padding: '12px 20px', borderRadius: 8,
               background: 'var(--accent)', color: 'white',
+              justifyContent: 'center',
+            }}
+          >
+            <DownloadIcon />
+            Download Sentinel
+          </a>
+          <a
+            href={GITHUB}
+            target="_blank"
+            rel="noopener noreferrer"
+            onClick={closeMenu}
+            style={{
+              marginTop: 8, fontSize: 14, fontWeight: 600,
+              display: 'flex', alignItems: 'center', gap: 8,
+              padding: '12px 20px', borderRadius: 8,
+              background: 'transparent', color: 'var(--text)',
+              border: '1px solid var(--border-strong)',
               justifyContent: 'center',
             }}
           >

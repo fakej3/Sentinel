@@ -28,7 +28,7 @@ This Code of Conduct applies in all project spaces — GitHub issues, pull reque
 
 ## Enforcement
 
-Instances of unacceptable behavior may be reported by opening a [GitHub Security Advisory](https://github.com/fakej3/Sentinel/security/advisories/new) (private) or by contacting the maintainer directly through GitHub.
+Instances of unacceptable behavior may be reported by opening a [GitHub Security Advisory](https://github.com/fakej3/Sentinel/security/advisories/new) (private — visible only to maintainers) or by emailing the maintainer at rwtj3.2006@gmail.com.
 
 All reports will be reviewed promptly. Maintainers are obligated to maintain confidentiality regarding the reporter of an incident. Consequences range from a warning to a permanent ban, depending on severity.
 

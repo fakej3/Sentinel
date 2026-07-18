@@ -81,7 +81,7 @@ Summary · Trade Plan · Evidence · Indicators · Structure · Volume · Valida
 | LIM-003 | **Escape key cannot cancel the network fetch** — the Binance client uses an internal 10-second timeout; the UI shows cancelled state but the underlying HTTP request runs to completion. |
 | LIM-004 | **macOS Gatekeeper warning on unsigned builds** — macOS installers require a valid Apple Developer ID certificate and notarization secrets configured in repository secrets. Without them the `.dmg` will trigger an unsigned-app warning. The Windows and Linux installers are unaffected. |
 
-See [`KNOWN_LIMITATIONS.md`](KNOWN_LIMITATIONS.md) for the full list with detailed descriptions and risk assessments.
+See [`KNOWN_LIMITATIONS.md`](https://github.com/fakej3/Sentinel/blob/main/desktop/docs/KNOWN_LIMITATIONS.md) for the full list with detailed descriptions and risk assessments.
 
 ---
 

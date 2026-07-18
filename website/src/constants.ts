@@ -2,6 +2,7 @@ import type { CSSProperties } from 'react'
 
 export const GITHUB = 'https://github.com/fakej3/Sentinel'
 export const RELEASES = `${GITHUB}/releases`
+export const LATEST_RELEASE = `${GITHUB}/releases/latest`
 export const BLOB = `${GITHUB}/blob/main`
 
 export const STAGES = [
@@ -28,7 +29,7 @@ export const CATEGORY_COLOR: Record<string, string> = {
 }
 
 export const FEATURES = [
-  { tag: 'Architecture', title: 'No server. No account.', body: 'The entire 11-stage pipeline runs in-process inside the Tauri webview. Nothing to deploy, no subscription, no data leaving your machine.' },
+  { tag: 'Architecture', title: 'No server. No account.', body: 'The entire 11-stage pipeline runs in-process inside the desktop app. Nothing to deploy, no subscription, no data leaving your machine.' },
   { tag: 'Privacy', title: 'Offline-first by design', body: 'Candle data is fetched from Binance when connected — then everything else is local. Analysis results, history, and settings never leave your device.' },
   { tag: 'Indicators', title: '10+ built-in indicators', body: 'EMA 9/21/50/200, RSI, MACD, ATR, ADX, Bollinger Bands, StochRSI, OBV, MFI, CCI — all computed from first principles against raw candle data.' },
   { tag: 'Market Structure', title: 'Structural pattern detection', body: 'Higher highs, higher lows, lower highs, lower lows, Break of Structure, Change of Character, pullbacks, consolidation ranges — all rule-based.' },
@@ -44,7 +45,7 @@ export const FEATURES = [
 
 export const ROADMAP = [
   { phase: 'Now', title: 'Desktop v1', items: ['11-stage analysis pipeline', 'Binance spot + futures', 'Local history & persistence', 'Gemini AI narration', 'Windows / macOS / Linux'], status: 'current' },
-  { phase: 'Next', title: 'Website', items: ['Public marketing site', 'Documentation portal', 'Download distribution', 'GitHub Pages hosting'], status: 'active' },
+  { phase: 'Now', title: 'Website', items: ['Public marketing site', 'Documentation portal', 'Download distribution', 'GitHub Pages hosting'], status: 'current' },
   { phase: 'H2 2026', title: 'Mobile', items: ['iOS (SwiftUI)', 'Android (Kotlin)', 'Offline-first same pipeline', 'Optional desktop sync'], status: 'planned' },
   { phase: '2027', title: 'Backend', items: ['Self-hostable server', 'Team analysis sharing', 'Webhook alerts', 'REST API'], status: 'planned' },
   { phase: '2027+', title: 'API & Integrations', items: ['Developer REST API', 'TradingView bridge', 'Bybit + Coinbase', 'Custom indicator plugins'], status: 'future' },
@@ -72,14 +73,14 @@ export const FAQ = [
   { q: 'Which exchanges does Sentinel support?', a: "Currently Binance — both spot and USD-M futures pairs. Bybit, Coinbase Advanced, OKX, and Kraken support are on the roadmap. The architecture is exchange-agnostic; adding a new exchange means implementing a single fetch adapter." },
   { q: 'Why do I need a Gemini API key for AI narration?', a: "The Gemini key is stored locally and used to call Google's API directly from your machine. Sentinel never sees or proxies your key. If you don't add a key, the deterministic writer produces a complete analysis report without AI enhancement." },
   { q: 'Is Sentinel free? Will it always be free?', a: "Yes, and yes. Sentinel is MIT licensed. The core analysis engine will always be open source and free. Future premium features like backend sync or team sharing may be optional paid additions, but the desktop app itself stays free." },
-  { q: 'How do I build from source?', a: "Clone the repo, install Rust and Node 20, then run `npm install && npm run tauri dev` from the `desktop/` directory. See CONTRIBUTING.md for the full setup guide. Building from source gives you a fully auditable, locally compiled binary." },
-  { q: 'How is confidence calculated?', a: "Each analysis module produces typed evidence items with a direction (bull/bear/neutral) and impact level (strong/moderate/weak). The confidence engine sums bull vs bear evidence, weights by impact, checks for contradictions, and applies a data completeness penalty. Score is 0–10. Grade: very_strong (≥8.5), strong (≥7.0), moderate (≥5.0), mixed (≥3.0), weak (<3.0)." },
+  { q: 'How do I build from source?', a: "Clone the repo, install Rust and Node 20, then run `npm install && npm run tauri:dev` from the `desktop/` directory. See CONTRIBUTING.md for the full setup guide. Building from source gives you a fully auditable, locally compiled binary." },
+  { q: 'How is confidence calculated?', a: "Each analysis module produces typed evidence items with a direction (bull/bear/neutral) and impact level (strong/moderate/weak). The confidence engine sums bull vs bear evidence, weights by impact, checks for contradictions, and applies a data completeness penalty. Score is 0–10. Grade: A (≥8.5), B (≥7.0), C (≥5.0), D (≥3.0), F (<3.0)." },
 ] as const
 
 export const DOCS_LINKS = [
   { title: 'Architecture', desc: 'Pipeline design, module contracts, data flow diagram', path: 'desktop/docs/ARCHITECTURE.md' },
   { title: 'Roadmap', desc: 'Planned features, phases, and delivery timeline', path: 'desktop/docs/ROADMAP.md' },
-  { title: 'Versioning', desc: 'Release process, tagging convention, secret setup', path: 'desktop/docs/VERSIONING.md' },
+  { title: 'Versioning', desc: 'Release process, tagging convention, and signing setup', path: 'desktop/docs/VERSIONING.md' },
   { title: 'Changelog', desc: 'What changed in each release, version by version', path: 'desktop/docs/CHANGELOG.md' },
   { title: 'Contributing', desc: 'Development setup, code style guide, PR process', path: 'CONTRIBUTING.md' },
 ] as const

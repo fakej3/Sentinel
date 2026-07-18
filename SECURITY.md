@@ -33,4 +33,4 @@ You can expect an acknowledgement within 72 hours. If the issue is confirmed, a 
 
 ## Supported Versions
 
-Only the latest release receives security fixes. Patch the vulnerability on the latest version before reporting.
+Only the latest release receives security fixes. Confirmed vulnerabilities are patched on the latest version before a public advisory is published.

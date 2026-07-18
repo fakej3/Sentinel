@@ -38,7 +38,7 @@ const COLS = [
       { label: 'Architecture', href: `${BLOB}/desktop/docs/ARCHITECTURE.md` },
       { label: 'Changelog', href: `${BLOB}/desktop/docs/CHANGELOG.md` },
       { label: 'Versioning', href: `${BLOB}/desktop/docs/VERSIONING.md` },
-      { label: 'Roadmap', href: `${BLOB}/desktop/docs/ROADMAP.md` },
+      { label: 'Dev Roadmap', href: `${BLOB}/desktop/docs/ROADMAP.md` },
       { label: 'Contributing', href: `${BLOB}/CONTRIBUTING.md` },
     ],
   },
