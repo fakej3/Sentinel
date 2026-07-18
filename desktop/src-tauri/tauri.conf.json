@@ -29,6 +29,11 @@
     "active": true,
     "targets": "all",
     "category": "Finance",
+    "windows": {
+      "wix": {
+        "version": "1.0.0.1"
+      }
+    },
     "copyright": "© 2026 Sentinel",
     "shortDescription": "Deterministic crypto analysis — local, offline, no cloud",
     "longDescription": "Sentinel is a desktop application for real-time cryptocurrency market analysis. It runs a multi-module analysis engine locally, combining technical indicators, market structure, volume analysis, support and resistance levels, confidence scoring, and optional AI narrative to provide comprehensive trading insights — with no backend server required.",

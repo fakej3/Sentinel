@@ -78,7 +78,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # ── Node.js ────────────────────────────────────────────────────────────
+      # ── Node.js ───────────────────────────────────────────────────────
       - uses: actions/setup-node@v4
         with:
           node-version: 20
@@ -88,14 +88,14 @@ jobs:
       - run: npm ci
         working-directory: desktop
 
-      # ── Rust ───────────────────────────────────────────────────────────────
+      # ── Rust ───────────────────────────────────────────────────────────
       - uses: dtolnay/rust-toolchain@stable
 
       - uses: swatinem/rust-cache@v2
         with:
           workspaces: desktop/src-tauri
 
-      # ── Linux system dependencies ──────────────────────────────────────────
+      # ── Linux system dependencies ────────────────────────────────────────────
       - name: Install Linux build dependencies
         if: matrix.platform == 'ubuntu-22.04'
         run: |
@@ -108,7 +108,7 @@ jobs:
             libgtk-3-dev \
             libssl-dev
 
-      # ── macOS code signing ─────────────────────────────────────────────────
+      # ── macOS code signing ─────────────────────────────────────────────
       - name: Import macOS code-signing certificate
         if: matrix.platform == 'macos-latest' && env.APPLE_CERTIFICATE != ''
         env:
@@ -124,7 +124,7 @@ jobs:
             -S apple-tool:,apple: -s -k actions build.keychain
           rm certificate.p12
 
-      # ── Load release notes ─────────────────────────────────────────────────
+      # ── Load release notes ─────────────────────────────────────────────
       - name: Load release notes
         id: notes
         shell: bash
@@ -145,7 +145,7 @@ jobs:
             } >> "$GITHUB_OUTPUT"
           fi
 
-      # ── Build and release ──────────────────────────────────────────────────
+      # ── Build and release ──────────────────────────────────────────────
       - name: Build and publish Tauri release
         uses: tauri-apps/tauri-action@v0
         env:
@@ -155,7 +155,7 @@ jobs:
           APPLE_ID: ${{ secrets.APPLE_ID }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
           APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
-          APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
+          APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY || '-' }}
         with:
           projectPath: desktop
           tagName: ${{ github.ref_name }}
