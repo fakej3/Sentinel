@@ -63,6 +63,19 @@ export function validateAnalyzeInput(req: Request, res: Response, next: NextFunc
         return
       }
     }
+    const confidence = cfg.confidence
+    if (confidence !== undefined && typeof confidence === 'object' && confidence !== null) {
+      const nd = (confidence as Record<string, unknown>).normalizationDivisor
+      if (nd !== undefined) {
+        const divisor = Number(nd)
+        if (!Number.isFinite(divisor) || divisor <= 0) {
+          res.status(400).json({
+            error: { code: 'invalid_request', message: 'config.confidence.normalizationDivisor must be a positive finite number' },
+          })
+          return
+        }
+      }
+    }
   }
 
   next()

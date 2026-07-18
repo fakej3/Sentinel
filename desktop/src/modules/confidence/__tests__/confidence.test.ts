@@ -52,6 +52,27 @@ describe('scoreEvidence', () => {
     expect(result.reasons).toHaveLength(0)
   })
 
+  it('ignores factors whose weight is NaN or Infinity (malformed config guard)', () => {
+    const malformedCfg = {
+      ...cfg,
+      factorWeights: {
+        ...cfg.factorWeights,
+        'Price above EMA200': NaN,
+        'Price above EMA50':  Infinity,
+      },
+    }
+    const evidence = [
+      ev('Price above EMA200', 'bullish'),  // weight is NaN → ignored
+      ev('Price above EMA50', 'bullish'),   // weight is Infinity → ignored
+      ev('MACD bullish bias', 'bullish'),   // +10 → still counted
+    ]
+    const result = scoreEvidence(evidence, malformedCfg)
+    expect(Number.isFinite(result.rawPoints)).toBe(true)
+    expect(result.rawPoints).toBe(10)
+    expect(result.reasons).toHaveLength(1)
+    expect(result.reasons[0].factor).toBe('MACD bullish bias')
+  })
+
   it('accumulates multiple factors correctly', () => {
     const evidence = [
       ev('Price above EMA200', 'bullish'),  // +15

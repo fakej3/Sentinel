@@ -26,12 +26,7 @@ export function synthesizeFullTrend(
     recentStructure.higherHighs >= cfg.minBullishSwingsForTrend &&
     recentStructure.higherLows >= cfg.minBullishSwingsForTrend
   const rsiSupportsBullish = rsi !== null && rsi >= cfg.rsiBullishMin
-  const macdBullish =
-    macd !== null &&
-    macd.macdLine > macd.signalLine &&
-    macd.histogram > 0 &&
-    macd.previousHistogram !== null &&
-    macd.histogram > macd.previousHistogram
+  const macdBullish = macd !== null && macd.macdLine > macd.signalLine
 
   // ── Bearish conditions ─────────────────────────────────────────────────────
   const priceBelowEMA20 = ema20 !== null && price < ema20
@@ -48,12 +43,7 @@ export function synthesizeFullTrend(
     recentStructure.lowerHighs >= cfg.minBearishSwingsForTrend &&
     recentStructure.lowerLows >= cfg.minBearishSwingsForTrend
   const rsiSupportsBearish = rsi !== null && rsi <= cfg.rsiBearishMax
-  const macdBearish =
-    macd !== null &&
-    macd.macdLine < macd.signalLine &&
-    macd.histogram < 0 &&
-    macd.previousHistogram !== null &&
-    macd.histogram < macd.previousHistogram
+  const macdBearish = macd !== null && macd.macdLine < macd.signalLine
 
   // ── Neutral conditions ─────────────────────────────────────────────────────
   const adxBelowWeakThreshold =
@@ -62,7 +52,10 @@ export function synthesizeFullTrend(
     rsi !== null && rsi >= cfg.rsiNeutralLow && rsi <= cfg.rsiNeutralHigh
   const noConsistentStructure =
     !hasConsistentHHHL && !hasConsistentLHLL
+  // Requires all 4 EMAs to be available: when any EMA is null every compound condition
+  // above is false, which would make this vacuously true and inflate neutralConditionsMet.
   const priceBetweenEMAsWithoutClearOrder =
+    ema20 !== null && ema50 !== null && ema100 !== null && ema200 !== null &&
     !priceAboveAllEMAs && !priceBelowAllEMAs && !emaInBullishOrder && !emaInBearishOrder
 
   const conditions: TrendConditions = {

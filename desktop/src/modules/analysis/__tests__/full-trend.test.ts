@@ -57,7 +57,7 @@ describe('synthesizeFullTrend', () => {
     const ind = indicators({ rsi: 50, adx: { adx: 15, diPlus: 10, diMinus: 10 } })
     const result = synthesizeFullTrend(100, ind, emptyStructure(), cfg)
     // rsiInNeutralRange=true(50 in 40-60), adxBelowWeakThreshold=true(15<20)
-    // noConsistentStructure=true, priceBetweenEMAs=true (no EMAs)
+    // noConsistentStructure=true; priceBetweenEMAs requires all 4 EMAs (unavailable here → false)
     expect(result.neutralConditionsMet).toBeGreaterThanOrEqual(3)
     expect(result.trend).toBe('ranging')
   })
@@ -132,6 +132,31 @@ describe('synthesizeFullTrend', () => {
     expect(result.conditions.macdBullish).toBe(false)
   })
 
+  // ── SR-2 regression: priceBetweenEMAsWithoutClearOrder must NOT fire when EMAs are null ──
+  // Previously: with no EMAs all compound conditions are false → condition was vacuously true,
+  // adding 1 to neutralConditionsMet and potentially forcing 'ranging' in directional markets.
+
+  it('priceBetweenEMAsWithoutClearOrder is false when all EMAs are null (regression: SR-2)', () => {
+    const ind = indicators()  // all EMAs null
+    const result = synthesizeFullTrend(100, ind, emptyStructure(), cfg)
+    expect(result.conditions.priceBetweenEMAsWithoutClearOrder).toBe(false)
+  })
+
+  it('priceBetweenEMAsWithoutClearOrder is false when only some EMAs are available', () => {
+    const ind = indicators({ ema20: 95, ema50: 90, ema100: 85 })  // ema200 null
+    const result = synthesizeFullTrend(100, ind, emptyStructure(), cfg)
+    expect(result.conditions.priceBetweenEMAsWithoutClearOrder).toBe(false)
+  })
+
+  it('priceBetweenEMAsWithoutClearOrder is true when all 4 EMAs are available and mixed', () => {
+    // Mixed: price above ema20 but below ema50 — not in clear bull or bear stack
+    const ind = indicators({ ema20: 95, ema50: 110, ema100: 105, ema200: 108 })
+    const result = synthesizeFullTrend(100, ind, emptyStructure(), cfg)
+    // price (100) < ema50 (110) → not priceAboveAllEMAs; not priceBelowAllEMAs (100 > ema20=95)
+    // ema order is not bullish (95 < 110) nor bearish stack; genuinely mixed
+    expect(result.conditions.priceBetweenEMAsWithoutClearOrder).toBe(true)
+  })
+
   it('produces deterministic output for same inputs', () => {
     const ind = bullishIndicators()
     const s = bullishStructure()
@@ -169,60 +194,57 @@ describe('synthesizeFullTrend', () => {
     expect(result.conditions.hasConsistentLHLL).toBe(false)
   })
 
-  // ── CRIT-03: MACD three-condition rule ───────────────────────────────────────
+  // ── MACD condition rule: macdLine vs signalLine ──────────────────────────────
+  // macdBullish = macdLine > signalLine. No acceleration requirement.
+  // A sustained uptrend with decelerating histogram still counts as bullish.
 
-  it('macdBullish is true when histogram is positive and increasing', () => {
-    // histogram=5, previousHistogram=4 → increasing
+  it('macdBullish is true when macd line is above signal (histogram positive)', () => {
     const ind = indicators({ macd: macd(10, 5, 4) })
     const result = synthesizeFullTrend(100, ind, emptyStructure(), cfg)
     expect(result.conditions.macdBullish).toBe(true)
   })
 
-  it('macdBullish is false when histogram is flat (not increasing)', () => {
-    // histogram=5, previousHistogram=5 → not increasing (5 > 5 is false)
+  it('macdBullish is true when histogram is flat (MACD still above signal)', () => {
     const ind = indicators({ macd: macd(10, 5, 5) })
     const result = synthesizeFullTrend(100, ind, emptyStructure(), cfg)
-    expect(result.conditions.macdBullish).toBe(false)
+    expect(result.conditions.macdBullish).toBe(true)
   })
 
-  it('macdBullish is false when histogram is decreasing', () => {
-    // histogram=3, previousHistogram=5 → decreasing
+  it('macdBullish is true when histogram is shrinking but MACD still above signal', () => {
+    // histogram=3 (shrinking from 5), macdLine=8 still > signalLine=5
     const ind = indicators({ macd: macd(8, 5, 5) })
     const result = synthesizeFullTrend(100, ind, emptyStructure(), cfg)
-    expect(result.conditions.macdBullish).toBe(false)
+    expect(result.conditions.macdBullish).toBe(true)
   })
 
-  it('macdBullish is false when previousHistogram is null (minimum candle count)', () => {
-    // null previousHistogram → cannot verify increasing → macdBullish = false
+  it('macdBullish is true at minimum candle count (previousHistogram null)', () => {
+    // null previousHistogram no longer blocks — only macdLine > signalLine matters
     const ind = indicators({ macd: macd(10, 5, null) })
     const result = synthesizeFullTrend(100, ind, emptyStructure(), cfg)
-    expect(result.conditions.macdBullish).toBe(false)
+    expect(result.conditions.macdBullish).toBe(true)
   })
 
-  it('macdBullish is false when histogram is positive but macdLine <= signalLine', () => {
-    // All three conditions must hold: macdLine > signalLine is required
-    const ind = indicators({ macd: macd(5, 5, 3) }) // histogram=0, not positive
+  it('macdBullish is false when macdLine equals signalLine', () => {
+    const ind = indicators({ macd: macd(5, 5, 3) }) // histogram=0
     const result = synthesizeFullTrend(100, ind, emptyStructure(), cfg)
     expect(result.conditions.macdBullish).toBe(false)
   })
 
-  it('macdBearish is true when histogram is negative and decreasing', () => {
-    // histogram=-5, previousHistogram=-4 → more negative → decreasing → macdBearish=true
+  it('macdBearish is true when macd line is below signal (histogram negative)', () => {
     const ind = indicators({ macd: macd(5, 10, -4) })
     const result = synthesizeFullTrend(100, ind, emptyStructure(), cfg)
     expect(result.conditions.macdBearish).toBe(true)
   })
 
-  it('macdBearish is false when histogram is negative but flattening', () => {
-    // histogram=-5, previousHistogram=-5 → flat, not strictly decreasing
+  it('macdBearish is true when histogram is flattening but MACD still below signal', () => {
     const ind = indicators({ macd: macd(5, 10, -5) })
     const result = synthesizeFullTrend(100, ind, emptyStructure(), cfg)
-    expect(result.conditions.macdBearish).toBe(false)
+    expect(result.conditions.macdBearish).toBe(true)
   })
 
-  it('macdBearish is false when previousHistogram is null', () => {
+  it('macdBearish is true at minimum candle count (previousHistogram null)', () => {
     const ind = indicators({ macd: macd(5, 10, null) })
     const result = synthesizeFullTrend(100, ind, emptyStructure(), cfg)
-    expect(result.conditions.macdBearish).toBe(false)
+    expect(result.conditions.macdBearish).toBe(true)
   })
 })

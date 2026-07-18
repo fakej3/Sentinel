@@ -233,6 +233,33 @@ describe('applyInteractions — bounce confirmation boundary (CRIT-04)', () => {
   })
 })
 
+// ── SR-1 regression: last-candle bounce must not be counted as successful ────
+describe('applyInteractions — last-candle bounce (regression: SR-1)', () => {
+  it('does not award successfulReaction for resistance bounce with no confirmation candle', () => {
+    const z = zone({ firstDetectedIndex: 0, type: 'resistance' })
+    const candles = makeCandles([
+      { close: 100 },                      // 0 - skip (firstDetectedIndex)
+      { close: 97, high: 101, low: 95 },   // 1 - enters zone, close < lower=98 → bounce, but last candle
+    ])
+    const result = applyInteractions(z, candles)
+    expect(result.successfulReactions).toBe(0)  // no next candle → inconclusive
+    expect(result.failedReactions).toBe(0)
+    expect(result.touchCount).toBe(2)            // touch was still recorded
+  })
+
+  it('does not award successfulReaction for support bounce with no confirmation candle', () => {
+    const z = zone({ firstDetectedIndex: 0, type: 'support' })
+    const candles = makeCandles([
+      { close: 100 },                      // 0 - skip (firstDetectedIndex)
+      { close: 103, high: 104, low: 99 },  // 1 - enters zone, close > upper=102 → bounce, but last candle
+    ])
+    const result = applyInteractions(z, candles)
+    expect(result.successfulReactions).toBe(0)  // no next candle → inconclusive
+    expect(result.failedReactions).toBe(0)
+    expect(result.touchCount).toBe(2)            // touch was still recorded
+  })
+})
+
 describe('applyInteractions — edge cases', () => {
   it('ignores candles at or before firstDetectedIndex', () => {
     const z = zone({ firstDetectedIndex: 5 })

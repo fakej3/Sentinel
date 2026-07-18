@@ -30,7 +30,7 @@ export function scoreEvidence(
 
   for (const item of evidence) {
     const weight = cfg.factorWeights[item.factor]
-    if (weight === undefined) continue
+    if (weight === undefined || !Number.isFinite(weight)) continue
 
     rawPoints += weight
 

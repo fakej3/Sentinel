@@ -391,4 +391,23 @@ describe('checkConsistency', () => {
     const issues = checkConsistency(result, DEFAULT_VALIDATION_CONFIG)
     expect(issues.some(i => i.field === 'fullTrend.conditions.priceBetweenEMAsWithoutClearOrder')).toBe(true)
   })
+
+  // ── SR-2 regression: priceBetweenEMAsWithoutClearOrder must be false when any EMA is null ──
+  it('does not flag priceBetweenEMAsWithoutClearOrder=false when EMA200 is null (regression: SR-2)', () => {
+    // When EMA200 is null, all compound conditions are false, so the old derived formula
+    // would evaluate to true — but the engine now returns false (requires all 4 EMAs).
+    const result = makeValidResult({
+      indicators: makeIndicators({ ema200: null }),
+      fullTrend: makeFullTrend({
+        conditions: makeTrendConditions({
+          priceAboveEMA200: false,
+          priceAboveAllEMAs: false,
+          emaInBullishOrder: false,
+          priceBetweenEMAsWithoutClearOrder: false, // correct: EMA200 null → can't evaluate
+        }),
+      }),
+    })
+    const issues = checkConsistency(result, DEFAULT_VALIDATION_CONFIG)
+    expect(issues.some(i => i.field === 'fullTrend.conditions.priceBetweenEMAsWithoutClearOrder')).toBe(false)
+  })
 })

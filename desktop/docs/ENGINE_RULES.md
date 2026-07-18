@@ -136,8 +136,8 @@ Calculation: EMA(12) − EMA(26); Signal = EMA(9) of MACD.
 
 | Signal | Condition |
 |--------|-----------|
-| Bullish | `macdLine > signalLine` AND `histogram > 0` AND `histogram > previousHistogram` — all three required; `macdBullish = false` when `previousHistogram` is null (see LIM-030) |
-| Bearish | `macdLine < signalLine` AND `histogram < 0` AND `histogram < previousHistogram` — all three required; `macdBearish = false` when `previousHistogram` is null |
+| Bullish | `macdLine > signalLine` |
+| Bearish | `macdLine < signalLine` |
 | Bullish Crossover | MACD line crosses above Signal line (current candle) |
 | Bearish Crossover | MACD line crosses below Signal line (current candle) |
 | Neutral | MACD and Signal are within 0.1% of each other |
@@ -263,14 +263,16 @@ Bollinger Bands must always be confirmed by RSI and volume.
 
 | Range | Classification |
 |-------|----------------|
-| < 20 | Oversold |
-| 20–80 | Neutral |
-| > 80 | Overbought |
+| < 0.2 | Oversold |
+| 0.2–0.8 | Neutral |
+| > 0.8 | Overbought |
+
+*Note: StochRSI output is in the [0, 1] fractional scale (not 0–100). Thresholds and config values use the same scale.*
 
 | Signal | Condition |
 |--------|-----------|
-| Bullish Crossover | %K crosses above %D while both below 20 |
-| Bearish Crossover | %K crosses below %D while both above 80 |
+| Bullish Crossover | %K crosses above %D while both below 0.2 |
+| Bearish Crossover | %K crosses below %D while both above 0.8 |
 
 StochRSI is a faster oscillator. Do not use it alone for trend conclusions.
 
@@ -289,7 +291,7 @@ It represents the strength and consistency of supporting evidence — not a pred
 | Higher High confirmed | +15 |
 | Higher Low confirmed | +15 |
 | Bullish MACD | +10 |
-| RSI in 55–70 range | +8 |
+| RSI in 55–70 range | +8 | *(pre-wired; evidence.ts currently emits 'RSI supports bullish' at +7)* |
 | Strong volume confirmation | +12 |
 | ADX above 25 | +8 |
 | Bullish StochRSI crossover | +5 |
@@ -304,15 +306,14 @@ It represents the strength and consistency of supporting evidence — not a pred
 | Lower High confirmed | −15 |
 | Lower Low confirmed | −15 |
 | Bearish MACD | −10 |
-| RSI in 30–45 range | −8 |
+| RSI in 30–45 range | −8 | *(pre-wired; evidence.ts currently emits 'RSI supports bearish' at −7)* |
 | Weak volume on breakout | −12 |
 | Bullish RSI divergence | +15 |
 
 ### Score Normalization
 
 Raw points are summed and normalized to a 0–10 scale.
-Maximum theoretical positive score ≈ 106 points = 10.0
-Scale: `score = min(10, max(0, rawPoints / 10.6))`
+Scale: `score = min(10, max(0, rawPoints / 10))`
 
 ### Score Interpretation
 
@@ -709,7 +710,7 @@ in the system. `MarketStructureResult.trend` (Module 3) is structural bias only.
 | 2 | EMAs in bullish order | `ema20 > ema50 > ema100 > ema200` |
 | 3 | Consistent HH+HL | `recentStructure.higherHighs ≥ 2` AND `recentStructure.higherLows ≥ 2` (windowed recent swings — see §2 and CRIT-01) |
 | 4 | RSI supports bullish | `rsi ≥ 45` (configurable: `rsiBullishMin`; overlaps with bearish threshold at 45–55 — see LIM-031) |
-| 5 | MACD bullish | `macd.macdLine > macd.signalLine` AND `macd.histogram > 0` AND `macd.histogram > macd.previousHistogram` (null previousHistogram → false) |
+| 5 | MACD bullish | `macd.macdLine > macd.signalLine` |
 
 **5/5 met → `strong bullish`. 3–4/5 AND bullish > bearish → `moderate bullish`.**
 
@@ -721,7 +722,7 @@ in the system. `MarketStructureResult.trend` (Module 3) is structural bias only.
 | 2 | EMAs in bearish order | `ema20 < ema50 < ema100 < ema200` |
 | 3 | Consistent LH+LL | `recentStructure.lowerHighs ≥ 2` AND `recentStructure.lowerLows ≥ 2` (windowed recent swings — see §2 and CRIT-01) |
 | 4 | RSI supports bearish | `rsi ≤ 55` (configurable: `rsiBearishMax`; overlaps with bullish threshold at 45–55 — see LIM-031) |
-| 5 | MACD bearish | `macd.macdLine < macd.signalLine` AND `macd.histogram < 0` AND `macd.histogram < macd.previousHistogram` (null previousHistogram → false) |
+| 5 | MACD bearish | `macd.macdLine < macd.signalLine` |
 
 **5/5 met → `strong bearish`. 3–4/5 AND bearish > bullish → `moderate bearish`.**
 
@@ -848,8 +849,8 @@ Items are sorted by impact (high → medium → low) in `MarketAnalysisResult.ev
 | Parameter | Default | ENGINE_RULES ref |
 |-----------|---------|-----------------|
 | `emaConfluencePercent` | 0.5 | §5 |
-| `stochRsiOverboughtThreshold` | 80 | §10 |
-| `stochRsiOversoldThreshold` | 20 | §10 |
+| `stochRsiOverboughtThreshold` | 0.8 | §10 |
+| `stochRsiOversoldThreshold` | 0.2 | §10 |
 | `adxWeakThreshold` | 20 | §7 |
 | `adxStrongThreshold` | 25 | §7 |
 | `rsiNeutralLow` | 40 | §1 |
@@ -946,8 +947,8 @@ All findings are `category: 'consistency'`.
 | `rsiSupportsBullish` | `indicators.rsi` | `rsi >= rsiBullishMin` (false when null) |
 | `rsiSupportsBearish` | `indicators.rsi` | `rsi <= rsiBearishMax` (false when null) |
 | `rsiInNeutralRange` | `indicators.rsi` | `rsi >= rsiNeutralLow && rsi <= rsiNeutralHigh` (false when null) |
-| `macdBullish` | `indicators.macd` | `macdLine > signalLine` AND `histogram > 0` AND `histogram > previousHistogram` (false when macd null or previousHistogram null) |
-| `macdBearish` | `indicators.macd` | `macdLine < signalLine` AND `histogram < 0` AND `histogram < previousHistogram` (false when macd null or previousHistogram null) |
+| `macdBullish` | `indicators.macd` | `macdLine > signalLine` (false when macd null) |
+| `macdBearish` | `indicators.macd` | `macdLine < signalLine` (false when macd null) |
 | `adxBelowWeakThreshold` | `indicators.adx` | `adx < adxWeakThreshold` (false when null) |
 | `noConsistentStructure` | other conditions | `!hasConsistentHHHL && !hasConsistentLHLL` |
 | `priceBetweenEMAsWithoutClearOrder` | other conditions | `!priceAboveAllEMAs && !priceBelowAllEMAs && !emaInBullishOrder && !emaInBearishOrder` |

@@ -23,7 +23,7 @@ export function computeStochRsi(
     const lowest = Math.min(...window)
     const highest = Math.max(...window)
     const range = highest - lowest
-    stochVals.push(range === 0 ? 0 : (rsiVals[i] - lowest) / range)
+    stochVals.push(range === 0 ? rsiVals[i] / 100 : (rsiVals[i] - lowest) / range)
   }
 
   if (stochVals.length < kSmooth + dSmooth - 1) return null

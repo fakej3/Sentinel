@@ -37,4 +37,13 @@ describe('computeStochRsi', () => {
     expect(result.k).toBeLessThan(0.5)
     expect(result.d).toBeLessThan(0.5)
   })
+
+  it('returns k near 0.5 when RSI range is flat (not extreme oversold)', () => {
+    // Constant price → RSI series is constant → stoch range is 0
+    // Must return neutral (0.5) not extreme oversold (0)
+    const closes = Array(60).fill(100)
+    const result = computeStochRsi(closes)!
+    expect(result.k).toBeCloseTo(0.5, 5)
+    expect(result.d).toBeCloseTo(0.5, 5)
+  })
 })

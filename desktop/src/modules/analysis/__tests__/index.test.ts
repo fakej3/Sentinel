@@ -143,7 +143,7 @@ describe('computeAnalysis', () => {
 
   describe('config override', () => {
     it('respects custom rsiBullishMin threshold', () => {
-      // With default rsiBullishMin=45, RSI=43 should NOT satisfy rsiSupportsBullish
+      // With default rsiBullishMin=55, RSI=43 should NOT satisfy rsiSupportsBullish
       // With custom rsiBullishMin=40, RSI=43 should satisfy it
       const ind = indicators({
         ema20: 95, ema50: 90, ema100: 85, ema200: 80,

@@ -56,9 +56,9 @@ export interface TrendConditions {
   emaInBullishOrder: boolean
   /** marketStructure.recentStructure.higherHighs >= 2 && marketStructure.recentStructure.higherLows >= 2 */
   hasConsistentHHHL: boolean
-  /** RSI >= rsiBullishMin (default 45) */
+  /** RSI >= rsiBullishMin (default 55) */
   rsiSupportsBullish: boolean
-  /** macdLine > signalLine AND histogram > 0 AND histogram > previousHistogram (ENGINE_RULES.md §4) */
+  /** macdLine > signalLine (ENGINE_RULES.md §4) */
   macdBullish: boolean
 
   // ── Bearish conditions (ENGINE_RULES.md §1)
@@ -74,7 +74,7 @@ export interface TrendConditions {
   hasConsistentLHLL: boolean
   /** RSI <= rsiBearishMax (default 55) */
   rsiSupportsBearish: boolean
-  /** macdLine < signalLine AND histogram < 0 AND histogram < previousHistogram (ENGINE_RULES.md §4) */
+  /** macdLine < signalLine (ENGINE_RULES.md §4) */
   macdBearish: boolean
 
   // ── Neutral conditions (ENGINE_RULES.md §1)

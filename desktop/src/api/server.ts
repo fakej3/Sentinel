@@ -18,7 +18,7 @@ function timingMiddleware(_req: Request, res: Response, next: NextFunction): voi
 export function createApp(analyzeFn: AnalyzeFn = analyzeMarket): express.Application {
   const app = express()
 
-  app.use(express.json())
+  app.use(express.json({ limit: '1mb' }))
   app.use(timingMiddleware)
   app.use('/', createRouter(analyzeFn))
   app.use(errorHandler)

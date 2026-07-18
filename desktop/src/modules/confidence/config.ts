@@ -79,8 +79,8 @@ export const DEFAULT_CONFIDENCE_CONFIG: ConfidenceConfig = {
     // ── RSI ──────────────────────────────────────────────────────────────────
     [F_RSI_SUPPORTS_BULLISH]:        7,
     [F_RSI_SUPPORTS_BEARISH]:       -7,
-    [F_RSI_55_70]:                   8,
-    [F_RSI_30_45]:                  -8,
+    [F_RSI_55_70]:                   8,  // pre-wired: evidence.ts currently emits F_RSI_SUPPORTS_BULLISH instead
+    [F_RSI_30_45]:                  -8,  // pre-wired: evidence.ts currently emits F_RSI_SUPPORTS_BEARISH instead
     [F_RSI_OVERBOUGHT]:            -10,
     [F_RSI_OVERSOLD]:                8,
     [F_RSI_BULLISH_DIVERGENCE]:     15,  // deferred
