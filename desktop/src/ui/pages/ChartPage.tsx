@@ -15,7 +15,7 @@ export function ChartPage({ symbol, interval, data }: ChartPageProps) {
     <div className="flex flex-col flex-1 min-h-0">
       {data && <PriceHeader result={data} />}
       <div className="flex-1 min-h-0">
-        <TradingViewChart symbol={symbol || DEFAULT_SYMBOL} interval={interval} />
+        <TradingViewChart symbol={symbol || DEFAULT_SYMBOL} interval={interval} data={data} />
       </div>
     </div>
   )

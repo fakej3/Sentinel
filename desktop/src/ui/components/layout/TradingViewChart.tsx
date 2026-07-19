@@ -2,17 +2,24 @@ import { useEffect, useRef, useState } from 'react'
 import { createChart, type IChartApi } from 'lightweight-charts'
 import { fetchCandles } from '../../../modules/binance/endpoints'
 import type { Timeframe } from '../../../modules/market/types'
+import type { PipelineResult } from '../../../modules/pipeline/types'
 import { OverlayManager } from '../../chart/OverlayManager'
 import { CandlestickOverlay } from '../../chart/overlays/CandlestickOverlay'
 import { VolumeOverlay } from '../../chart/overlays/VolumeOverlay'
 import { EmaOverlay } from '../../chart/overlays/EmaOverlay'
+import { SupportResistanceOverlay } from '../../chart/overlays/SupportResistanceOverlay'
+import { EntryZoneOverlay } from '../../chart/overlays/EntryZoneOverlay'
+import { StopLossOverlay } from '../../chart/overlays/StopLossOverlay'
+import { TakeProfitOverlay } from '../../chart/overlays/TakeProfitOverlay'
+import { RiskRewardOverlay } from '../../chart/overlays/RiskRewardOverlay'
 
 interface TradingViewChartProps {
   symbol: string
   interval: string
+  data: PipelineResult | null
 }
 
-export function TradingViewChart({ symbol, interval }: TradingViewChartProps) {
+export function TradingViewChart({ symbol, interval, data }: TradingViewChartProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const chartRef = useRef<IChartApi | null>(null)
   const managerRef = useRef<OverlayManager | null>(null)
@@ -49,12 +56,21 @@ export function TradingViewChart({ symbol, interval }: TradingViewChartProps) {
     })
 
     const manager = new OverlayManager(chart)
+
+    // Market data overlays (driven by fetchCandles)
     manager.add(new CandlestickOverlay())
     manager.add(new VolumeOverlay())
     manager.add(new EmaOverlay({ period: 20,  color: '#3b82f6' }))
     manager.add(new EmaOverlay({ period: 50,  color: '#f59e0b' }))
     manager.add(new EmaOverlay({ period: 100, color: '#10b981' }))
     manager.add(new EmaOverlay({ period: 200, color: '#8b5cf6' }))
+
+    // Analysis overlays (driven by PipelineResult)
+    manager.addAnalysis(new SupportResistanceOverlay())
+    manager.addAnalysis(new EntryZoneOverlay())
+    manager.addAnalysis(new StopLossOverlay())
+    manager.addAnalysis(new TakeProfitOverlay())
+    manager.addAnalysis(new RiskRewardOverlay())
 
     chartRef.current = chart
     managerRef.current = manager
@@ -67,7 +83,7 @@ export function TradingViewChart({ symbol, interval }: TradingViewChartProps) {
     }
   }, [])
 
-  // Fetch and load data whenever symbol or interval changes.
+  // Fetch and load market data whenever symbol or interval changes.
   useEffect(() => {
     let cancelled = false
     setStatus('loading')
@@ -91,6 +107,11 @@ export function TradingViewChart({ symbol, interval }: TradingViewChartProps) {
 
     return () => { cancelled = true }
   }, [symbol, interval])
+
+  // Push analysis result into analysis overlays whenever it changes.
+  useEffect(() => {
+    managerRef.current?.updateAnalysis(data)
+  }, [data])
 
   return (
     <div className="relative w-full h-full">
