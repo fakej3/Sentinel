@@ -71,6 +71,32 @@ export function computeTradePlan(
     targetLevel = nearestSupport.upper
   }
 
+  // ── ATR-based fallback when any trade level is missing ───────────────────
+  // When a clear directional trend exists but S/R structure is incomplete
+  // (e.g. entry zone found from support but no resistance target above price),
+  // fill every absent level using ATR-derived values (2 ATR stop, 4 ATR target).
+  // Target is measured from the entry zone midpoint so RR reflects actual risk.
+  // These setups are capped at 'average' quality — levels are volatility-derived,
+  // not anchored to key market structure, so exact price reactions are less reliable.
+  let atrBased = false
+  const needsFallback = entryZone === null || invalidationLevel === null || targetLevel === null
+  if (needsFallback && (isBullish || isBearish) && analysis.price.atrPercent !== null) {
+    const currentPrice = analysis.price.current
+    const atr = currentPrice * analysis.price.atrPercent / 100
+    if (entryZone === null) {
+      entryZone = { lower: currentPrice * 0.999, upper: currentPrice * 1.001 }
+    }
+    if (invalidationLevel === null) {
+      invalidationLevel = isBullish ? currentPrice - 2 * atr : currentPrice + 2 * atr
+    }
+    if (targetLevel === null) {
+      // Anchor to entry zone midpoint so RR is measured from where we actually enter.
+      const entryRef = (entryZone.lower + entryZone.upper) / 2
+      targetLevel = isBullish ? entryRef + 4 * atr : entryRef - 4 * atr
+    }
+    atrBased = true
+  }
+
   // ── Geometry validation ───────────────────────────────────────────────────
   // Long: stop must be below zone, target must be above zone.
   // Short: stop must be above zone, target must be below zone.
@@ -106,7 +132,7 @@ export function computeTradePlan(
   const { setupQuality, setupQualityReason } = classifySetupQuality(
     entryZone, invalidationLevel, targetLevel,
     geometryValid, riskRewardRatio,
-    confidence, validation, mtfAgreement, trend, maturity.score,
+    confidence, validation, mtfAgreement, trend, maturity.score, atrBased,
   )
 
   // excellent / good / average are actionable; poor / avoid / no_setup are not
@@ -115,7 +141,7 @@ export function computeTradePlan(
   // ── Patience message ──────────────────────────────────────────────────────
   const patienceMessage = buildPatienceMessage(
     setupQuality, trend, confidence, srContext, riskRewardRatio, validation,
-    entryZone, invalidationLevel, targetLevel, maturity,
+    entryZone, invalidationLevel, targetLevel, maturity, atrBased,
   )
 
   // price is referenced here only to satisfy the linter — the variable is
@@ -151,6 +177,7 @@ function classifySetupQuality(
   mtfAgreement?: MultiTimeframeAgreement,
   trend?: string,
   maturityScore?: number,
+  atrBased?: boolean,
 ): { setupQuality: TradeSetupQuality; setupQualityReason: string } {
   // Weak trend (weak bullish / weak bearish / ranging) reduces setup reliability.
   // Evidence: 8/10 synthetic validation losses had weak trend labels despite high
@@ -208,6 +235,21 @@ function classifySetupQuality(
     return {
       setupQuality: 'poor',
       setupQualityReason: `Trade maturity ${maturityScore}/100 (Immature) — market conditions are not ready; wait for momentum, volume, and structure to align`,
+    }
+  }
+
+  // ATR-based setups are capped at 'average' — levels are volatility-derived, not
+  // anchored to key market structure, so confidence in exact price reactions is lower.
+  if (atrBased) {
+    if (validation.criticalCount > 0 || confidence.score < 4.0) {
+      return {
+        setupQuality: 'poor',
+        setupQualityReason: `ATR-based levels — ${validation.criticalCount > 0 ? 'critical data quality issues' : `confidence ${confidence.score.toFixed(1)} too low`}; no key S/R structure found`,
+      }
+    }
+    return {
+      setupQuality: 'average',
+      setupQualityReason: `ATR-based levels (no key S/R structure) — RR ${riskRewardRatio?.toFixed(2) ?? 'N/A'}, confidence ${confidence.score.toFixed(1)}; use reduced size`,
     }
   }
 
@@ -288,10 +330,11 @@ function buildPatienceMessage(
   invalidationLevel: number | null,
   targetLevel: number | null,
   maturity: TradeMaturityResult,
+  atrBased?: boolean,
 ): string {
   switch (setupQuality) {
     case 'no_setup':
-      return 'No high-quality trade setup currently exists — wait for support/resistance structure to form'
+      return 'No trade setup available — price is mid-range with no nearby S/R structure and ATR is unavailable; wait for structure to form or a pullback to a key level'
 
     case 'avoid':
       if (riskRewardRatio !== null && riskRewardRatio < 1.5) {
@@ -364,6 +407,13 @@ function buildPatienceMessage(
       const isWeak = trend.includes('weak') || trend === 'ranging'
       const earlyNote = maturity.score < 45 && maturity.primaryConcern
         ? `; ${maturity.primaryConcern}` : ''
+      if (atrBased && entryZone !== null && invalidationLevel !== null && targetLevel !== null) {
+        const mid = fmtPrice((entryZone.lower + entryZone.upper) / 2)
+        const stop = fmtPrice(invalidationLevel)
+        const target = fmtPrice(targetLevel)
+        const rrStr = riskRewardRatio !== null ? `, RR ${riskRewardRatio.toFixed(2)}:1` : ''
+        return `No key S/R structure nearby — ATR-based levels: enter near ${mid}, stop ${stop}, target ${target}${rrStr}; reduce position size${earlyNote}`
+      }
       if (isWeak) {
         return `Weak trend — if entering, wait for a strong confirmation candle, use reduced position size, and strict stop placement${earlyNote}`
       }
