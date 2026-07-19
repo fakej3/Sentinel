@@ -219,6 +219,24 @@ export function computeConfidence(
     })
   }
 
+  // Near-zero ATR — stablecoin, peg, or market with no real price movement.
+  // Technical signals from EMA cross, market structure, RSI, etc. are all noise
+  // at this volatility level. Apply unconditionally (not gated on score level).
+  const atrPct = analysis.price.atrPercent
+  if (atrPct !== null && atrPct < cfg.nearZeroAtrThreshold && score > cfg.nearZeroAtrCap) {
+    const reduction = score - cfg.nearZeroAtrCap
+    score = cfg.nearZeroAtrCap
+    penalties.push({
+      source: 'near_zero_atr',
+      description: `ATR of ${atrPct.toFixed(3)}% is below ${cfg.nearZeroAtrThreshold}% — market has no tradeable volatility (stablecoin/peg); all indicators are unreliable`,
+      scoreReduction: reduction,
+    })
+    warnings.push({
+      message: `Market ATR (${atrPct.toFixed(3)}%) is extremely low — this appears to be a stablecoin or pegged asset. No technical signal is reliable at this volatility level.`,
+      source: 'data_quality',
+    })
+  }
+
   // ── Step 5: Clamp and grade ───────────────────────────────────────────────
 
   score = Math.min(10, Math.max(0, score))

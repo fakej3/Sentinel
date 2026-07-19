@@ -146,7 +146,7 @@ export interface TrustResult {
  * or data-trust deficit.
  */
 export interface ConfidencePenalty {
-  source: 'validation_warning' | 'validation_critical' | 'contradiction' | 'trust_low' | 'trust_medium' | 'weak_trend_cap' | 'sparse_data' | 'volatility_shock'
+  source: 'validation_warning' | 'validation_critical' | 'contradiction' | 'trust_low' | 'trust_medium' | 'weak_trend_cap' | 'sparse_data' | 'volatility_shock' | 'near_zero_atr'
   description: string
   /** Reduction applied to the normalized 0–10 score */
   scoreReduction: number
@@ -293,7 +293,18 @@ export interface ConfidenceConfig {
   /**
    * Score reduction applied when |change24hPercent| > volatilityShockThreshold.
    * Reduces confidence regardless of score level since elevated reversal risk applies
-   * even to low-confidence setups after shocks. Default: 1.5.
+   * even to low-confidence setups after shocks. Default: 2.5.
    */
   volatilityShockPenalty: number
+  /**
+   * ATR% below which the market is treated as a stablecoin, peg, or illiquid asset.
+   * When ATR is this low, all technical signals are noise. Default: 0.2 (0.2%).
+   */
+  nearZeroAtrThreshold: number
+  /**
+   * Score cap applied when ATR% < nearZeroAtrThreshold.
+   * Confidence above this value overstates certainty in a market with no real movement.
+   * Default: 1.5 (leaves only a token signal acknowledgment).
+   */
+  nearZeroAtrCap: number
 }

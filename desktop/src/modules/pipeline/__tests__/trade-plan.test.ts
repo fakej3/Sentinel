@@ -158,7 +158,7 @@ function makeMTFAligned(): MultiTimeframeAgreement {
 describe('computeTradePlan — weak trend downgrade', () => {
   const SR_EXCELLENT = makeSR(
     { lower: 95, upper: 97, center: 96 },
-    { lower: 110, upper: 112, center: 111 },
+    { lower: 103, upper: 105, center: 104 },
   )
 
   it('weak bullish trend degrades excellent → good', () => {
@@ -233,7 +233,7 @@ describe('computeTradePlan — weak trend downgrade', () => {
 describe('computeTradePlan — MTF agreement', () => {
   const SR_EXCELLENT = makeSR(
     { lower: 95, upper: 97, center: 96 },
-    { lower: 110, upper: 112, center: 111 },
+    { lower: 103, upper: 105, center: 104 },
   )
 
   it('MTF strong_conflict degrades excellent → good', () => {

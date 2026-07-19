@@ -167,4 +167,8 @@ export const DEFAULT_CONFIDENCE_CONFIG: ConfidenceConfig = {
   volatilityShockThreshold: 12,
 
   volatilityShockPenalty: 2.5,
+
+  nearZeroAtrThreshold: 0.2,
+
+  nearZeroAtrCap: 1.5,
 }

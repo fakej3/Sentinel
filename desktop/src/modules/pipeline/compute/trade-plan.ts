@@ -133,6 +133,7 @@ export function computeTradePlan(
     entryZone, invalidationLevel, targetLevel,
     geometryValid, riskRewardRatio,
     confidence, validation, mtfAgreement, trend, maturity.score, atrBased,
+    analysis.price.atrPercent,
   )
 
   // excellent / good / average are actionable; poor / avoid / no_setup are not
@@ -178,11 +179,22 @@ function classifySetupQuality(
   trend?: string,
   maturityScore?: number,
   atrBased?: boolean,
+  atrPercent?: number | null,
 ): { setupQuality: TradeSetupQuality; setupQualityReason: string } {
   // Weak trend (weak bullish / weak bearish / ranging) reduces setup reliability.
   // Evidence: 8/10 synthetic validation losses had weak trend labels despite high
   // confidence scores — weak-trend excellent scored 83.3% WR vs 96.6% for strong/moderate.
   const isWeakTrend = trend !== undefined && (trend.includes('weak') || trend === 'ranging')
+
+  // 0. Near-zero ATR — stablecoin, peg, or illiquid asset with no tradeable volatility.
+  // Any S/R levels found are meaningless noise when price barely moves.
+  if (atrPercent !== null && atrPercent !== undefined && atrPercent < 0.2) {
+    return {
+      setupQuality: 'no_setup',
+      setupQualityReason: `ATR of ${atrPercent.toFixed(3)}% is below the 0.2% minimum — market has insufficient volatility (stablecoin or peg); no reliable trade setup`,
+    }
+  }
+
   // 1. Insufficient S/R data — no trade levels available
   if (entryZone === null || invalidationLevel === null || targetLevel === null) {
     return {
@@ -205,6 +217,17 @@ function classifySetupQuality(
     return {
       setupQuality: 'avoid',
       setupQualityReason: `Risk/reward of ${rrStr} is below the minimum threshold of 1.5`,
+    }
+  }
+
+  // 3b. RR unrealistically high — target is likely beyond meaningful structure.
+  // A 6:1 target requires moving 6× the risk distance; in most market regimes this
+  // implies the target is at a level price may never reach before invalidating.
+  // Cap rather than reject so the plan is still useful — but only at 'poor'.
+  if (riskRewardRatio > 6.0) {
+    return {
+      setupQuality: 'poor',
+      setupQualityReason: `RR of ${riskRewardRatio.toFixed(2)} exceeds the 6.0 maximum — target level is likely too distant; consider a closer target or skip`,
     }
   }
 
