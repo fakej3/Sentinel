@@ -1,14 +1,11 @@
 import { useEffect, useRef, useState } from 'react'
-import {
-  createChart,
-  CandlestickSeries,
-  HistogramSeries,
-  type IChartApi,
-  type ISeriesApi,
-  type UTCTimestamp,
-} from 'lightweight-charts'
+import { createChart, type IChartApi } from 'lightweight-charts'
 import { fetchCandles } from '../../../modules/binance/endpoints'
-import type { Candle, Timeframe } from '../../../modules/market/types'
+import type { Timeframe } from '../../../modules/market/types'
+import { OverlayManager } from '../../chart/OverlayManager'
+import { CandlestickOverlay } from '../../chart/overlays/CandlestickOverlay'
+import { VolumeOverlay } from '../../chart/overlays/VolumeOverlay'
+import { EmaOverlay } from '../../chart/overlays/EmaOverlay'
 
 interface TradingViewChartProps {
   symbol: string
@@ -18,12 +15,11 @@ interface TradingViewChartProps {
 export function TradingViewChart({ symbol, interval }: TradingViewChartProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const chartRef = useRef<IChartApi | null>(null)
-  const candleSeriesRef = useRef<ISeriesApi<'Candlestick'> | null>(null)
-  const volumeSeriesRef = useRef<ISeriesApi<'Histogram'> | null>(null)
+  const managerRef = useRef<OverlayManager | null>(null)
   const [status, setStatus] = useState<'loading' | 'error' | 'ready'>('loading')
   const [errorMsg, setErrorMsg] = useState('')
 
-  // Create chart and series once — never recreated on prop changes.
+  // Create chart and overlay manager once — never recreated on prop changes.
   useEffect(() => {
     const el = containerRef.current
     if (!el) return
@@ -52,31 +48,22 @@ export function TradingViewChart({ symbol, interval }: TradingViewChartProps) {
       },
     })
 
-    const candleSeries = chart.addSeries(CandlestickSeries, {
-      upColor: '#26a69a',
-      downColor: '#ef5350',
-      borderVisible: false,
-      wickUpColor: '#26a69a',
-      wickDownColor: '#ef5350',
-    })
-
-    const volumeSeries = chart.addSeries(HistogramSeries, {
-      priceFormat: { type: 'volume' },
-      priceScaleId: 'volume',
-    })
-    chart.priceScale('volume').applyOptions({
-      scaleMargins: { top: 0.8, bottom: 0 },
-    })
+    const manager = new OverlayManager(chart)
+    manager.add(new CandlestickOverlay())
+    manager.add(new VolumeOverlay())
+    manager.add(new EmaOverlay({ period: 20,  color: '#3b82f6' }))
+    manager.add(new EmaOverlay({ period: 50,  color: '#f59e0b' }))
+    manager.add(new EmaOverlay({ period: 100, color: '#10b981' }))
+    manager.add(new EmaOverlay({ period: 200, color: '#8b5cf6' }))
 
     chartRef.current = chart
-    candleSeriesRef.current = candleSeries
-    volumeSeriesRef.current = volumeSeries
+    managerRef.current = manager
 
     return () => {
+      manager.dispose()
       chart.remove()
       chartRef.current = null
-      candleSeriesRef.current = null
-      volumeSeriesRef.current = null
+      managerRef.current = null
     }
   }, [])
 
@@ -87,26 +74,12 @@ export function TradingViewChart({ symbol, interval }: TradingViewChartProps) {
     setErrorMsg('')
 
     fetchCandles(symbol, interval as Timeframe)
-      .then((candles: Candle[]) => {
+      .then(candles => {
         if (cancelled) return
-        const cs = candleSeriesRef.current
-        const vs = volumeSeriesRef.current
-        if (!cs || !vs) return
+        const manager = managerRef.current
+        if (!manager) return
 
-        cs.setData(candles.map((c: Candle) => ({
-          time: Math.floor(c.openTime / 1000) as UTCTimestamp,
-          open: c.open,
-          high: c.high,
-          low: c.low,
-          close: c.close,
-        })))
-
-        vs.setData(candles.map((c: Candle) => ({
-          time: Math.floor(c.openTime / 1000) as UTCTimestamp,
-          value: c.volume,
-          color: c.close >= c.open ? '#26a69a40' : '#ef535040',
-        })))
-
+        manager.updateAll(candles)
         chartRef.current?.timeScale().fitContent()
         setStatus('ready')
       })
