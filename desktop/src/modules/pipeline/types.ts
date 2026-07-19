@@ -8,6 +8,7 @@ import type { ValidationResult, ValidationConfig } from '../validation/types'
 import type { ConfidenceResult, ConfidenceConfig } from '../confidence/types'
 import type { GeneratedAnalysis, WriterConfig } from '../writer/types'
 import type { AIConfig } from '../ai/types'
+import type { FibResult } from '../fibonacci/types'
 
 // ── Market Context ─────────────────────────────────────────────────────────────
 
@@ -379,6 +380,8 @@ export interface PipelineResult {
    * computeMTFAgreement(). Undefined in single-timeframe pipeline runs.
    */
   multiTimeframeAgreement?: MultiTimeframeAgreement
+  /** Fibonacci retracement and extension levels computed from dominant market swings. */
+  fibonacci?: FibResult
   metadata: PipelineMetadata
 }
 

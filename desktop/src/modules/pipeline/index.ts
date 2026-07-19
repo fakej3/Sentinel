@@ -28,6 +28,8 @@ import { computeContradictionIntelligence } from './compute/contradiction-intell
 import { computeTraderReview } from './compute/trader-review'
 import { computeOpportunityAssessment } from './compute/opportunity-assessment'
 import { computeSanityAudit } from './compute/sanity-audit'
+import { computeFibonacci } from '../fibonacci/index'
+import type { FibResult } from '../fibonacci/types'
 import { DEFAULT_PIPELINE_CONFIG, PIPELINE_VERSION } from './config'
 import type {
   PipelineOptions,
@@ -83,6 +85,7 @@ export type {
   MTFTimeframeInput,
   MultiTimeframeAgreement,
 } from './types'
+export type { FibResult, FibLevel, FibDirection } from '../fibonacci/types'
 export { computeMTFAgreement } from './compute/mtf-agreement'
 export { PIPELINE_VERSION, DEFAULT_PIPELINE_CONFIG } from './config'
 
@@ -203,6 +206,15 @@ export async function analyzeMarket(options: PipelineOptions): Promise<PipelineR
     throw new PipelineError('internal_module_failure', 'support-resistance', String(err), err)
   }
   const supportResistanceTime = Date.now() - t3
+
+  // ── Stage 4b: Fibonacci ─────────────────────────────────────────────────────
+  let fibonacci: FibResult | undefined
+  try {
+    fibonacci = computeFibonacci(marketStructure.swings, marketStructure.trend, supportResistance)
+  } catch {
+    // Fibonacci is optional — a failure here must never block the rest of the pipeline
+    fibonacci = undefined
+  }
 
   // ── Stage 5: Volume Analysis ────────────────────────────────────────────────
   const t4 = Date.now()
@@ -369,6 +381,7 @@ export async function analyzeMarket(options: PipelineOptions): Promise<PipelineR
     traderReview,
     opportunityAssessment,
     sanityAudit,
+    ...(fibonacci !== undefined && { fibonacci }),
     metadata: {
       symbol: marketData.symbol,
       interval,
