@@ -146,7 +146,7 @@ export interface TrustResult {
  * or data-trust deficit.
  */
 export interface ConfidencePenalty {
-  source: 'validation_warning' | 'validation_critical' | 'contradiction' | 'trust_low' | 'trust_medium'
+  source: 'validation_warning' | 'validation_critical' | 'contradiction' | 'trust_low' | 'trust_medium' | 'weak_trend_cap' | 'sparse_data' | 'volatility_shock'
   description: string
   /** Reduction applied to the normalized 0–10 score */
   scoreReduction: number
@@ -270,4 +270,30 @@ export interface ConfidenceConfig {
    * Default: 0.75
    */
   trustPenaltyMedium: number
+  /**
+   * When the trend is 'ranging', 'weak bullish', or 'weak bearish', cap the score
+   * at this value. Weak/ranging markets have ambiguous direction so high confidence
+   * overstates certainty.
+   * Default: 6.5
+   */
+  weakTrendScoreCap: number
+  /**
+   * Score reduction when key long-period EMAs are unavailable (< 100 candles).
+   * Applied when score > overconfidenceThreshold to prevent high confidence from
+   * sparse datasets where EMAs and swing structure are poorly established.
+   * Default: 1.5
+   */
+  sparseDataPenalty: number
+  /**
+   * 24h price change percentage (absolute) above which a volatility-shock penalty applies.
+   * After a large single-session move, the follow-through direction is highly uncertain
+   * even when indicator alignment is strong. Default: 12 (12%).
+   */
+  volatilityShockThreshold: number
+  /**
+   * Score reduction applied when |change24hPercent| > volatilityShockThreshold.
+   * Reduces confidence regardless of score level since elevated reversal risk applies
+   * even to low-confidence setups after shocks. Default: 1.5.
+   */
+  volatilityShockPenalty: number
 }

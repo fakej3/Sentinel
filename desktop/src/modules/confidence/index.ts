@@ -160,6 +160,65 @@ export function computeConfidence(
     }
   }
 
+  // Weak-trend cap: 'weak bullish' / 'weak bearish' markets have ambiguous direction —
+  // a high score overstates certainty. Pure 'ranging' markets use the abs(net) path
+  // which already limits scores via contradictions, so they are excluded here.
+  // Apply as a penalty so it shows in the audit trail.
+  const isWeakDirectional = trend === 'weak bullish' || trend === 'weak bearish'
+  if (isWeakDirectional && score > cfg.weakTrendScoreCap) {
+    const reduction = score - cfg.weakTrendScoreCap
+    penalties.push({
+      source: 'weak_trend_cap',
+      description: `${trend} trend — directional conviction is weak; score capped at ${cfg.weakTrendScoreCap} to prevent overstating certainty`,
+      scoreReduction: reduction,
+    })
+    score = cfg.weakTrendScoreCap
+    warnings.push({
+      message: `Trend is ${trend} — direction is ambiguous; high confidence would overstate certainty in this setup`,
+      source: 'data_quality',
+    })
+  }
+
+  // Sparse data penalty: when EMA100 is unavailable (< ~100 candles), key trend and
+  // structure signals are poorly established. Cap confidence when the dataset is thin.
+  const emaContext = analysis.emaContext
+  // EMA20 available but EMA100 not = 20–99 candles: genuine thin dataset.
+  // When ALL EMAs are unavailable the data is either a stub or very new — skip penalty.
+  const hasSparseData =
+    emaContext.priceVsEMA20 !== 'unavailable' && emaContext.priceVsEMA100 === 'unavailable'
+  if (hasSparseData && score > cfg.overconfidenceThreshold) {
+    const reduction = cfg.sparseDataPenalty
+    score = Math.max(0, score - reduction)
+    penalties.push({
+      source: 'sparse_data',
+      description: `EMA100 unavailable — fewer than ~100 candles; score reduced by ${reduction.toFixed(2)} to reflect data immaturity`,
+      scoreReduction: reduction,
+    })
+    warnings.push({
+      message: 'Dataset is thin (fewer than ~100 candles) — EMA100/200 and swing structure are unreliable; treat this score with caution',
+      source: 'data_quality',
+    })
+  }
+
+  // Volatility-shock penalty: after a large single-session move (|change24h| above the
+  // configured threshold), reversal risk is elevated even when indicator alignment is
+  // strong. Apply unconditionally (not gated on overconfidenceThreshold) because even
+  // a 6.0 confidence score after a 20% crash overstates certainty about the next move.
+  const change24h = Math.abs(analysis.price.change24hPercent)
+  if (change24h > cfg.volatilityShockThreshold) {
+    const reduction = cfg.volatilityShockPenalty
+    score = Math.max(0, score - reduction)
+    penalties.push({
+      source: 'volatility_shock',
+      description: `${change24h.toFixed(1)}% 24h move exceeds shock threshold (${cfg.volatilityShockThreshold}%); score reduced by ${reduction.toFixed(2)} — reversal risk is elevated after extreme sessions`,
+      scoreReduction: reduction,
+    })
+    warnings.push({
+      message: `Large 24h move (${change24h.toFixed(1)}%) — post-shock uncertainty is high; direction may reverse sharply. Reduce size and wait for the first retest candle to close.`,
+      source: 'data_quality',
+    })
+  }
+
   // ── Step 5: Clamp and grade ───────────────────────────────────────────────
 
   score = Math.min(10, Math.max(0, score))

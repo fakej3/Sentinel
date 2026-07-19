@@ -159,4 +159,12 @@ export const DEFAULT_CONFIDENCE_CONFIG: ConfidenceConfig = {
   trustPenaltyLow: 1.6,
 
   trustPenaltyMedium: 0.75,
+
+  weakTrendScoreCap: 6.5,
+
+  sparseDataPenalty: 1.5,
+
+  volatilityShockThreshold: 12,
+
+  volatilityShockPenalty: 2.5,
 }
