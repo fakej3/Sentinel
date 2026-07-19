@@ -10,6 +10,7 @@ import type { ConfidenceExplanation } from '../types'
 export function computeConfidenceExplanation(
   confidence: ConfidenceResult,
   analysis: MarketAnalysisResult,
+  confidenceCfg?: { contradictionPenaltyFactor?: number },
 ): ConfidenceExplanation {
   const { reasons, penalties, score, grade, analysisQuality, trust } = confidence
 
@@ -17,6 +18,8 @@ export function computeConfidenceExplanation(
   const trend = analysis.fullTrend.trend
   const isBullish = trend.includes('bullish')
   const isBearish = trend.includes('bearish')
+
+  const penaltyFactor = confidenceCfg?.contradictionPenaltyFactor
 
   const positive = reasons
     .filter(r => {
@@ -39,10 +42,13 @@ export function computeConfidenceExplanation(
     })
     .sort((a, b) => Math.abs(b.points) - Math.abs(a.points))
     .slice(0, 5)
-    .map(r => ({
-      label: r.factor,
-      detail: `-${Math.abs(r.points).toFixed(1)} pts (${r.direction})`,
-    }))
+    .map(r => {
+      const isOpposingDir = (isBullish && r.direction === 'bearish') || (isBearish && r.direction === 'bullish')
+      const detail = isOpposingDir && penaltyFactor !== undefined
+        ? `-${(Math.abs(r.points) * penaltyFactor).toFixed(1)} pts (${r.direction}, ×${penaltyFactor} penalty)`
+        : `-${Math.abs(r.points).toFixed(1)} pts (${r.direction})`
+      return { label: r.factor, detail }
+    })
 
   // Add penalty contributors to negative
   for (const p of penalties.slice(0, 3)) {

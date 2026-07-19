@@ -24,7 +24,7 @@ Evidence Engine (Module 6) which synthesises outputs from all analysis modules.
 | EMA Alignment | Price is above EMA20, EMA50, EMA100, and EMA200 |
 | EMA Order | EMA20 > EMA50 > EMA100 > EMA200 |
 | Market Structure | At least 2 consecutive Higher Highs AND Higher Lows |
-| Momentum | RSI ≥ 45 |
+| Momentum | RSI ≥ 55 |
 | MACD | MACD line is above signal line |
 
 If all 5 conditions are met → **Strong Bullish Trend**
@@ -40,7 +40,7 @@ If 1–2 conditions are met → **Weak Bullish Signal** (insufficient for trend 
 | EMA Alignment | Price is below EMA20, EMA50, EMA100, and EMA200 |
 | EMA Order | EMA20 < EMA50 < EMA100 < EMA200 |
 | Market Structure | At least 2 consecutive Lower Highs AND Lower Lows |
-| Momentum | RSI ≤ 55 |
+| Momentum | RSI ≤ 45 |
 | MACD | MACD line is below signal line |
 
 If all 5 conditions are met → **Strong Bearish Trend**

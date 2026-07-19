@@ -8,7 +8,7 @@ import { computeSupportResistance } from '../support-resistance/index'
 import type { SupportResistanceResult } from '../support-resistance/types'
 import { computeVolumeAnalysis } from '../volume-analysis/index'
 import type { VolumeAnalysisResult } from '../volume-analysis/types'
-import { computeAnalysis } from '../analysis/index'
+import { computeAnalysis, DEFAULT_ANALYSIS_CONFIG } from '../analysis/index'
 import type { MarketAnalysisResult } from '../analysis/types'
 import { validateAnalysis } from '../validation/index'
 import type { ValidationResult } from '../validation/types'
@@ -103,13 +103,28 @@ export class PipelineError extends Error {
 }
 
 function mergeConfig(partial: Partial<PipelineConfig>): PipelineConfig {
+  // Resolve the effective analysis thresholds (defaults + caller overrides) so
+  // they can be threaded into validation, ensuring both modules use the same
+  // RSI / ADX / swing boundaries without requiring the caller to set both.
+  const effectiveAnalysis = { ...DEFAULT_ANALYSIS_CONFIG, ...partial.analysis }
+  const validation = {
+    ...DEFAULT_PIPELINE_CONFIG.validation,
+    rsiBullishMin:            effectiveAnalysis.rsiBullishMin,
+    rsiBearishMax:            effectiveAnalysis.rsiBearishMax,
+    adxWeakThreshold:         effectiveAnalysis.adxWeakThreshold,
+    rsiNeutralLow:            effectiveAnalysis.rsiNeutralLow,
+    rsiNeutralHigh:           effectiveAnalysis.rsiNeutralHigh,
+    minBullishSwingsForTrend: effectiveAnalysis.minBullishSwingsForTrend,
+    minBearishSwingsForTrend: effectiveAnalysis.minBearishSwingsForTrend,
+    ...partial.validation,
+  }
   return {
     minCandleCount: partial.minCandleCount ?? DEFAULT_PIPELINE_CONFIG.minCandleCount,
     marketStructure: { ...DEFAULT_PIPELINE_CONFIG.marketStructure, ...partial.marketStructure },
     supportResistance: { ...DEFAULT_PIPELINE_CONFIG.supportResistance, ...partial.supportResistance },
     volumeAnalysis: { ...DEFAULT_PIPELINE_CONFIG.volumeAnalysis, ...partial.volumeAnalysis },
     analysis: { ...DEFAULT_PIPELINE_CONFIG.analysis, ...partial.analysis },
-    validation: { ...DEFAULT_PIPELINE_CONFIG.validation, ...partial.validation },
+    validation,
     confidence: { ...DEFAULT_PIPELINE_CONFIG.confidence, ...partial.confidence },
     writer: { ...DEFAULT_PIPELINE_CONFIG.writer, ...partial.writer },
     ai: partial.ai,
@@ -258,7 +273,7 @@ export async function analyzeMarket(options: PipelineOptions): Promise<PipelineR
     tradePlan                 = computeTradePlan(analysis, supportResistance, confidence, validation, undefined, marketStructure)
     marketContext             = computeMarketContext(analysis)
     invalidationScenarios     = computeInvalidationScenarios(analysis, validation, tradePlan)
-    confidenceExplanation     = computeConfidenceExplanation(confidence, analysis)
+    confidenceExplanation     = computeConfidenceExplanation(confidence, analysis, cfg.confidence)
     marketStory               = computeMarketStory(analysis, confidence, marketContext)
     contradictionIntelligence = computeContradictionIntelligence(confidence, validation)
     traderReview              = computeTraderReview(analysis, confidence, decision, tradePlan, marketContext)
