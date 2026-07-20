@@ -1,4 +1,5 @@
 import { useEffect, useRef, lazy, Suspense } from 'react'
+import type { Timeframe } from './modules/market/types'
 import { Header } from './ui/components/layout/Header'
 import { Sidebar } from './ui/components/layout/Sidebar'
 import { BottomNav } from './ui/components/layout/BottomNav'
@@ -14,6 +15,7 @@ const AnalysisPage  = lazy(() => import('./ui/pages/AnalysisPage').then(m => ({ 
 const WatchlistPage = lazy(() => import('./ui/pages/WatchlistPage').then(m => ({ default: m.WatchlistPage })))
 const HistoryPage   = lazy(() => import('./ui/pages/HistoryPage').then(m => ({ default: m.HistoryPage })))
 const SettingsPage  = lazy(() => import('./ui/pages/SettingsPage').then(m => ({ default: m.SettingsPage })))
+const ReplayPage    = lazy(() => import('./ui/pages/ReplayPage').then(m => ({ default: m.ReplayPage })))
 
 const DEFAULT_SYMBOL = 'BTCUSDT'
 
@@ -77,7 +79,8 @@ export default function App() {
     }).catch(() => {})
   }, [symbol, interval])
 
-  const isChartPage = page === 'chart'
+  const isChartPage  = page === 'chart'
+  const isReplayPage = page === 'replay'
 
   return (
     <div className="h-screen flex flex-col overflow-hidden bg-surface-950 text-slate-200">
@@ -101,7 +104,7 @@ export default function App() {
         />
 
         <main className={
-          isChartPage
+          isChartPage || isReplayPage
             ? 'flex-1 min-w-0 flex flex-col overflow-hidden'
             : 'flex-1 min-w-0 overflow-y-auto'
         }>
@@ -165,6 +168,12 @@ export default function App() {
                 onClearHistory={handleClearHistory}
                 onClearWatchlist={handleClearWatchlist}
                 onClearAll={handleClearAll}
+              />
+            )}
+            {page === 'replay' && (
+              <ReplayPage
+                initialSymbol={symbol || DEFAULT_SYMBOL}
+                initialInterval={interval as Timeframe}
               />
             )}
           </Suspense>

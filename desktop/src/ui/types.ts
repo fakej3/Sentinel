@@ -127,6 +127,7 @@ export type AppPage =
   | 'watchlist'
   | 'history'
   | 'settings'
+  | 'replay'
 
 export interface AnalyzeParams {
   symbol: string

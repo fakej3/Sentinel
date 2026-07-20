@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, forwardRef, useImperativeHandle } from 'react'
 import { createChart, type IChartApi } from 'lightweight-charts'
 import { fetchCandles } from '../../../modules/binance/endpoints'
-import type { Timeframe } from '../../../modules/market/types'
+import type { Candle, Timeframe } from '../../../modules/market/types'
 import type { PipelineResult } from '../../../modules/pipeline/types'
 import { OverlayManager } from '../../chart/OverlayManager'
 import { CandlestickOverlay } from '../../chart/overlays/CandlestickOverlay'
@@ -17,16 +17,19 @@ import { MarketStructureOverlay } from '../../chart/overlays/MarketStructureOver
 
 export interface TradingViewChartHandle {
   highlight(key: string | null): void
+  loadCandles(candles: Candle[]): void
 }
 
 interface TradingViewChartProps {
   symbol: string
   interval: string
   data: PipelineResult | null
+  /** When provided, the chart renders these candles instead of fetching from Binance */
+  candles?: Candle[]
 }
 
 export const TradingViewChart = forwardRef<TradingViewChartHandle, TradingViewChartProps>(
-function TradingViewChart({ symbol, interval, data }, ref) {
+function TradingViewChart({ symbol, interval, data, candles: controlledCandles }, ref) {
   const containerRef = useRef<HTMLDivElement>(null)
   const chartRef = useRef<IChartApi | null>(null)
   const managerRef = useRef<OverlayManager | null>(null)
@@ -35,6 +38,10 @@ function TradingViewChart({ symbol, interval, data }, ref) {
 
   useImperativeHandle(ref, () => ({
     highlight(key: string | null) { managerRef.current?.highlight(key) },
+    loadCandles(candles: Candle[]) {
+      managerRef.current?.updateAll(candles)
+      chartRef.current?.timeScale().fitContent()
+    },
   }), [])
 
   // Create chart and overlay manager once — never recreated on prop changes.
@@ -96,8 +103,9 @@ function TradingViewChart({ symbol, interval, data }, ref) {
     }
   }, [])
 
-  // Fetch and load market data whenever symbol or interval changes.
+  // Fetch and load market data whenever symbol or interval changes (live mode only).
   useEffect(() => {
+    if (controlledCandles !== undefined) return // replay mode — candles are injected externally
     let cancelled = false
     setStatus('loading')
     setErrorMsg('')
@@ -119,7 +127,17 @@ function TradingViewChart({ symbol, interval, data }, ref) {
       })
 
     return () => { cancelled = true }
-  }, [symbol, interval])
+  }, [symbol, interval, controlledCandles])
+
+  // In controlled (replay) mode, push candles whenever they change.
+  useEffect(() => {
+    if (controlledCandles === undefined) return
+    const manager = managerRef.current
+    if (!manager) return
+    manager.updateAll(controlledCandles)
+    chartRef.current?.timeScale().fitContent()
+    setStatus('ready')
+  }, [controlledCandles])
 
   // Push analysis result into analysis overlays whenever it changes.
   useEffect(() => {
