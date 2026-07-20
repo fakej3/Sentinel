@@ -19,4 +19,14 @@ export default defineConfig({
       '@ui':     path.resolve(__dirname, '../desktop/src/ui'),
     },
   },
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          'vendor-react':  ['react', 'react-dom'],
+          'vendor-charts': ['lightweight-charts'],
+        },
+      },
+    },
+  },
 })

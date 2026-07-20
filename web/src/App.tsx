@@ -1,10 +1,13 @@
-import { useEffect, useRef, lazy, Suspense } from 'react'
+import { useCallback, useEffect, useRef, lazy, Suspense } from 'react'
+import type { AppPage } from '@ui/types'
 import type { Timeframe } from '@engine/market/types'
 import { Header } from '@ui/components/layout/Header'
 import { SkeletonDashboard } from '@ui/components/shared/Skeleton'
 import { WebSidebar } from './components/WebSidebar'
 import { WebBottomNav } from './components/WebBottomNav'
 import { useAppState } from './hooks/useAppState'
+
+const WEB_PAGES = new Set<AppPage>(['dashboard', 'chart', 'replay', 'scanner', 'settings'])
 
 const DashboardPage  = lazy(() => import('@ui/pages/DashboardPage').then(m => ({ default: m.DashboardPage })))
 const ChartPage      = lazy(() => import('@ui/pages/ChartPage').then(m => ({ default: m.ChartPage })))
@@ -33,30 +36,33 @@ export default function App() {
     handleClearAll,
   } = useAppState()
 
-  const handleAnalyzeRef = useRef(handleAnalyze)
-  const cancelRef        = useRef(cancel)
-  const loadingRef       = useRef(loading)
-  useEffect(() => { handleAnalyzeRef.current = handleAnalyze }, [handleAnalyze])
-  useEffect(() => { cancelRef.current        = cancel        }, [cancel])
-  useEffect(() => { loadingRef.current       = loading       }, [loading])
+  const cancelRef  = useRef(cancel)
+  const loadingRef = useRef(loading)
+  useEffect(() => { cancelRef.current  = cancel  }, [cancel])
+  useEffect(() => { loadingRef.current = loading }, [loading])
 
+  // Escape cancels an in-progress analysis; F5/Ctrl+R are left to the browser.
   useEffect(() => {
     function onKeyDown(e: KeyboardEvent) {
-      const inInput = (e.target as Element)?.tagName === 'INPUT' || (e.target as Element)?.tagName === 'TEXTAREA'
-      if ((e.ctrlKey || e.metaKey) && e.key === 'r' && !e.shiftKey && !inInput) {
-        e.preventDefault()
-        handleAnalyzeRef.current()
-      }
-      if (e.key === 'F5' && !inInput) {
-        e.preventDefault()
-        handleAnalyzeRef.current()
-      }
-      if (e.key === 'Escape' && loadingRef.current) {
-        cancelRef.current()
-      }
+      if (e.key === 'Escape' && loadingRef.current) cancelRef.current()
     }
     window.addEventListener('keydown', onKeyDown)
     return () => window.removeEventListener('keydown', onKeyDown)
+  }, [])
+
+  // Map desktop-only pages to their closest web equivalent so a stale
+  // localStorage value never leaves the user on a blank screen.
+  const handleNavigate = useCallback((p: AppPage) => {
+    if (p === 'analysis') setPage('chart')
+    else if (!WEB_PAGES.has(p)) setPage('dashboard')
+    else setPage(p)
+  }, [setPage])
+
+  // Guard: if localStorage holds a value from the desktop app that isn't
+  // supported here, reset it once on mount.
+  useEffect(() => {
+    if (!WEB_PAGES.has(page)) setPage('dashboard')
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   const isChartPage  = page === 'chart'
@@ -80,12 +86,12 @@ export default function App() {
         <WebSidebar
           collapsed={sidebarCollapsed}
           activePage={page}
-          onNavigate={setPage}
+          onNavigate={handleNavigate}
         />
 
         <main className={
           isChartPage || isReplayPage
-            ? 'flex-1 min-w-0 flex flex-col overflow-hidden'
+            ? 'flex-1 min-w-0 flex flex-col overflow-hidden pb-14 md:pb-0'
             : 'flex-1 min-w-0 overflow-y-auto'
         }>
           <Suspense fallback={<SkeletonDashboard />}>
@@ -102,7 +108,7 @@ export default function App() {
                 onAnalyze={handleAnalyze}
                 onSave={handleSaveAnalysis}
                 onSymbolSelect={handleSelectSymbol}
-                onNavigate={setPage}
+                onNavigate={handleNavigate}
               />
             )}
             {page === 'chart' && (
@@ -132,7 +138,7 @@ export default function App() {
 
       <WebBottomNav
         activePage={page}
-        onNavigate={setPage}
+        onNavigate={handleNavigate}
       />
     </div>
   )
