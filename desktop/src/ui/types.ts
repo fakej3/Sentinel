@@ -112,12 +112,9 @@ export type { HistoryMeta, HistoryEntry } from './transport'
 export type AppTab =
   | 'summary'
   | 'trade'
-  | 'overview'
   | 'evidence'
   | 'indicators'
   | 'structure'
-  | 'volume'
-  | 'validation'
   | 'writer'
 
 export type AppPage =

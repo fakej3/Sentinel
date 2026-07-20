@@ -1,4 +1,4 @@
-import { Activity, RefreshCw, ArrowRight, Clock, BarChart2, TrendingUp, TrendingDown, Minus, Save, Check } from 'lucide-react'
+import { Activity, RefreshCw, ArrowRight, Clock, BarChart2, TrendingUp, TrendingDown, Minus, Save, Check, ShieldCheck } from 'lucide-react'
 import { ConfidenceMeter } from '../components/shared/ConfidenceMeter'
 import { TrendBadge } from '../components/shared/Badge'
 import { Card } from '../components/shared/Card'
@@ -42,7 +42,7 @@ export function DashboardPage({
     )
   }
 
-  const { confidence, analysis, marketStructure, validation, supportResistance, indicators, decision } = data
+  const { confidence, analysis, marketStructure, supportResistance, indicators, decision, tradePlan } = data
   const { fullTrend, price, volumeContext, indicatorSummary } = analysis
   const nearestSupport    = supportResistance.nearestSupport
   const nearestResistance = supportResistance.nearestResistance
@@ -185,10 +185,17 @@ export function DashboardPage({
           valueClass="text-slate-300"
         />
         <MetricCard
-          label="Validation"
-          value={validation.passed ? 'Passed' : 'Failed'}
-          sub={`${validation.criticalCount} critical · ${validation.warningCount} warnings`}
-          valueClass={validation.passed ? 'text-emerald-400' : 'text-red-400'}
+          label="Setup"
+          value={tradePlan.setupQuality.replace(/_/g, ' ')}
+          sub={tradePlan.actionable
+            ? `Actionable${tradePlan.riskRewardRatio !== null ? ` · ${tradePlan.riskRewardRatio.toFixed(1)}:1 RR` : ''}`
+            : 'Not actionable'}
+          valueClass={
+            tradePlan.setupQuality === 'excellent' || tradePlan.setupQuality === 'good' ? 'text-emerald-400'
+              : tradePlan.setupQuality === 'average' ? 'text-amber-400'
+              : 'text-slate-500'
+          }
+          icon={<ShieldCheck size={12} className="text-slate-600" />}
         />
         <MetricCard
           label="VWAP"
@@ -302,12 +309,15 @@ function MetaRow({ label, value, valueClass = 'text-slate-300' }: { label: strin
   )
 }
 
-function MetricCard({ label, value, sub, valueClass }: {
-  label: string; value: string; sub: string; valueClass: string
+function MetricCard({ label, value, sub, valueClass, icon }: {
+  label: string; value: string; sub: string; valueClass: string; icon?: React.ReactNode
 }) {
   return (
     <Card className="p-3">
-      <p className="section-label mb-1">{label}</p>
+      <div className="flex items-center gap-1 mb-1">
+        {icon}
+        <p className="section-label">{label}</p>
+      </div>
       <p className={`text-sm font-semibold capitalize leading-tight ${valueClass}`}>{value}</p>
       <p className="text-[10px] text-slate-500 mt-0.5 capitalize leading-snug">{sub}</p>
     </Card>

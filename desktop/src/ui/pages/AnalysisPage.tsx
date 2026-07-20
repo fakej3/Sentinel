@@ -9,12 +9,9 @@ import type { TabDef } from '../components/shared/Tabs'
 
 const SummaryTab    = lazy(() => import('../components/tabs/SummaryTab').then(m => ({ default: m.SummaryTab })))
 const TradeTab      = lazy(() => import('../components/tabs/TradeTab').then(m => ({ default: m.TradeTab })))
-const OverviewTab   = lazy(() => import('../components/tabs/OverviewTab').then(m => ({ default: m.OverviewTab })))
 const EvidenceTab   = lazy(() => import('../components/tabs/EvidenceTab').then(m => ({ default: m.EvidenceTab })))
 const IndicatorsTab = lazy(() => import('../components/tabs/IndicatorsTab').then(m => ({ default: m.IndicatorsTab })))
 const StructureTab  = lazy(() => import('../components/tabs/StructureTab').then(m => ({ default: m.StructureTab })))
-const VolumeTab     = lazy(() => import('../components/tabs/VolumeTab').then(m => ({ default: m.VolumeTab })))
-const ValidationTab = lazy(() => import('../components/tabs/ValidationTab').then(m => ({ default: m.ValidationTab })))
 const WriterTab     = lazy(() => import('../components/tabs/WriterTab').then(m => ({ default: m.WriterTab })))
 
 interface AnalysisPageProps {
@@ -37,13 +34,10 @@ export function AnalysisPage({ data, loading, onAnalyze, onSave, symbol, savedEn
     { id: 'summary',    label: 'Summary' },
     { id: 'trade',      label: 'Trade' },
     { id: 'evidence',   label: 'Evidence',   count: data?.analysis.evidence.length },
-    { id: 'overview',   label: 'Overview' },
     { id: 'indicators', label: 'Indicators' },
     { id: 'structure',  label: 'Structure' },
-    { id: 'volume',     label: 'Volume' },
-    { id: 'validation', label: 'Validation', count: data?.validation.issues.length },
     { id: 'writer',     label: 'Writer' },
-  ], [data?.analysis.evidence.length, data?.validation.issues.length])
+  ], [data?.analysis.evidence.length])
 
   const handleTabChange = useCallback((tab: AppTab) => setActiveTab(tab), [setActiveTab])
 
@@ -106,12 +100,9 @@ export function AnalysisPage({ data, loading, onAnalyze, onSave, symbol, savedEn
         <TabPanel>
           {activeTab === 'summary'    && <SummaryTab    result={data} />}
           {activeTab === 'trade'      && <TradeTab      result={data} />}
-          {activeTab === 'overview'   && <OverviewTab   result={data} />}
           {activeTab === 'evidence'   && <EvidenceTab   result={data} />}
           {activeTab === 'indicators' && <IndicatorsTab result={data} />}
           {activeTab === 'structure'  && <StructureTab  result={data} />}
-          {activeTab === 'volume'     && <VolumeTab     result={data} />}
-          {activeTab === 'validation' && <ValidationTab result={data} />}
           {activeTab === 'writer'     && <WriterTab     result={data} />}
         </TabPanel>
       </Suspense>
