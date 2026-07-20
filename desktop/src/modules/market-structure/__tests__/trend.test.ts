@@ -135,6 +135,65 @@ describe('determineTrend', () => {
     expect(result.direction).toBe('ranging')
   })
 
+  it('returns ranging when equal swings dominate even if all non-equal are bullish', () => {
+    // window=last 8 labeled: [EH,EL,EH,EL,HH,HL,EH,EL] → bullish=2, bearish=0, eq=6, total=8
+    // bullRatio=0.25 (<0.67) and bearRatio=0.0 (<0.67) → ranging, not bearish
+    const swings = [
+      labeledSwing('high', null,  1),
+      labeledSwing('low',  null,  2),
+      labeledSwing('high', 'EH', 3),
+      labeledSwing('low',  'EL', 4),
+      labeledSwing('high', 'EH', 5),
+      labeledSwing('low',  'EL', 6),
+      labeledSwing('high', 'HH', 7),
+      labeledSwing('low',  'HL', 8),
+      labeledSwing('high', 'EH', 9),
+      labeledSwing('low',  'EL', 10),
+    ]
+    const result = determineTrend(swings, cfg)
+    expect(result.direction).toBe('ranging')
+  })
+
+  it('returns bullish when HH/HL dominate even with some equal swings present', () => {
+    // 6 of 8 swings are HH/HL, 2 are EH/EL → clearly bullish
+    // bullish=6, total=8, ratio=0.75 ≥ 0.67
+    const swings = [
+      labeledSwing('high', null,  1),
+      labeledSwing('low',  null,  2),
+      labeledSwing('high', 'HH', 3),
+      labeledSwing('low',  'HL', 4),
+      labeledSwing('high', 'HH', 5),
+      labeledSwing('low',  'EL', 6),
+      labeledSwing('high', 'HH', 7),
+      labeledSwing('low',  'HL', 8),
+      labeledSwing('high', 'EH', 9),
+      labeledSwing('low',  'HL', 10),
+    ]
+    const result = determineTrend(swings, cfg)
+    expect(result.direction).toBe('bullish')
+  })
+
+  it('returns ranging when equal swings split direction into an ambiguous ratio', () => {
+    // window=last 8 of 10 labeled: [LH,LL,EH,EL,HH,HL,HH,HL] → bullish=4, bearish=2, eq=2, total=8
+    // bullRatio=0.5 (<0.67) and bearRatio=0.25 (<0.67) → neither threshold met → ranging
+    const swings = [
+      labeledSwing('high', null,  1),
+      labeledSwing('low',  null,  2),
+      labeledSwing('high', 'HH', 3),
+      labeledSwing('low',  'HL', 4),
+      labeledSwing('high', 'LH', 5),
+      labeledSwing('low',  'LL', 6),
+      labeledSwing('high', 'EH', 7),
+      labeledSwing('low',  'EL', 8),
+      labeledSwing('high', 'HH', 9),
+      labeledSwing('low',  'HL', 10),
+      labeledSwing('high', 'HH', 11),
+      labeledSwing('low',  'HL', 12),
+    ]
+    const result = determineTrend(swings, cfg)
+    expect(result.direction).toBe('ranging')
+  })
+
   it('uses only the recent window (minSwingsForTrend × 2) for classification', () => {
     // Old swings are all HH+HL, but recent window is all LH+LL → bearish
     const old = [

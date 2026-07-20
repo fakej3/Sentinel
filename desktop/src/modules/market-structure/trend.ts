@@ -65,13 +65,19 @@ export function countRecentStructure(
  *
  * Algorithm:
  *   1. Take the most recent (minSwingsForTrend × 2) labeled swings.
- *   2. Score: bullish = HH + HL, bearish = LH + LL (EH/EL are neutral).
- *   3. If bullish / total ≥ 0.75 → bullish direction.
- *      If bullish / total ≤ 0.25 → bearish direction.
+ *   2. Score: bullish = HH + HL, bearish = LH + LL.
+ *      EH/EL (equal highs/lows) count toward the denominator as neutral.
+ *      Including them in `total` prevents ranging/accumulation markets from being
+ *      misclassified as trending when only a few non-equal swings exist.
+ *   3. bullRatio = bullish / total; bearRatio = bearish / total
+ *      If bullRatio ≥ 0.67 → bullish direction.
+ *      If bearRatio ≥ 0.67 → bearish direction.
  *      Otherwise → ranging.
+ *      (Symmetric thresholds prevent EH/EL-dominated markets from being
+ *       misclassified as bearish just because bullRatio is low.)
  *
  * Strength rules (bullish example; bearish is symmetric):
- *   strong   — HH ≥ 2 AND HL ≥ 2 AND total bullish points ≥ 6
+ *   strong   — HH ≥ 2 AND HL ≥ 2 AND HH+HL ≥ 6
  *   moderate — HH ≥ 2 AND HL ≥ 2 (both pairs confirmed but not yet strong)
  *   weak     — direction clear by ratio but not both pairs confirmed
  *
@@ -89,24 +95,26 @@ export function determineTrend(
 
   const window = labeled.slice(-(config.minSwingsForTrend * 2))
 
-  let hh = 0, hl = 0, lh = 0, ll = 0
+  let hh = 0, hl = 0, lh = 0, ll = 0, eq = 0
 
   for (const s of window) {
     if (s.label === 'HH') hh++
     else if (s.label === 'HL') hl++
     else if (s.label === 'LH') lh++
     else if (s.label === 'LL') ll++
+    else if (s.label === 'EH' || s.label === 'EL') eq++
   }
 
   const bullish = hh + hl
   const bearish = lh + ll
-  const total = bullish + bearish
+  const total = bullish + bearish + eq  // equal swings dilute the directional ratio
 
   if (total === 0) return { direction: 'ranging', strength: 'weak' }
 
-  const ratio = bullish / total
+  const bullRatio = bullish / total
+  const bearRatio = bearish / total
 
-  if (ratio >= 0.67) {
+  if (bullRatio >= 0.67) {
     let strength: TrendStrength = 'weak'
     if (hh >= 2 && hl >= 2) {
       strength = bullish >= 6 ? 'strong' : 'moderate'
@@ -114,7 +122,7 @@ export function determineTrend(
     return { direction: 'bullish', strength }
   }
 
-  if (ratio <= 0.33) {
+  if (bearRatio >= 0.67) {
     let strength: TrendStrength = 'weak'
     if (lh >= 2 && ll >= 2) {
       strength = bearish >= 6 ? 'strong' : 'moderate'
