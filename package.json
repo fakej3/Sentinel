@@ -1,0 +1,8 @@
+{
+  "name": "sentinel-monorepo",
+  "private": true,
+  "workspaces": [
+    "desktop",
+    "web"
+  ]
+}

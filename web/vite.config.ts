@@ -14,6 +14,7 @@ export default defineConfig({
   },
   plugins: [react()],
   resolve: {
+    dedupe: ['react', 'react-dom'],
     alias: {
       '@engine': path.resolve(__dirname, '../desktop/src/modules'),
       '@ui':     path.resolve(__dirname, '../desktop/src/ui'),
