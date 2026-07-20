@@ -30,8 +30,8 @@ export function WebSettingsPage({ onClearHistory, onClearWatchlist, onClearAll }
           <span className="text-xs font-medium text-emerald-400">Engine running in browser</span>
         </div>
         <p className="text-[11px] text-slate-600 mt-2 leading-relaxed">
-          The full 11-stage analysis pipeline runs directly in your browser via WebAssembly-compatible
-          JavaScript. No backend server, no data leaving your device.
+          The full 11-stage analysis pipeline runs directly in your browser.
+          No backend server, no data leaving your device.
         </p>
       </div>
 
@@ -186,8 +186,31 @@ function DataRow({ label, description, onAction, danger = false }: {
 }
 
 function ResetConfirmDialog({ onConfirm, onCancel }: { onConfirm: () => void; onCancel: () => void }) {
+  const dialogRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    function onKeyDown(e: KeyboardEvent) {
+      if (e.key === 'Escape') { onCancel(); return }
+      if (e.key === 'Tab') {
+        const el = dialogRef.current
+        if (!el) return
+        const buttons = el.querySelectorAll<HTMLElement>('button')
+        const first = buttons[0]
+        const last  = buttons[buttons.length - 1]
+        if (e.shiftKey) {
+          if (document.activeElement === first) { e.preventDefault(); last.focus() }
+        } else {
+          if (document.activeElement === last) { e.preventDefault(); first.focus() }
+        }
+      }
+    }
+    document.addEventListener('keydown', onKeyDown)
+    return () => document.removeEventListener('keydown', onKeyDown)
+  }, [onCancel])
+
   return (
     <div
+      ref={dialogRef}
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4"
       role="dialog"
       aria-modal="true"

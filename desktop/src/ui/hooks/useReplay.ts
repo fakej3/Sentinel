@@ -61,6 +61,7 @@ export function useReplay(): [ReplayState, ReplayActions] {
   const symbolRef     = useRef('')
   const intervalRef   = useRef<Timeframe>('1h')
   const playTimer     = useRef<ReturnType<typeof setInterval> | null>(null)
+  const playInFlight  = useRef(false)
 
   const [frame,        setFrame]        = useState<ReplayFrame | null>(null)
   const [trades,       setTrades]       = useState<TrackedTrade[]>([])
@@ -253,10 +254,13 @@ export function useReplay(): [ReplayState, ReplayActions] {
         setIsPlaying(false)
         return
       }
+      if (playInFlight.current) return
+      playInFlight.current = true
       engineRef.current.stepForward().then(f => {
+        playInFlight.current = false
         if (f) applyFrame(f)
         else { stopTimer(); setIsPlaying(false) }
-      })
+      }).catch(() => { playInFlight.current = false })
     }, SPEED_MS[speed])
 
     return stopTimer

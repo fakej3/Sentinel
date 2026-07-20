@@ -2,11 +2,6 @@ import type { PipelineResult } from '../pipeline/types'
 import type { Candle } from '../market/types'
 import type { TrackedTrade, TradeDirection, TradeOutcome } from './types'
 
-let _counter = 0
-function nextId(): string {
-  return `trade_${++_counter}`
-}
-
 /** Derive trade direction from the trade plan */
 function detectDirection(result: PipelineResult): TradeDirection | null {
   const plan = result.tradePlan
@@ -71,6 +66,11 @@ function advanceTrade(trade: TrackedTrade, candle: Candle, candleIndex: number):
 export class TradeTracker {
   private trades: TrackedTrade[] = []
   private lastSetup: TrackedTrade | null = null
+  private _counter = 0
+
+  private nextId(): string {
+    return `trade_${++this._counter}`
+  }
 
   processFrame(
     index: number,
@@ -99,7 +99,7 @@ export class TradeTracker {
     const reward   = Math.abs(plan.targetLevel - entryMid)
 
     const trade: TrackedTrade = {
-      id: nextId(),
+      id: this.nextId(),
       direction: dir,
       detectedAtIndex: index,
       detectedTimestamp: latestCandle.openTime,
@@ -134,6 +134,6 @@ export class TradeTracker {
   reset(): void {
     this.trades    = []
     this.lastSetup = null
-    _counter       = 0
+    this._counter  = 0
   }
 }
