@@ -13,6 +13,7 @@ import { StopLossOverlay } from '../../chart/overlays/StopLossOverlay'
 import { TakeProfitOverlay } from '../../chart/overlays/TakeProfitOverlay'
 import { RiskRewardOverlay } from '../../chart/overlays/RiskRewardOverlay'
 import { FibonacciOverlay } from '../../chart/overlays/FibonacciOverlay'
+import { MarketStructureOverlay } from '../../chart/overlays/MarketStructureOverlay'
 
 interface TradingViewChartProps {
   symbol: string
@@ -73,6 +74,7 @@ export function TradingViewChart({ symbol, interval, data }: TradingViewChartPro
     manager.addAnalysis(new TakeProfitOverlay())
     manager.addAnalysis(new RiskRewardOverlay())
     manager.addAnalysis(new FibonacciOverlay())
+    manager.addAnalysis(new MarketStructureOverlay())
 
     chartRef.current = chart
     managerRef.current = manager
