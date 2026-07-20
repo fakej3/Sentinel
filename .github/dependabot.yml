@@ -13,7 +13,7 @@ updates:
         update-types: ["version-update:semver-major"]
 
   - package-ecosystem: npm
-    directory: /website
+    directory: /web
     schedule:
       interval: weekly
       day: monday

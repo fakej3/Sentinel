@@ -6,7 +6,7 @@ Thank you for considering a contribution. This file covers the essentials — th
 
 ## Where the code lives
 
-All application code is in the `desktop/` folder. That is the only folder that is actively developed right now. `website/` is the static marketing site. `backend/` and `mobile/` are empty placeholders for future work.
+Application code lives in two folders: `desktop/` (the Tauri desktop app and shared analysis engine) and `web/` (the browser-native app that reuses the same engine). `backend/` and `mobile/` are empty placeholders for future work.
 
 ```
 desktop/src/modules/   ← analysis engine — needs tests for every change

@@ -5,8 +5,7 @@ body:
   - type: markdown
     attributes:
       value: |
-        Check the [documentation](https://github.com/fakej3/Sentinel/tree/main/desktop/docs)
-        and [FAQ](https://fakej3.github.io/Sentinel/#faq) first — your question may already be answered.
+        Check the [documentation](https://github.com/fakej3/Sentinel/tree/main/desktop/docs) first — your question may already be answered.
 
   - type: textarea
     id: question

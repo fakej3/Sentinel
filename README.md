@@ -8,13 +8,12 @@ Sentinel is a **desktop application** for Windows, macOS, and Linux. It runs a d
 [![Build](https://img.shields.io/github/actions/workflow/status/fakej3/Sentinel/release.yml?label=build)](https://github.com/fakej3/Sentinel/actions/workflows/release.yml)
 [![Tests](https://img.shields.io/badge/tests-1%2C531%20passing-22c55e)](desktop/docs/TESTING_STRATEGY.md)
 [![License](https://img.shields.io/badge/license-MIT-22c55e)](LICENSE)
-[![Website](https://img.shields.io/badge/website-fakej3.github.io%2FSentinel-2f7bff)](https://fakej3.github.io/Sentinel/)
 
-**[→ Download](https://github.com/fakej3/Sentinel/releases/latest)** &nbsp;·&nbsp; **[→ Website](https://fakej3.github.io/Sentinel/)** &nbsp;·&nbsp; **[→ Docs](desktop/docs/)**
+**[→ Download](https://github.com/fakej3/Sentinel/releases/latest)** &nbsp;·&nbsp; **[→ Web App](web/)** &nbsp;·&nbsp; **[→ Docs](desktop/docs/)**
 
 ---
 
-[![Sentinel — BTC/USDT analysis with 7.8/10 confidence, Strong Bullish, entry zone and trade plan](docs/screenshots/website.png)](https://fakej3.github.io/Sentinel/)
+![Sentinel — BTC/USDT analysis with 7.8/10 confidence, Strong Bullish, entry zone and trade plan](docs/screenshots/app.png)
 
 ---
 
@@ -109,8 +108,8 @@ Two things: Binance API calls to fetch candle data, and Gemini API calls if you 
 **Which exchanges are supported?**
 Currently Binance — both spot and USD-M futures pairs. The architecture is exchange-agnostic; adding a new exchange means implementing a single fetch adapter. Bybit, Coinbase Advanced, OKX, and Kraken are on the roadmap.
 
-**Why a desktop app and not a web app?**
-A desktop app runs entirely on your machine — no server sees your analysis, API keys, or trading activity. The Tauri architecture gives native performance, a local database, and the ability to work offline. A web app would require a backend, which would mean storing your data on someone else's server.
+**Is there a web app?**
+Yes — `web/` is a browser-native version of the same analysis engine. It runs the full pipeline client-side with no backend; analysis never leaves your browser. Deploy it to Vercel by following the instructions in [`web/DEPLOYMENT.md`](web/DEPLOYMENT.md). The desktop app additionally gives you a local database, offline access after the first candle fetch, and native OS integration.
 
 **How is confidence calculated?**
 Each analysis module produces typed evidence items with a direction (bull/bear/neutral) and impact (strong/moderate/weak). The confidence engine sums bull vs bear evidence, weights by impact, checks for contradictions, and applies a data completeness penalty. Score is 0–10. Grades: A (≥8.5), B (≥7.0), C (≥5.0), D (≥3.0), F (<3.0).
@@ -155,15 +154,24 @@ Sentinel/
 │   ├── src-tauri/      ← Rust/Tauri desktop shell
 │   └── docs/           ← Technical documentation
 │
-├── website/            ← Marketing site (React + Vite → GitHub Pages)
+├── web/                ← Browser app — same engine, runs client-side (Vite → Vercel)
 │
 ├── mobile/             ← Placeholder — iOS/Android (not started)
 ├── backend/            ← Placeholder — cloud sync (not started)
 │
 └── .github/workflows/
-    ├── release.yml     ← Builds and publishes installers on version tags
-    └── deploy.yml      ← Deploys website to GitHub Pages
+    └── release.yml     ← Builds and publishes installers on version tags
 ```
+
+### Run the web app
+
+```bash
+cd web
+npm install
+npm run dev   # http://localhost:5173
+```
+
+See [`web/DEPLOYMENT.md`](web/DEPLOYMENT.md) for the Vercel deployment guide.
 
 ### Run tests
 

@@ -12,7 +12,6 @@
 
 ## Read first
 
-- **[Website FAQ](https://fakej3.github.io/Sentinel/#faq)** — common questions answered
 - **[Documentation](https://github.com/fakej3/Sentinel/tree/main/desktop/docs)** — architecture, pipeline, engine rules, roadmap
 - **[Local Development guide](desktop/docs/LOCAL_DEVELOPMENT.md)** — setup instructions for building from source
 
