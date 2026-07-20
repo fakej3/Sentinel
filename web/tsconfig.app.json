@@ -21,14 +21,6 @@
     }
   },
   "include": [
-    "src",
-    "../desktop/src/modules",
-    "../desktop/src/ui"
-  ],
-  "exclude": [
-    "../desktop/src/modules/historical-validation",
-    "../desktop/src/modules/**/__tests__",
-    "../desktop/src/ui/__tests__",
-    "../desktop/src/cli"
+    "src"
   ]
 }
