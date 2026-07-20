@@ -48,26 +48,28 @@ export class SupportResistanceOverlay implements IAnalysisOverlay {
 
     for (const zone of support) {
       const baseWidth: 1 | 2 = zone.strength >= 7 ? 2 : 1
+      const touches = zone.touchCount > 1 ? ` ×${zone.touchCount}` : ''
       const line = this.host.createPriceLine({
         price: zone.center,
         color: '#26a69a',
         lineWidth: baseWidth,
         lineStyle: LineStyle.Solid,
         axisLabelVisible: true,
-        title: `S  ${zone.strength.toFixed(1)}`,
+        title: `S${touches}`,
       })
       this.zoneLines.push({ line, zone, baseWidth })
     }
 
     for (const zone of resistance) {
       const baseWidth: 1 | 2 = zone.strength >= 7 ? 2 : 1
+      const touches = zone.touchCount > 1 ? ` ×${zone.touchCount}` : ''
       const line = this.host.createPriceLine({
         price: zone.center,
         color: '#ef5350',
         lineWidth: baseWidth,
         lineStyle: LineStyle.Solid,
         axisLabelVisible: true,
-        title: `R  ${zone.strength.toFixed(1)}`,
+        title: `R${touches}`,
       })
       this.zoneLines.push({ line, zone, baseWidth })
     }

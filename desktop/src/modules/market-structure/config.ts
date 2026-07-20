@@ -5,7 +5,7 @@ import type { MarketStructureConfig } from './types'
  * All values are documented in MarketStructureConfig.
  */
 export const DEFAULT_CONFIG: MarketStructureConfig = {
-  swingLookback: 2,
+  swingLookback: 3,
   consolidationSwings: 5,
   consolidationThreshold: 3.0,
   breakoutVolumeMultiplier: 1.3,

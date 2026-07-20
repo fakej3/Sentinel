@@ -106,7 +106,7 @@ export function determineTrend(
 
   const ratio = bullish / total
 
-  if (ratio >= 0.75) {
+  if (ratio >= 0.67) {
     let strength: TrendStrength = 'weak'
     if (hh >= 2 && hl >= 2) {
       strength = bullish >= 6 ? 'strong' : 'moderate'
@@ -114,7 +114,7 @@ export function determineTrend(
     return { direction: 'bullish', strength }
   }
 
-  if (ratio <= 0.25) {
+  if (ratio <= 0.33) {
     let strength: TrendStrength = 'weak'
     if (lh >= 2 && ll >= 2) {
       strength = bearish >= 6 ? 'strong' : 'moderate'

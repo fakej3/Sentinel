@@ -70,15 +70,15 @@ export class EntryZoneOverlay implements IAnalysisOverlay {
       lineWidth: 1,
       lineStyle: LineStyle.Dashed,
       axisLabelVisible: true,
-      title: 'Entry Low',
+      title: 'Entry',
     }))
     this.lines.push(this.host!.createPriceLine({
       price: upper,
       color: '#3b82f6',
       lineWidth: 1,
       lineStyle: LineStyle.Dashed,
-      axisLabelVisible: true,
-      title: 'Entry High',
+      axisLabelVisible: false,
+      title: '',
     }))
   }
 

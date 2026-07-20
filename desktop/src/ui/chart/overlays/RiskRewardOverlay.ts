@@ -80,7 +80,10 @@ export class RiskRewardOverlay implements IAnalysisOverlay {
     const reward = Math.abs(tp - entryMid)
     const rr = risk > 0 ? (reward / risk).toFixed(2) : '—'
 
-    const times = data.candles.map(c => Math.floor(c.openTime / 1000) as UTCTimestamp)
+    // Show fills only over the most recent 60 candles — drawing back to candle[0]
+    // implies a trade existed across the entire history, which is visually false.
+    const fillCandles = data.candles.slice(-60)
+    const times = fillCandles.map(c => Math.floor(c.openTime / 1000) as UTCTimestamp)
 
     if (bullish) {
       this.riskFill!.applyOptions({ ...RISK_DIM, baseValue: { type: 'price', price: stop } })

@@ -37,7 +37,7 @@ export class StopLossOverlay implements IAnalysisOverlay {
       lineWidth: 2,
       lineStyle: LineStyle.Solid,
       axisLabelVisible: true,
-      title: 'Stop Loss',
+      title: 'SL',
     })
   }
 

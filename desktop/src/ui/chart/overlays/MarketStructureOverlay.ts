@@ -19,9 +19,10 @@ import type { IAnalysisOverlay } from '../types'
 
 // ── Config ────────────────────────────────────────────────────────────────────
 
-const MAX_BOS_LINES   = 8
-const MAX_CHOCH_LINES = 4
-const MAX_SWING_NODES = 20   // recent swings for labels + zigzag
+const MAX_BOS_LINES    = 3
+const MAX_CHOCH_LINES  = 2
+const MAX_SWING_NODES  = 20  // recent swings for marker labels
+const MAX_ZIGZAG_NODES = 12  // recent swings drawn in the zigzag line
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -135,8 +136,16 @@ export class MarketStructureOverlay implements IAnalysisOverlay {
 
     const { marketStructure, candles } = data
 
-    // Anchor marker host to all candle timestamps (use close price so it stays within candle range)
-    this.markerHost?.setData(candles.map(c => ({ time: Math.floor(c.openTime / 1000) as UTCTimestamp, value: c.close })))
+    // Anchor marker host. At swing timestamps use actual high/low so 'aboveBar'/'belowBar'
+    // markers position relative to the candle wick, not the close price.
+    const swingHighTimes = new Set(marketStructure.swings.filter(s => s.type === 'high').map(s => s.timestamp))
+    const swingLowTimes  = new Set(marketStructure.swings.filter(s => s.type === 'low').map(s => s.timestamp))
+    this.markerHost?.setData(candles.map(c => ({
+      time: Math.floor(c.openTime / 1000) as UTCTimestamp,
+      value: swingHighTimes.has(c.openTime) ? c.high
+           : swingLowTimes.has(c.openTime)  ? c.low
+           : c.close,
+    })))
 
     // ── Swing markers ─────────────────────────────────────────────────────────
     const recentSwings = marketStructure.swings.slice(-MAX_SWING_NODES)
@@ -155,8 +164,9 @@ export class MarketStructureOverlay implements IAnalysisOverlay {
     this.markerPlugin?.setMarkers(markers)
 
     // ── Zigzag ───────────────────────────────────────────────────────────────
-    const zigzag = recentSwings
+    const zigzag = marketStructure.swings
       .filter(s => s.label !== null)
+      .slice(-MAX_ZIGZAG_NODES)
       .map(s => ({
         time: Math.floor(s.timestamp / 1000) as UTCTimestamp,
         value: s.price,
@@ -164,27 +174,35 @@ export class MarketStructureOverlay implements IAnalysisOverlay {
     this.swingLine?.setData(zigzag)
 
     // ── BOS price lines ───────────────────────────────────────────────────────
-    for (const e of marketStructure.bos.events.slice(-MAX_BOS_LINES)) {
+    // Show only the most recent MAX_BOS_LINES events. The most recent gets an
+    // axis label; older ones are shown as unlabeled lines to reduce clutter.
+    const visibleBos = marketStructure.bos.events.slice(-MAX_BOS_LINES)
+    for (let i = 0; i < visibleBos.length; i++) {
+      const e = visibleBos[i]
       const isBull = e.direction === 'bullish'
+      const isLatest = i === visibleBos.length - 1
       const line = this.eventHost!.createPriceLine({
         price: e.level,
-        color: isBull ? '#22c55e' : '#ef5350',
-        lineWidth: 1,
+        color: isBull ? 'rgba(34,197,94,0.8)' : 'rgba(239,83,80,0.8)',
+        lineWidth: isLatest ? 1 : 1,
         lineStyle: LineStyle.Solid,
-        axisLabelVisible: true,
-        title: `${isBull ? '↑' : '↓'} BOS`,
+        axisLabelVisible: isLatest,
+        title: 'BOS',
       })
       this.bosLines.push({ line, event: e })
     }
 
     // ── CHoCH price lines ─────────────────────────────────────────────────────
-    for (const e of marketStructure.choch.events.slice(-MAX_CHOCH_LINES)) {
+    const visibleChoch = marketStructure.choch.events.slice(-MAX_CHOCH_LINES)
+    for (let i = 0; i < visibleChoch.length; i++) {
+      const e = visibleChoch[i]
+      const isLatest = i === visibleChoch.length - 1
       const line = this.eventHost!.createPriceLine({
         price: e.level,
-        color: '#a855f7',
+        color: 'rgba(168,85,247,0.8)',
         lineWidth: 1,
         lineStyle: LineStyle.Dashed,
-        axisLabelVisible: true,
+        axisLabelVisible: isLatest,
         title: 'CHoCH',
       })
       this.chochLines.push({ line, event: e })
