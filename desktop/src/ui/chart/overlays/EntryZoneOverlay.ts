@@ -58,8 +58,9 @@ export class EntryZoneOverlay implements IAnalysisOverlay {
 
     const { lower, upper } = plan.entryZone
 
+    const fillCandles = data.candles.slice(-60)
     this.fill!.applyOptions({ baseValue: { type: 'price', price: lower } })
-    this.fill!.setData(data.candles.map(c => ({
+    this.fill!.setData(fillCandles.map(c => ({
       time: Math.floor(c.openTime / 1000) as UTCTimestamp,
       value: upper,
     })))

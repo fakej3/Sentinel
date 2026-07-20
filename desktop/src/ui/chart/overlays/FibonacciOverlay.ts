@@ -102,8 +102,6 @@ export class FibonacciOverlay implements IAnalysisOverlay {
       return
     }
 
-    const times = data!.candles.map(c => Math.floor(c.openTime / 1000) as UTCTimestamp)
-
     // Golden pocket fill between 0.618 and 0.650
     const gp618 = fib.levels.find(l => l.ratio === 0.618)
     const gp650 = fib.levels.find(l => l.ratio === 0.650)
@@ -111,8 +109,15 @@ export class FibonacciOverlay implements IAnalysisOverlay {
     if (gp618 && gp650) {
       const gpTop = Math.max(gp618.price, gp650.price)
       const gpBot = Math.min(gp618.price, gp650.price)
+      // Draw fill only from the earlier swing anchor — matching how TradingView's
+      // fib tool anchors its zone to the selected swing range.
+      const anchorMs = Math.min(fib.swingHigh.timestamp, fib.swingLow.timestamp)
+      const fillCandles = data!.candles.filter(c => c.openTime >= anchorMs)
       this.gpFill!.applyOptions({ ...GP_BASE, baseValue: { type: 'price', price: gpBot } })
-      this.gpFill!.setData(times.map(time => ({ time, value: gpTop })))
+      this.gpFill!.setData(fillCandles.map(c => ({
+        time: Math.floor(c.openTime / 1000) as UTCTimestamp,
+        value: gpTop,
+      })))
     } else {
       this.gpFill?.setData([])
     }
