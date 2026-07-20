@@ -51,7 +51,7 @@ export class SupportResistanceOverlay implements IAnalysisOverlay {
       const touches = zone.touchCount > 1 ? ` ×${zone.touchCount}` : ''
       const line = this.host.createPriceLine({
         price: zone.center,
-        color: '#26a69a',
+        color: '#22c55e',
         lineWidth: baseWidth,
         lineStyle: LineStyle.Solid,
         axisLabelVisible: true,

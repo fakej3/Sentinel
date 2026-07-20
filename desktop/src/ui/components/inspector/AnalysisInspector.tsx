@@ -24,7 +24,7 @@ const HighlightCtx = createContext<HighlightCtxValue>({
 function Val({ v, mono = true, dim }: { v: string | number | null | undefined; mono?: boolean; dim?: boolean }) {
   const display = v === null || v === undefined ? '—' : String(v)
   return (
-    <span className={`${mono ? 'font-mono' : ''} ${dim ? 'text-slate-600' : 'text-slate-200'} tabular-nums`}>
+    <span className={`text-[11px] ${mono ? 'font-mono' : ''} ${dim ? 'text-slate-600' : 'text-slate-200'} tabular-nums`}>
       {display}
     </span>
   )
@@ -45,7 +45,7 @@ function Row({ label, children, className, highlightKey }: {
       <div
         data-highlight-row={highlightKey}
         tabIndex={0}
-        className={`flex items-center justify-between gap-2 py-[3px] rounded cursor-default
+        className={`flex items-center justify-between gap-2 py-1 rounded cursor-default
           focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-white/20 transition-colors
           ${isLit ? 'bg-white/[0.06]' : 'hover:bg-white/[0.03]'} ${className ?? ''}`}
         onMouseEnter={() => { if (!lockedKey) setHighlight(highlightKey) }}
@@ -53,16 +53,16 @@ function Row({ label, children, className, highlightKey }: {
         onFocus={() => setHighlight(highlightKey)}
         onBlur={() => { if (!lockedKey) setHighlight(null) }}
       >
-        <span className="text-[10px] text-slate-500 flex-shrink-0 min-w-0">{label}</span>
-        <span className="text-[10px] text-right min-w-0">{children}</span>
+        <span className="text-[11px] text-slate-500 flex-shrink-0 min-w-0">{label}</span>
+        <span className="text-[11px] text-right min-w-0">{children}</span>
       </div>
     )
   }
 
   return (
-    <div className={`flex items-center justify-between gap-2 py-[3px] ${className ?? ''}`}>
-      <span className="text-[10px] text-slate-500 flex-shrink-0 min-w-0">{label}</span>
-      <span className="text-[10px] text-right min-w-0">{children}</span>
+    <div className={`flex items-center justify-between gap-2 py-1 ${className ?? ''}`}>
+      <span className="text-[11px] text-slate-500 flex-shrink-0 min-w-0">{label}</span>
+      <span className="text-[11px] text-right min-w-0">{children}</span>
     </div>
   )
 }
@@ -102,15 +102,15 @@ function Divider() {
 }
 
 function DirChip({ dir }: { dir: string }) {
-  if (dir === 'bullish') return <span className="text-[9px] font-semibold px-1 py-px rounded bg-emerald-500/15 text-emerald-400">bull</span>
-  if (dir === 'bearish') return <span className="text-[9px] font-semibold px-1 py-px rounded bg-red-500/15 text-red-400">bear</span>
-  return <span className="text-[9px] font-semibold px-1 py-px rounded bg-slate-500/20 text-slate-400">—</span>
+  if (dir === 'bullish') return <span className="text-[10px] font-semibold px-1 py-px rounded bg-emerald-500/15 text-emerald-400">bull</span>
+  if (dir === 'bearish') return <span className="text-[10px] font-semibold px-1 py-px rounded bg-red-500/15 text-red-400">bear</span>
+  return <span className="text-[10px] font-semibold px-1 py-px rounded bg-slate-500/20 text-slate-400">—</span>
 }
 
 function SevChip({ sev }: { sev: string }) {
-  if (sev === 'critical') return <span className="text-[9px] font-bold px-1 py-px rounded bg-red-500/20 text-red-400">CRIT</span>
-  if (sev === 'warning')  return <span className="text-[9px] font-bold px-1 py-px rounded bg-amber-500/20 text-amber-400">WARN</span>
-  return <span className="text-[9px] font-bold px-1 py-px rounded bg-blue-500/10 text-blue-400">INFO</span>
+  if (sev === 'critical') return <span className="text-[10px] font-bold px-1 py-px rounded bg-red-500/20 text-red-400">CRIT</span>
+  if (sev === 'warning')  return <span className="text-[10px] font-bold px-1 py-px rounded bg-amber-500/20 text-amber-400">WARN</span>
+  return <span className="text-[10px] font-bold px-1 py-px rounded bg-blue-500/10 text-blue-400">INFO</span>
 }
 
 function TrendIcon({ t }: { t: string }) {
@@ -147,19 +147,19 @@ function Section({ icon, title, badge, defaultOpen = false, children }: SectionP
     <div className="border-b border-white/5 last:border-b-0">
       <button
         onClick={() => setOpen(o => !o)}
-        className="w-full flex items-center gap-1.5 px-3 py-2 hover:bg-white/[0.03] transition-colors focus-visible:outline-none"
+        className="w-full flex items-center gap-2 px-3 py-2.5 hover:bg-white/[0.03] transition-colors focus-visible:outline-none"
       >
         <span className="text-slate-500 flex-shrink-0">{icon}</span>
-        <span className="text-[10px] font-semibold uppercase tracking-widest text-slate-400 flex-1 text-left">
+        <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-400 flex-1 text-left">
           {title}
         </span>
         {badge && <span className="mr-1">{badge}</span>}
         {open
-          ? <ChevronUp size={10} className="text-slate-600 flex-shrink-0" />
-          : <ChevronDown size={10} className="text-slate-600 flex-shrink-0" />}
+          ? <ChevronUp size={11} className="text-slate-600 flex-shrink-0" />
+          : <ChevronDown size={11} className="text-slate-600 flex-shrink-0" />}
       </button>
       {open && (
-        <div className="px-3 pb-2.5 space-y-0">
+        <div className="px-3 pb-3 space-y-0">
           {children}
         </div>
       )}
@@ -176,14 +176,14 @@ function SummarySection({ d }: { d: PipelineResult }) {
   return (
     <Section icon={<Activity size={11} />} title="Summary" defaultOpen={true}
       badge={
-        <span className={`text-[9px] font-bold px-1.5 py-px rounded font-mono ${scoreCls(confidence.score)}`}>
+        <span className={`text-[10px] font-bold px-1.5 py-px rounded font-mono ${scoreCls(confidence.score)}`}>
           {formatScore(confidence.score)}
         </span>
       }
     >
       <Row label="Price">
         <Val v={formatPrice(price.current)} />
-        <span className={`ml-1 text-[9px] font-mono ${price.change24hPercent >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+        <span className={`ml-1 text-[10px] font-mono ${price.change24hPercent >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
           {formatPercent(price.change24hPercent)}
         </span>
       </Row>
@@ -198,11 +198,11 @@ function SummarySection({ d }: { d: PipelineResult }) {
       </Row>
       <Row label="Confidence">
         <span className={`font-mono ${scoreCls(confidence.score)}`}>{formatScore(confidence.score)}/10</span>
-        <span className="ml-1 text-slate-500 text-[9px] font-mono">{confidence.grade}</span>
+        <span className="ml-1 text-slate-500 text-[10px] font-mono">{confidence.grade}</span>
       </Row>
       <Row label="Signal">
         <Val v={decision.label} mono={false} />
-        <span className="ml-1 text-[9px] text-slate-500">{decision.riskLevel} risk</span>
+        <span className="ml-1 text-[10px] text-slate-500">{decision.riskLevel} risk</span>
       </Row>
       <Divider />
       <Row label="Market Phase">
@@ -223,21 +223,10 @@ function SummarySection({ d }: { d: PipelineResult }) {
       <Row label="RR Ratio">
         <Val v={tradePlan.riskRewardRatio !== null ? `${tradePlan.riskRewardRatio.toFixed(2)}:1` : '—'} />
       </Row>
-      <Row label="ATR">
-        <Val v={d.indicators.atr !== null ? formatPrice(d.indicators.atr) : null} />
-        {d.indicators.atrPercent !== null && (
-          <span className="ml-1 text-[9px] text-slate-500">{d.indicators.atrPercent.toFixed(2)}%</span>
-        )}
-      </Row>
-      <Divider />
-      <Row label="Candles">
-        <Val v={metadata.candleCount} />
-      </Row>
-      <Row label="Version">
-        <Val v={metadata.version} dim />
-      </Row>
-      <Row label="Timestamp">
-        <Val v={formatTimestamp(metadata.timestamp)} dim />
+      <Row label="ATR%">
+        {d.indicators.atrPercent !== null
+          ? <Val v={`${d.indicators.atrPercent.toFixed(2)}%`} />
+          : <Val v={null} />}
       </Row>
     </Section>
   )
@@ -261,17 +250,8 @@ function ConfidenceSection({ d }: { d: PipelineResult }) {
   return (
     <Section icon={<BarChart3 size={11} />} title="Confidence Breakdown">
       <Row label="Score">
-        <span className={`font-mono ${scoreCls(confidence.score)}`}>{formatScore(confidence.score)}</span>
-        <span className="ml-1 text-[9px] text-slate-500">grade: {confidence.grade}</span>
-      </Row>
-      <Row label="Bull pts">
-        <Val v={`${(confidence.bullishConfidence * 10).toFixed(0)} pts`} />
-      </Row>
-      <Row label="Bear pts">
-        <Val v={`${(confidence.bearishConfidence * 10).toFixed(0)} pts`} />
-      </Row>
-      <Row label="Neutral">
-        <Val v={confidence.neutralContribution} />
+        <span className={`font-mono text-[12px] font-bold ${scoreCls(confidence.score)}`}>{formatScore(confidence.score)}</span>
+        <span className="ml-1 text-[11px] text-slate-500">{confidence.grade}</span>
       </Row>
       <Divider />
       {(Object.entries(breakdown) as [string, number][]).map(([key, val]) => (
@@ -293,10 +273,10 @@ function ConfidenceSection({ d }: { d: PipelineResult }) {
       {penalties.length > 0 && (
         <>
           <Divider />
-          <span className="text-[9px] text-amber-400/60 font-semibold uppercase tracking-wide">Penalties</span>
+          <span className="text-[10px] text-amber-400/60 font-semibold uppercase tracking-wide">Penalties</span>
           {penalties.map((p, i) => (
             <div key={i} className="flex items-start gap-1 py-[2px]">
-              <span className="text-amber-500/60 text-[9px] mt-px flex-shrink-0">↓</span>
+              <span className="text-amber-500/60 text-[10px] mt-px flex-shrink-0">↓</span>
               <span className="text-[10px] text-slate-500 leading-snug">{p.description}</span>
               <span className="text-[10px] font-mono text-amber-400/70 ml-auto flex-shrink-0">−{p.scoreReduction.toFixed(1)}</span>
             </div>
@@ -333,7 +313,7 @@ function MarketStructureSection({ d }: { d: PipelineResult }) {
       </Row>
       <Row label="Strength"><Val v={ms.strength} /></Row>
       <Divider />
-      <span className="text-[9px] text-slate-600 font-semibold uppercase tracking-wide block mb-0.5">Structure Counts (all / recent)</span>
+      <span className="text-[10px] text-slate-600 font-semibold uppercase tracking-wide block mb-0.5">Structure Counts (all / recent)</span>
       {[
         ['HH', counts.higherHighs, recent.higherHighs],
         ['HL', counts.higherLows,  recent.higherLows],
@@ -350,37 +330,37 @@ function MarketStructureSection({ d }: { d: PipelineResult }) {
         </div>
       ))}
       <Divider />
-      <span className="text-[9px] text-slate-600 font-semibold uppercase tracking-wide block mb-0.5">
+      <span className="text-[10px] text-slate-600 font-semibold uppercase tracking-wide block mb-0.5">
         BOS Events ({ms.bos.events.length})
       </span>
       {ms.bos.events.slice(-6).map((e, i) => (
         <HRow key={i} highlightKey={`ms:bos:${e.timestamp}`} className="flex items-center gap-1.5 py-[2px]">
           <DirChip dir={e.direction} />
           <span className="text-[10px] font-mono text-slate-300 flex-1">{formatPrice(e.level)}</span>
-          <span className="text-[9px] text-slate-600 flex-shrink-0">{formatTimestamp(e.timestamp)}</span>
+          <span className="text-[10px] text-slate-600 flex-shrink-0">{formatTimestamp(e.timestamp)}</span>
         </HRow>
       ))}
       {ms.bos.events.length === 0 && <span className="text-[10px] text-slate-600">none</span>}
       <Divider />
-      <span className="text-[9px] text-slate-600 font-semibold uppercase tracking-wide block mb-0.5">
+      <span className="text-[10px] text-slate-600 font-semibold uppercase tracking-wide block mb-0.5">
         CHoCH Events ({ms.choch.events.length})
       </span>
       {ms.choch.events.slice(-4).map((e, i) => (
         <HRow key={i} highlightKey={`ms:choch:${e.timestamp}`} className="flex items-center gap-1.5 py-[2px]">
           <DirChip dir={e.direction} />
           <span className="text-[10px] font-mono text-slate-300 flex-1">{formatPrice(e.level)}</span>
-          <span className="text-[9px] text-slate-600 flex-shrink-0">{formatTimestamp(e.timestamp)}</span>
+          <span className="text-[10px] text-slate-600 flex-shrink-0">{formatTimestamp(e.timestamp)}</span>
         </HRow>
       ))}
       {ms.choch.events.length === 0 && <span className="text-[10px] text-slate-600">none</span>}
       <Divider />
-      <span className="text-[9px] text-slate-600 font-semibold uppercase tracking-wide block mb-0.5">
+      <span className="text-[10px] text-slate-600 font-semibold uppercase tracking-wide block mb-0.5">
         Consolidation / Breakout
       </span>
       <Row label="Consolidating">
         <Val v={ms.consolidation.detected ? 'yes' : 'no'} mono={false} />
         {ms.consolidation.detected && ms.consolidation.rangePercent !== null && (
-          <span className="ml-1 text-[9px] text-slate-500">{ms.consolidation.rangePercent.toFixed(2)}% range</span>
+          <span className="ml-1 text-[10px] text-slate-500">{ms.consolidation.rangePercent.toFixed(2)}% range</span>
         )}
       </Row>
       <Row label="Breakout">
@@ -389,19 +369,19 @@ function MarketStructureSection({ d }: { d: PipelineResult }) {
       <Row label="Pullback">
         <Val v={ms.pullback.detected ? 'yes' : 'no'} mono={false} />
         {ms.pullback.depth !== null && (
-          <span className="ml-1 text-[9px] text-slate-500">{(ms.pullback.depth * 100).toFixed(1)}%</span>
+          <span className="ml-1 text-[10px] text-slate-500">{(ms.pullback.depth * 100).toFixed(1)}%</span>
         )}
       </Row>
       <Divider />
-      <span className="text-[9px] text-slate-600 font-semibold uppercase tracking-wide block mb-0.5">
+      <span className="text-[10px] text-slate-600 font-semibold uppercase tracking-wide block mb-0.5">
         Recent Swings (last 10)
       </span>
       {ms.swings.slice(-10).map((s, i) => (
         <HRow key={i} highlightKey={`ms:swing:${s.timestamp}`} className="flex items-center gap-1.5 py-[2px]">
-          <span className={`text-[9px] font-mono font-semibold w-4 ${s.type === 'high' ? 'text-red-400/80' : 'text-emerald-400/80'}`}>
+          <span className={`text-[10px] font-mono font-semibold w-4 ${s.type === 'high' ? 'text-red-400/80' : 'text-emerald-400/80'}`}>
             {s.type === 'high' ? 'H' : 'L'}
           </span>
-          <span className="text-[9px] font-mono w-6 text-slate-400">{s.label ?? '  '}</span>
+          <span className="text-[10px] font-mono w-6 text-slate-400">{s.label ?? '  '}</span>
           <span className="text-[10px] font-mono text-slate-300 flex-1">{formatPrice(s.price)}</span>
         </HRow>
       ))}
@@ -420,7 +400,7 @@ function SRSection({ d }: { d: PipelineResult }) {
 
   return (
     <Section icon={<Target size={11} />} title="Support / Resistance"
-      badge={<span className="text-[9px] text-slate-600 font-mono">{zones.length}</span>}
+      badge={<span className="text-[10px] text-slate-600 font-mono">{zones.length}</span>}
     >
       <Row label="Nearest Support" highlightKey="sr:nearest-support">
         <Val v={supportResistance.nearestSupport ? formatPrice(supportResistance.nearestSupport.center) : null} />
@@ -434,15 +414,15 @@ function SRSection({ d }: { d: PipelineResult }) {
         const dist = ((z.center - currentPrice) / currentPrice) * 100
         return (
           <HRow key={z.id ?? i} highlightKey={z.id ? `sr:zone:${z.id}` : undefined} className="flex items-center gap-1.5 py-[2px]">
-            <span className={`text-[9px] font-mono font-semibold w-4 flex-shrink-0 ${z.type === 'support' ? 'text-emerald-400/80' : 'text-red-400/80'}`}>
+            <span className={`text-[10px] font-mono font-semibold w-4 flex-shrink-0 ${z.type === 'support' ? 'text-emerald-400/80' : 'text-red-400/80'}`}>
               {z.type === 'support' ? 'S' : 'R'}
             </span>
             <span className="text-[10px] font-mono text-slate-300 flex-1">{formatPrice(z.center)}</span>
-            <span className={`text-[9px] font-mono flex-shrink-0 ${dist >= 0 ? 'text-emerald-400/60' : 'text-red-400/60'}`}>
+            <span className={`text-[10px] font-mono flex-shrink-0 ${dist >= 0 ? 'text-emerald-400/60' : 'text-red-400/60'}`}>
               {dist >= 0 ? '+' : ''}{dist.toFixed(1)}%
             </span>
-            <span className="text-[9px] text-slate-600 flex-shrink-0 w-6 text-right">{z.strength.toFixed(1)}</span>
-            <span className="text-[9px] text-slate-600 flex-shrink-0">×{z.touchCount}</span>
+            <span className="text-[10px] text-slate-600 flex-shrink-0 w-6 text-right">{z.strength.toFixed(1)}</span>
+            <span className="text-[10px] text-slate-600 flex-shrink-0">×{z.touchCount}</span>
           </HRow>
         )
       })}
@@ -470,11 +450,11 @@ function FibonacciSection({ d }: { d: PipelineResult }) {
       <Row label="Direction"><DirChip dir={fib.direction} /></Row>
       <Row label="Swing High">
         <Val v={formatPrice(fib.swingHigh.price)} />
-        <span className="ml-1 text-[9px] text-slate-600">{formatTimestamp(fib.swingHigh.timestamp)}</span>
+        <span className="ml-1 text-[10px] text-slate-600">{formatTimestamp(fib.swingHigh.timestamp)}</span>
       </Row>
       <Row label="Swing Low">
         <Val v={formatPrice(fib.swingLow.price)} />
-        <span className="ml-1 text-[9px] text-slate-600">{formatTimestamp(fib.swingLow.timestamp)}</span>
+        <span className="ml-1 text-[10px] text-slate-600">{formatTimestamp(fib.swingLow.timestamp)}</span>
       </Row>
       <Divider />
       {fib.levels.map((lv, i) => {
@@ -483,14 +463,14 @@ function FibonacciSection({ d }: { d: PipelineResult }) {
           : `fib:ratio:${lv.ratio}`
         return (
           <HRow key={i} highlightKey={hKey} className="flex items-center gap-1.5 py-[2px]">
-            <span className={`text-[9px] font-mono font-semibold w-8 flex-shrink-0 ${
+            <span className={`text-[10px] font-mono font-semibold w-8 flex-shrink-0 ${
               lv.isGoldenPocket ? 'text-yellow-400' : lv.isExtension ? 'text-emerald-400/70' : 'text-slate-400'
             }`}>
               {lv.label}
             </span>
             <span className="text-[10px] font-mono text-slate-300 flex-1">{formatPrice(lv.price)}</span>
             {lv.confluence && (
-              <span className={`text-[9px] px-1 rounded font-medium flex-shrink-0 ${
+              <span className={`text-[10px] px-1 rounded font-medium flex-shrink-0 ${
                 lv.confluenceType === 'support'
                   ? 'text-emerald-400 bg-emerald-500/10'
                   : 'text-red-400 bg-red-500/10'
@@ -499,7 +479,7 @@ function FibonacciSection({ d }: { d: PipelineResult }) {
               </span>
             )}
             {lv.isGoldenPocket && (
-              <span className="text-[9px] text-yellow-400/70 flex-shrink-0">GP</span>
+              <span className="text-[10px] text-yellow-400/70 flex-shrink-0">GP</span>
             )}
           </HRow>
         )
@@ -514,8 +494,8 @@ function IndicatorsSection({ d }: { d: PipelineResult }) {
   const ind = d.indicators
 
   return (
-    <Section icon={<Activity size={11} />} title="Indicators (Raw)">
-      <span className="text-[9px] text-slate-600 font-semibold uppercase tracking-wide block mb-0.5">EMAs</span>
+    <Section icon={<Activity size={11} />} title="Indicators">
+      <span className="text-[10px] text-slate-600 font-semibold uppercase tracking-wide block mb-0.5">EMAs</span>
       <Row label="EMA 20" highlightKey="ema:20"><Val v={ind.ema20 !== null ? formatPrice(ind.ema20) : null} /></Row>
       <Row label="EMA 50" highlightKey="ema:50"><Val v={ind.ema50 !== null ? formatPrice(ind.ema50) : null} /></Row>
       <Row label="EMA 100" highlightKey="ema:100"><Val v={ind.ema100 !== null ? formatPrice(ind.ema100) : null} /></Row>
@@ -525,7 +505,7 @@ function IndicatorsSection({ d }: { d: PipelineResult }) {
         <Val v={ind.rsi !== null ? ind.rsi.toFixed(2) : null} />
       </Row>
       <Divider />
-      <span className="text-[9px] text-slate-600 font-semibold uppercase tracking-wide block mb-0.5">MACD</span>
+      <span className="text-[10px] text-slate-600 font-semibold uppercase tracking-wide block mb-0.5">MACD</span>
       {ind.macd ? (
         <>
           <Row label="MACD Line"><Val v={ind.macd.macdLine.toFixed(4)} /></Row>
@@ -538,7 +518,7 @@ function IndicatorsSection({ d }: { d: PipelineResult }) {
         <span className="text-[10px] text-slate-600">N/A</span>
       )}
       <Divider />
-      <span className="text-[9px] text-slate-600 font-semibold uppercase tracking-wide block mb-0.5">ADX</span>
+      <span className="text-[10px] text-slate-600 font-semibold uppercase tracking-wide block mb-0.5">ADX</span>
       {ind.adx ? (
         <>
           <Row label="ADX"><Val v={ind.adx.adx.toFixed(2)} /></Row>
@@ -549,7 +529,7 @@ function IndicatorsSection({ d }: { d: PipelineResult }) {
         <span className="text-[10px] text-slate-600">N/A</span>
       )}
       <Divider />
-      <span className="text-[9px] text-slate-600 font-semibold uppercase tracking-wide block mb-0.5">Bollinger Bands</span>
+      <span className="text-[10px] text-slate-600 font-semibold uppercase tracking-wide block mb-0.5">Bollinger Bands</span>
       {ind.bollingerBands ? (
         <>
           <Row label="Upper"><Val v={formatPrice(ind.bollingerBands.upper)} /></Row>
@@ -564,7 +544,7 @@ function IndicatorsSection({ d }: { d: PipelineResult }) {
       <Row label="VWAP"><Val v={formatPrice(ind.vwap)} /></Row>
       <Row label="OBV"><Val v={ind.obv.toFixed(0)} /></Row>
       <Divider />
-      <span className="text-[9px] text-slate-600 font-semibold uppercase tracking-wide block mb-0.5">Stoch RSI</span>
+      <span className="text-[10px] text-slate-600 font-semibold uppercase tracking-wide block mb-0.5">Stoch RSI</span>
       {ind.stochRsi ? (
         <>
           <Row label="%K"><Val v={ind.stochRsi.k.toFixed(2)} /></Row>
@@ -577,7 +557,7 @@ function IndicatorsSection({ d }: { d: PipelineResult }) {
       <Row label="MFI"><Val v={ind.mfi !== null ? ind.mfi.toFixed(2) : null} /></Row>
       <Row label="CCI"><Val v={ind.cci !== null ? ind.cci.toFixed(2) : null} /></Row>
       <Divider />
-      <span className="text-[9px] text-slate-600 font-semibold uppercase tracking-wide block mb-0.5">Volume</span>
+      <span className="text-[10px] text-slate-600 font-semibold uppercase tracking-wide block mb-0.5">Volume</span>
       {ind.volumeMA ? (
         <>
           <Row label="Vol MA"><Val v={ind.volumeMA.ma.toFixed(0)} /></Row>
@@ -596,7 +576,7 @@ function TradePlanSection({ d }: { d: PipelineResult }) {
   const plan = d.tradePlan
 
   return (
-    <Section icon={<ShieldCheck size={11} />} title="Trade Plan">
+    <Section icon={<ShieldCheck size={11} />} title="Trade Plan" defaultOpen={true}>
       <Row label="Actionable">
         {plan.actionable
           ? <CheckCircle2 size={10} className="text-emerald-400 inline" />
@@ -625,7 +605,7 @@ function TradePlanSection({ d }: { d: PipelineResult }) {
         <Val v={plan.riskRewardRatio !== null ? `${plan.riskRewardRatio.toFixed(2)}:1` : null} />
       </Row>
       <Divider />
-      <span className="text-[9px] text-slate-600 font-semibold uppercase tracking-wide block mb-0.5">
+      <span className="text-[10px] text-slate-600 font-semibold uppercase tracking-wide block mb-0.5">
         Maturity ({plan.maturityScore}/100 · {plan.maturityLabel})
       </span>
       <Row label="Momentum"><Val v={`${plan.maturityComponents.momentum}/25`} /></Row>
@@ -645,7 +625,7 @@ function TradePlanSection({ d }: { d: PipelineResult }) {
       {plan.setupQualityReason && (
         <>
           <Divider />
-          <span className="text-[9px] text-slate-600 font-semibold uppercase tracking-wide block mb-0.5">Why this quality?</span>
+          <span className="text-[10px] text-slate-600 font-semibold uppercase tracking-wide block mb-0.5">Why this quality?</span>
           <span className="text-[10px] text-slate-500 leading-snug block">{plan.setupQualityReason}</span>
         </>
       )}
@@ -694,16 +674,16 @@ function ValidationSection({ d }: { d: PipelineResult }) {
             <div key={i} className="py-1.5 border-b border-white/5 last:border-b-0">
               <div className="flex items-center gap-1.5 mb-0.5">
                 <SevChip sev={issue.severity} />
-                <span className="text-[9px] font-mono text-slate-500">{issue.field}</span>
+                <span className="text-[10px] font-mono text-slate-500">{issue.field}</span>
               </div>
               <p className="text-[10px] text-slate-400 leading-snug">{issue.message}</p>
               {(issue.expected !== undefined || issue.actual !== undefined) && (
                 <div className="mt-0.5 flex gap-2">
                   {issue.expected !== undefined && (
-                    <span className="text-[9px] text-slate-600">exp: <span className="text-slate-500 font-mono">{issue.expected}</span></span>
+                    <span className="text-[10px] text-slate-600">exp: <span className="text-slate-500 font-mono">{issue.expected}</span></span>
                   )}
                   {issue.actual !== undefined && (
-                    <span className="text-[9px] text-slate-600">got: <span className="text-slate-500 font-mono">{issue.actual}</span></span>
+                    <span className="text-[10px] text-slate-600">got: <span className="text-slate-500 font-mono">{issue.actual}</span></span>
                   )}
                 </div>
               )}
@@ -825,14 +805,14 @@ export function AnalysisInspector({ data, onHighlight, onClose }: AnalysisInspec
           <div className="flex items-center gap-1.5">
             <Info size={11} className="text-slate-500" />
             <span className="text-[10px] font-semibold uppercase tracking-widest text-slate-400">
-              Analysis Inspector
+              Analysis
             </span>
           </div>
           <div className="flex items-center gap-2">
             {lockedKey && (
-              <span className="text-[9px] font-mono text-blue-400/70 bg-blue-500/10 px-1 py-px rounded">locked</span>
+              <span className="text-[10px] font-mono text-blue-400/70 bg-blue-500/10 px-1 py-px rounded">locked</span>
             )}
-            <span className="text-[9px] font-mono text-slate-600">
+            <span className="text-[10px] font-mono text-slate-600">
               {data.metadata.symbol} · {data.metadata.interval}
             </span>
             <button
@@ -852,12 +832,12 @@ export function AnalysisInspector({ data, onHighlight, onClose }: AnalysisInspec
           onKeyDown={handleKeyDown}
         >
           <SummarySection d={data} />
-          <ConfidenceSection d={data} />
-          <MarketStructureSection d={data} />
+          <TradePlanSection d={data} />
           <SRSection d={data} />
+          <MarketStructureSection d={data} />
           <FibonacciSection d={data} />
           <IndicatorsSection d={data} />
-          <TradePlanSection d={data} />
+          <ConfidenceSection d={data} />
           <ValidationSection d={data} />
           <TimingSection d={data} />
         </div>

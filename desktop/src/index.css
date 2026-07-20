@@ -98,7 +98,7 @@
   }
 
   .section-label {
-    @apply text-[10px] font-semibold uppercase tracking-widest text-slate-500;
+    @apply text-[11px] font-semibold uppercase tracking-wider text-slate-500;
   }
 
   .animate-in {

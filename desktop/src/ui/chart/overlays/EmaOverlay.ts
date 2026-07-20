@@ -11,6 +11,7 @@ import { computeEma } from '../utils/ema'
 export interface EmaConfig {
   period: number
   color: string
+  lineWidth?: 1 | 2
 }
 
 export class EmaOverlay implements IOverlay {
@@ -29,7 +30,7 @@ export class EmaOverlay implements IOverlay {
     this.chart = chart
     this.series = chart.addSeries(LineSeries, {
       color: this.config.color,
-      lineWidth: 1,
+      lineWidth: this.config.lineWidth ?? 1,
       priceLineVisible: false,
       lastValueVisible: false,
       crosshairMarkerVisible: false,
@@ -60,7 +61,8 @@ export class EmaOverlay implements IOverlay {
     const mine = key === `ema:${this.config.period}` || key === 'ema:all'
     if (mine === this.lit) return
     this.lit = mine
-    this.series.applyOptions({ lineWidth: mine ? 3 : 1 })
+    const base = this.config.lineWidth ?? 1
+    this.series.applyOptions({ lineWidth: mine ? Math.min(base + 2, 4) as 1 | 2 | 3 | 4 : base })
   }
 
   dispose(): void {

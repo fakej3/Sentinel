@@ -50,7 +50,7 @@ export function ChartPage({ symbol, interval, data }: ChartPageProps) {
 
         {/* Inspector panel */}
         {inspectorOpen && data && (
-          <div className="w-[280px] flex-shrink-0 border-l border-border-subtle overflow-hidden">
+          <div className="w-[300px] flex-shrink-0 border-l border-border-subtle overflow-hidden">
             <AnalysisInspector data={data} onHighlight={handleHighlight} onClose={() => setInspectorOpen(false)} />
           </div>
         )}
