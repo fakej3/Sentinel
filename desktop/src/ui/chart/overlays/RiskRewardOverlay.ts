@@ -46,10 +46,10 @@ export class RiskRewardOverlay implements IAnalysisOverlay {
   mount(chart: IChartApi): void {
     this.chart = chart
 
-    this.riskFill = chart.addSeries(BaselineSeries, { ...FILL_BASE, ...RISK_DIM })
+    this.riskFill = chart.addSeries(BaselineSeries, { ...FILL_BASE, ...RISK_DIM, autoscaleInfoProvider: () => null })
     this.riskFill.setData([])
 
-    this.rewardFill = chart.addSeries(BaselineSeries, { ...FILL_BASE, ...REWARD_DIM })
+    this.rewardFill = chart.addSeries(BaselineSeries, { ...FILL_BASE, ...REWARD_DIM, autoscaleInfoProvider: () => null })
     this.rewardFill.setData([])
 
     this.host = chart.addSeries(LineSeries, {

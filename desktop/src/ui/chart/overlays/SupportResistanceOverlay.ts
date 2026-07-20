@@ -9,7 +9,7 @@ import type { PipelineResult } from '../../../modules/pipeline/types'
 import type { PriceZone } from '../../../modules/support-resistance/types'
 import type { IAnalysisOverlay } from '../types'
 
-const MAX_ZONES = 8
+const MAX_ZONES = 5
 
 interface ZoneLine {
   line: IPriceLine

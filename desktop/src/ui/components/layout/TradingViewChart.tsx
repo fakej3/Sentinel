@@ -33,6 +33,7 @@ function TradingViewChart({ symbol, interval, data, candles: controlledCandles }
   const containerRef = useRef<HTMLDivElement>(null)
   const chartRef = useRef<IChartApi | null>(null)
   const managerRef = useRef<OverlayManager | null>(null)
+  const fitDoneRef = useRef(false)
   const [status, setStatus] = useState<'loading' | 'error' | 'ready'>('loading')
   const [errorMsg, setErrorMsg] = useState('')
 
@@ -71,6 +72,16 @@ function TradingViewChart({ symbol, interval, data, candles: controlledCandles }
       rightPriceScale: {
         borderColor: '#1e2a3a',
       },
+      kineticScroll: {
+        mouse: true,
+        touch: true,
+      },
+      handleScale: {
+        axisDoubleClickReset: {
+          time: true,
+          price: true,
+        },
+      },
     })
 
     const manager = new OverlayManager(chart)
@@ -106,6 +117,7 @@ function TradingViewChart({ symbol, interval, data, candles: controlledCandles }
   // Fetch and load market data whenever symbol or interval changes (live mode only).
   useEffect(() => {
     if (controlledCandles !== undefined) return // replay mode — candles are injected externally
+    fitDoneRef.current = false
     let cancelled = false
     setStatus('loading')
     setErrorMsg('')
@@ -135,7 +147,10 @@ function TradingViewChart({ symbol, interval, data, candles: controlledCandles }
     const manager = managerRef.current
     if (!manager) return
     manager.updateAll(controlledCandles)
-    chartRef.current?.timeScale().fitContent()
+    if (!fitDoneRef.current) {
+      chartRef.current?.timeScale().fitContent()
+      fitDoneRef.current = true
+    }
     setStatus('ready')
   }, [controlledCandles])
 

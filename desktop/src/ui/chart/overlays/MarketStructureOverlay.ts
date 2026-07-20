@@ -87,6 +87,7 @@ export class MarketStructureOverlay implements IAnalysisOverlay {
       priceLineVisible: false,
       lastValueVisible: false,
       crosshairMarkerVisible: false,
+      autoscaleInfoProvider: () => null,
     })
     this.eventHost.setData([])
 
@@ -95,6 +96,7 @@ export class MarketStructureOverlay implements IAnalysisOverlay {
       priceLineVisible: false,
       lastValueVisible: false,
       crosshairMarkerVisible: false,
+      autoscaleInfoProvider: () => null,
     })
     this.markerHost.setData([])
     this.markerPlugin = createSeriesMarkers(this.markerHost) as ISeriesMarkersPluginApi<UTCTimestamp>
@@ -133,9 +135,8 @@ export class MarketStructureOverlay implements IAnalysisOverlay {
 
     const { marketStructure, candles } = data
 
-    // Anchor marker host to all candle timestamps
-    const times = candles.map(c => Math.floor(c.openTime / 1000) as UTCTimestamp)
-    this.markerHost?.setData(times.map(time => ({ time, value: 0 })))
+    // Anchor marker host to all candle timestamps (use close price so it stays within candle range)
+    this.markerHost?.setData(candles.map(c => ({ time: Math.floor(c.openTime / 1000) as UTCTimestamp, value: c.close })))
 
     // ── Swing markers ─────────────────────────────────────────────────────────
     const recentSwings = marketStructure.swings.slice(-MAX_SWING_NODES)

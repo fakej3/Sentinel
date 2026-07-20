@@ -35,6 +35,13 @@ function findDominantPair(
 
   for (const h of highs) {
     for (const l of lows) {
+      // Enforce temporal ordering so the Fibonacci direction is unambiguous:
+      // Bullish → low must precede high (price moved up to the swing high)
+      // Bearish → high must precede low (price moved down to the swing low)
+      // Ranging → no constraint
+      if (trend === 'bullish' && l.index >= h.index) continue
+      if (trend === 'bearish' && h.index >= l.index) continue
+
       const range = h.price - l.price
       if (range > maxRange) {
         maxRange = range
@@ -45,21 +52,6 @@ function findDominantPair(
   }
 
   if (!bestHigh || !bestLow || maxRange <= 0) return null
-
-  // Validate pair ordering relative to trend:
-  // Bullish → the swing low should precede the swing high (price moved up)
-  // Bearish → the swing high should precede the swing low (price moved down)
-  // Ranging → accept whichever ordering the dominant pair naturally has
-  if (trend === 'bullish' && bestHigh.index < bestLow.index) {
-    // swap so that high came after low
-    ;[bestHigh, bestLow] = [bestLow as unknown as SwingPoint, bestHigh as unknown as SwingPoint]
-    // if types got mixed up after swap, just return whatever dominant pair we have
-    if (bestHigh.type !== 'high' || bestLow.type !== 'low') return { high: bestHigh, low: bestLow }
-  }
-  if (trend === 'bearish' && bestLow.index < bestHigh.index) {
-    ;[bestHigh, bestLow] = [bestLow as unknown as SwingPoint, bestHigh as unknown as SwingPoint]
-    if (bestHigh.type !== 'high' || bestLow.type !== 'low') return { high: bestHigh, low: bestLow }
-  }
 
   return { high: bestHigh, low: bestLow }
 }
@@ -106,17 +98,21 @@ export function computeFibonacci(
   const direction = inferDirection(high, low)
 
   const levels: FibLevel[] = ALL_RATIOS.map(ratio => {
-    // Retracement: measured from the extreme back toward the origin
-    // Bullish retracement → price pulls back from high toward low
-    // Bearish retracement → price pulls back from low toward high
+    // Retracements (ratio ≤ 1.0): measure back from the swing extreme toward the origin.
+    // Extensions (ratio > 1.0): project beyond the swing in the trend direction.
+    //   Bullish ext: price = low + ratio * range  (above swingHigh)
+    //   Bearish ext: price = high - ratio * range (below swingLow)
+    const isExtension = ratio > 1.0
     let price: number
     if (direction === 'bullish') {
-      price = high.price - ratio * range
+      price = isExtension
+        ? low.price + ratio * range   // target above swingHigh
+        : high.price - ratio * range  // retrace from swingHigh toward swingLow
     } else {
-      price = low.price + ratio * range
+      price = isExtension
+        ? high.price - ratio * range  // target below swingLow
+        : low.price + ratio * range   // retrace from swingLow toward swingHigh
     }
-
-    const isExtension   = ratio > 1.0
     const isGoldenPocket = GOLDEN_POCKET.has(ratio)
     const { confluence, confluenceType } = hasConfluence(price, sr)
 

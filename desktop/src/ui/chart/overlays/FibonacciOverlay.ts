@@ -79,6 +79,7 @@ export class FibonacciOverlay implements IAnalysisOverlay {
       crosshairMarkerVisible: false,
       ...GP_BASE,
       baseValue: { type: 'price', price: 0 },
+      autoscaleInfoProvider: () => null,
     })
     this.gpFill.setData([])
 
