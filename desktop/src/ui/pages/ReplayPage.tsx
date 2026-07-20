@@ -337,7 +337,7 @@ function PanelTab({
       onClick={onClick}
       title={label}
       className={clsx(
-        'flex-1 flex flex-col items-center py-1.5 gap-0.5 text-[9px] transition-colors',
+        'flex-1 flex flex-col items-center py-1.5 gap-0.5 text-[10px] transition-colors',
         'focus-visible:outline-none focus-visible:ring-inset focus-visible:ring-1 focus-visible:ring-blue-500',
         active
           ? 'text-blue-400 border-b-2 border-blue-500'

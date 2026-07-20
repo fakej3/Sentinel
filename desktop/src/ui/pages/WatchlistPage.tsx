@@ -126,7 +126,7 @@ export function WatchlistPage({
                   <span className={`text-xs font-mono font-semibold ${gradeColor(recent.grade as ConfidenceGrade)}`}>
                     {formatScore(recent.score)}
                   </span>
-                  <p className="text-[9px] text-slate-600">{formatTimeAgo(recent.timestamp)}</p>
+                  <p className="text-[10px] text-slate-600">{formatTimeAgo(recent.timestamp)}</p>
                 </div>
               )}
 

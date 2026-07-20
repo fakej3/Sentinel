@@ -114,7 +114,7 @@ export function IndicatorsTab({ result }: IndicatorsTabProps) {
                 style={{ left: `${indicators.rsi}%` }}
               />
             </div>
-            <div className="flex justify-between text-[9px] text-slate-600 mt-0.5">
+            <div className="flex justify-between text-[10px] text-slate-600 mt-0.5">
               <span>0</span><span>30</span><span>70</span><span>100</span>
             </div>
           </>

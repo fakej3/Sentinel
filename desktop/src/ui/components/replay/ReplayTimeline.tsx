@@ -63,7 +63,7 @@ export const ReplayTimeline = memo(function ReplayTimeline({
               {entry.setupQuality}
             </span>
             {entry.newTrade && (
-              <span className="ml-auto text-[9px] bg-blue-600/20 text-blue-400 px-1 rounded">
+              <span className="ml-auto text-[10px] bg-blue-600/20 text-blue-400 px-1 rounded">
                 NEW
               </span>
             )}

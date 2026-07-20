@@ -580,8 +580,8 @@ function MaturityWidget({
                   style={{ height: `${(val / max) * 100}%` }}
                 />
               </div>
-              <span className="text-[9px] text-slate-500 text-center leading-tight">{name}</span>
-              <span className="text-[9px] text-slate-400 tabular-nums">{val}/{max}</span>
+              <span className="text-[10px] text-slate-500 text-center leading-tight">{name}</span>
+              <span className="text-[10px] text-slate-400 tabular-nums">{val}/{max}</span>
             </div>
           ))}
         </div>
@@ -705,7 +705,7 @@ export function SummaryTab({ result }: SummaryTabProps) {
               </span>
             </div>
           </div>
-          <p className="text-[9px] text-slate-600 mt-3">Not financial advice — conduct your own due diligence.</p>
+          <p className="text-[10px] text-slate-600 mt-3">Not financial advice — conduct your own due diligence.</p>
         </Card>
       )}
 

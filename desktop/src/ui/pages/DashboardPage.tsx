@@ -146,7 +146,7 @@ export function DashboardPage({
               ))}
             </ul>
           )}
-          <p className="text-[9px] text-slate-600 mt-2">Not financial advice.</p>
+          <p className="text-[10px] text-slate-600 mt-2">Not financial advice.</p>
         </Card>
       )}
 
