@@ -10,21 +10,23 @@ import {
 import type { PipelineResult } from '../../../modules/pipeline/types'
 import type { IAnalysisOverlay } from '../types'
 
+const FILL_DIM = { topFillColor1: 'rgba(59, 130, 246, 0.12)', topFillColor2: 'rgba(59, 130, 246, 0.12)', topLineColor: 'rgba(59, 130, 246, 0.5)' } as const
+const FILL_LIT = { topFillColor1: 'rgba(59, 130, 246, 0.28)', topFillColor2: 'rgba(59, 130, 246, 0.28)', topLineColor: 'rgba(59, 130, 246, 0.9)' } as const
+
 export class EntryZoneOverlay implements IAnalysisOverlay {
   readonly id = 'entry-zone'
   private chart: IChartApi | null = null
   private fill: ISeriesApi<'Baseline'> | null = null
   private host: ISeriesApi<'Line'> | null = null
   private lines: IPriceLine[] = []
+  private lit = false
 
   mount(chart: IChartApi): void {
     this.chart = chart
 
     this.fill = chart.addSeries(BaselineSeries, {
       baseValue: { type: 'price', price: 0 },
-      topFillColor1: 'rgba(59, 130, 246, 0.12)',
-      topFillColor2: 'rgba(59, 130, 246, 0.12)',
-      topLineColor: 'rgba(59, 130, 246, 0.5)',
+      ...FILL_DIM,
       bottomFillColor1: 'transparent',
       bottomFillColor2: 'transparent',
       bottomLineColor: 'transparent',
@@ -77,6 +79,15 @@ export class EntryZoneOverlay implements IAnalysisOverlay {
       axisLabelVisible: true,
       title: 'Entry High',
     }))
+  }
+
+  highlight(key: string | null): void {
+    const lit = key === 'entry:zone' || key === 'trade:full'
+    if (lit === this.lit) return
+    this.lit = lit
+    this.fill?.applyOptions(lit ? FILL_LIT : FILL_DIM)
+    const w = lit ? 3 : 1
+    for (const line of this.lines) line.applyOptions({ lineWidth: w })
   }
 
   private clearLines(): void {

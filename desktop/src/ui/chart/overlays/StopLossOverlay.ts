@@ -13,6 +13,7 @@ export class StopLossOverlay implements IAnalysisOverlay {
   private chart: IChartApi | null = null
   private host: ISeriesApi<'Line'> | null = null
   private line: IPriceLine | null = null
+  private lit = false
 
   mount(chart: IChartApi): void {
     this.chart = chart
@@ -40,11 +41,20 @@ export class StopLossOverlay implements IAnalysisOverlay {
     })
   }
 
+  highlight(key: string | null): void {
+    if (!this.line) return
+    const lit = key === 'stop:loss' || key === 'trade:full'
+    if (lit === this.lit) return
+    this.lit = lit
+    this.line.applyOptions({ lineWidth: lit ? 4 : 2 })
+  }
+
   private clearLine(): void {
     if (this.line && this.host) {
       this.host.removePriceLine(this.line)
       this.line = null
     }
+    this.lit = false
   }
 
   dispose(): void {

@@ -14,6 +14,7 @@ import {
 } from 'lightweight-charts'
 import type { PipelineResult } from '../../../modules/pipeline/types'
 import type { TrendDirection, TrendStrength } from '../../../modules/market-structure/types'
+import type { StructureEvent } from '../../../modules/market-structure/types'
 import type { IAnalysisOverlay } from '../types'
 
 // ── Config ────────────────────────────────────────────────────────────────────
@@ -44,21 +45,15 @@ function swingLabelColor(label: SwingLabel | null): string {
   return '#64748b'   // EH / EL / unlabeled
 }
 
+// ── Typed event-line record ───────────────────────────────────────────────────
+
+interface EventLine {
+  line: IPriceLine
+  event: StructureEvent
+}
+
 // ── Overlay ───────────────────────────────────────────────────────────────────
 
-/**
- * Renders market structure visually on the chart:
- *   - Swing labels (HH / HL / LH / LL) as markers above/below bars
- *   - Zigzag connection line through recent significant swings
- *   - BOS horizontal price lines (green = bullish, red = bearish)
- *   - CHoCH horizontal price lines (purple, dashed)
- *   - Trend badge watermark (top-left, subtle)
- *
- * All data comes from PipelineResult.marketStructure — nothing is computed here.
- * Future overlays (Supply/Demand Zones, Order Blocks, FVGs) can extend this
- * module's data source (marketStructure) or add their own series without
- * touching this overlay.
- */
 export class MarketStructureOverlay implements IAnalysisOverlay {
   readonly id = 'market-structure'
 
@@ -66,7 +61,8 @@ export class MarketStructureOverlay implements IAnalysisOverlay {
 
   // Invisible host for BOS/CHoCH price lines
   private eventHost: ISeriesApi<'Line'> | null = null
-  private eventLines: IPriceLine[] = []
+  private bosLines:   EventLine[] = []
+  private chochLines: EventLine[] = []
 
   // Invisible host whose series data anchors the markers plugin
   private markerHost: ISeriesApi<'Line'> | null = null
@@ -78,12 +74,14 @@ export class MarketStructureOverlay implements IAnalysisOverlay {
   // Trend direction badge (text watermark, top-left)
   private trendBadge: ITextWatermarkPluginApi<Time> | null = null
 
+  // Canonical (un-highlighted) marker set — kept for fast highlight mutation
+  private lastMarkers: SeriesMarker<UTCTimestamp>[] = []
+
   // ── Lifecycle ───────────────────────────────────────────────────────────────
 
   mount(chart: IChartApi): void {
     this.chart = chart
 
-    // Host for event price lines — invisible line series
     this.eventHost = chart.addSeries(LineSeries, {
       color: 'rgba(0,0,0,0)',
       priceLineVisible: false,
@@ -92,7 +90,6 @@ export class MarketStructureOverlay implements IAnalysisOverlay {
     })
     this.eventHost.setData([])
 
-    // Host for swing markers — invisible, data populated on each update
     this.markerHost = chart.addSeries(LineSeries, {
       color: 'rgba(0,0,0,0)',
       priceLineVisible: false,
@@ -102,7 +99,6 @@ export class MarketStructureOverlay implements IAnalysisOverlay {
     this.markerHost.setData([])
     this.markerPlugin = createSeriesMarkers(this.markerHost) as ISeriesMarkersPluginApi<UTCTimestamp>
 
-    // Zigzag line through swing points — thin muted slate
     this.swingLine = chart.addSeries(LineSeries, {
       color: 'rgba(100, 116, 139, 0.30)',
       lineWidth: 1,
@@ -113,7 +109,6 @@ export class MarketStructureOverlay implements IAnalysisOverlay {
     })
     this.swingLine.setData([])
 
-    // Trend badge — top-left, small, subtle
     const pane = chart.panes()[0]
     this.trendBadge = createTextWatermark(pane, {
       horzAlign: 'left',
@@ -129,6 +124,7 @@ export class MarketStructureOverlay implements IAnalysisOverlay {
       this.markerPlugin?.setMarkers([])
       this.swingLine?.setData([])
       this.markerHost?.setData([])
+      this.lastMarkers = []
       this.trendBadge?.applyOptions({
         lines: [{ text: '', color: 'rgba(0,0,0,0)', fontSize: 12 }],
       })
@@ -137,12 +133,11 @@ export class MarketStructureOverlay implements IAnalysisOverlay {
 
     const { marketStructure, candles } = data
 
-    // ── Marker host: set data across all candle timestamps ──────────────────
-    // Required so the markers plugin can position labels at exact candle times.
+    // Anchor marker host to all candle timestamps
     const times = candles.map(c => Math.floor(c.openTime / 1000) as UTCTimestamp)
     this.markerHost?.setData(times.map(time => ({ time, value: 0 })))
 
-    // ── Swing labels ─────────────────────────────────────────────────────────
+    // ── Swing markers ─────────────────────────────────────────────────────────
     const recentSwings = marketStructure.swings.slice(-MAX_SWING_NODES)
     const markers: SeriesMarker<UTCTimestamp>[] = recentSwings
       .filter(s => s.label !== null)
@@ -155,10 +150,10 @@ export class MarketStructureOverlay implements IAnalysisOverlay {
         size: 0.6,
       } satisfies SeriesMarker<UTCTimestamp>))
 
+    this.lastMarkers = markers
     this.markerPlugin?.setMarkers(markers)
 
-    // ── Zigzag line through recent swing nodes ───────────────────────────────
-    // Only draw labeled swings so the line shows the structural sequence clearly.
+    // ── Zigzag ───────────────────────────────────────────────────────────────
     const zigzag = recentSwings
       .filter(s => s.label !== null)
       .map(s => ({
@@ -168,32 +163,30 @@ export class MarketStructureOverlay implements IAnalysisOverlay {
     this.swingLine?.setData(zigzag)
 
     // ── BOS price lines ───────────────────────────────────────────────────────
-    const recentBOS = marketStructure.bos.events.slice(-MAX_BOS_LINES)
-    for (const e of recentBOS) {
-      const isBull  = e.direction === 'bullish'
-      const color   = isBull ? '#22c55e' : '#ef5350'
-      const arrow   = isBull ? '↑' : '↓'
-      this.eventLines.push(this.eventHost!.createPriceLine({
+    for (const e of marketStructure.bos.events.slice(-MAX_BOS_LINES)) {
+      const isBull = e.direction === 'bullish'
+      const line = this.eventHost!.createPriceLine({
         price: e.level,
-        color,
+        color: isBull ? '#22c55e' : '#ef5350',
         lineWidth: 1,
         lineStyle: LineStyle.Solid,
         axisLabelVisible: true,
-        title: `${arrow} BOS`,
-      }))
+        title: `${isBull ? '↑' : '↓'} BOS`,
+      })
+      this.bosLines.push({ line, event: e })
     }
 
     // ── CHoCH price lines ─────────────────────────────────────────────────────
-    const recentCHoCH = marketStructure.choch.events.slice(-MAX_CHOCH_LINES)
-    for (const e of recentCHoCH) {
-      this.eventLines.push(this.eventHost!.createPriceLine({
+    for (const e of marketStructure.choch.events.slice(-MAX_CHOCH_LINES)) {
+      const line = this.eventHost!.createPriceLine({
         price: e.level,
         color: '#a855f7',
         lineWidth: 1,
         lineStyle: LineStyle.Dashed,
         axisLabelVisible: true,
         title: 'CHoCH',
-      }))
+      })
+      this.chochLines.push({ line, event: e })
     }
 
     // ── Trend badge ───────────────────────────────────────────────────────────
@@ -207,12 +200,57 @@ export class MarketStructureOverlay implements IAnalysisOverlay {
     })
   }
 
+  // ── Highlight ────────────────────────────────────────────────────────────────
+
+  highlight(key: string | null): void {
+    this.applyEventHighlight(key)
+    this.applySwingHighlight(key)
+  }
+
+  private applyEventHighlight(key: string | null): void {
+    if (!this.eventHost) return
+    for (const { line, event } of this.bosLines) {
+      const lit = key === 'ms:all' || key === `ms:bos:${event.timestamp}`
+      line.applyOptions({ lineWidth: lit ? 3 : 1 })
+    }
+    for (const { line, event } of this.chochLines) {
+      const lit = key === 'ms:all' || key === `ms:choch:${event.timestamp}`
+      line.applyOptions({ lineWidth: lit ? 3 : 1 })
+    }
+  }
+
+  private applySwingHighlight(key: string | null): void {
+    if (!this.markerPlugin || this.lastMarkers.length === 0) return
+
+    let litTs: number | null = null
+    if (key?.startsWith('ms:swing:')) {
+      litTs = Number(key.slice('ms:swing:'.length))
+    }
+    const litAll = key === 'ms:all'
+
+    const updated = this.lastMarkers.map(m => {
+      const tsMs = (m.time as number) * 1000
+      const shouldLit = litAll || (litTs !== null && tsMs === litTs)
+      return shouldLit ? { ...m, size: 2.5 } : { ...m, size: 0.6 }
+    })
+
+    // Skip re-render if highlight state hasn't changed
+    const curLit = updated.some(m => m.size !== 0.6)
+    const prevLit = this.lastMarkers.some(m => m.size !== 0.6)
+    if (!curLit && !prevLit) return
+
+    this.markerPlugin.setMarkers(updated)
+  }
+
   // ── Cleanup ─────────────────────────────────────────────────────────────────
 
   private clearEventLines(): void {
     if (!this.eventHost) return
-    for (const line of this.eventLines) this.eventHost.removePriceLine(line)
-    this.eventLines = []
+    for (const { line } of [...this.bosLines, ...this.chochLines]) {
+      this.eventHost.removePriceLine(line)
+    }
+    this.bosLines   = []
+    this.chochLines = []
   }
 
   dispose(): void {
@@ -229,6 +267,7 @@ export class MarketStructureOverlay implements IAnalysisOverlay {
     this.eventHost    = null
     this.markerHost   = null
     this.swingLine    = null
+    this.lastMarkers  = []
     this.chart        = null
   }
 }

@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useRef, createContext, useContext } from 'react'
 import {
   ChevronDown, ChevronUp, X, TrendingUp, TrendingDown, Minus,
   AlertTriangle, CheckCircle2, XCircle, Clock, BarChart3, Target,
@@ -6,6 +6,18 @@ import {
 } from 'lucide-react'
 import { formatPrice, formatScore, formatMs, formatTimestamp, formatPercent } from '../../utils/format'
 import type { PipelineResult } from '../../types'
+
+// ── Highlight Context ──────────────────────────────────────────────────────────
+
+interface HighlightCtxValue {
+  lockedKey: string | null
+  setHighlight: (key: string | null) => void
+}
+
+const HighlightCtx = createContext<HighlightCtxValue>({
+  lockedKey: null,
+  setHighlight: () => {},
+})
 
 // ── Primitives ─────────────────────────────────────────────────────────────────
 
@@ -18,11 +30,69 @@ function Val({ v, mono = true, dim }: { v: string | number | null | undefined; m
   )
 }
 
-function Row({ label, children, className }: { label: string; children: React.ReactNode; className?: string }) {
+/** Plain label-value row, optionally interactive. */
+function Row({ label, children, className, highlightKey }: {
+  label: string
+  children: React.ReactNode
+  className?: string
+  highlightKey?: string
+}) {
+  const { lockedKey, setHighlight } = useContext(HighlightCtx)
+  const isLit = highlightKey !== undefined && lockedKey === highlightKey
+
+  if (highlightKey !== undefined) {
+    return (
+      <div
+        data-highlight-row={highlightKey}
+        tabIndex={0}
+        className={`flex items-center justify-between gap-2 py-[3px] rounded cursor-default
+          focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-white/20 transition-colors
+          ${isLit ? 'bg-white/[0.06]' : 'hover:bg-white/[0.03]'} ${className ?? ''}`}
+        onMouseEnter={() => { if (!lockedKey) setHighlight(highlightKey) }}
+        onMouseLeave={() => { if (!lockedKey) setHighlight(null) }}
+        onFocus={() => setHighlight(highlightKey)}
+        onBlur={() => { if (!lockedKey) setHighlight(null) }}
+      >
+        <span className="text-[10px] text-slate-500 flex-shrink-0 min-w-0">{label}</span>
+        <span className="text-[10px] text-right min-w-0">{children}</span>
+      </div>
+    )
+  }
+
   return (
     <div className={`flex items-center justify-between gap-2 py-[3px] ${className ?? ''}`}>
       <span className="text-[10px] text-slate-500 flex-shrink-0 min-w-0">{label}</span>
       <span className="text-[10px] text-right min-w-0">{children}</span>
+    </div>
+  )
+}
+
+/** Wrapper for custom inline rows that need highlight behaviour. */
+function HRow({ highlightKey, children, className }: {
+  highlightKey?: string
+  children: React.ReactNode
+  className?: string
+}) {
+  const { lockedKey, setHighlight } = useContext(HighlightCtx)
+
+  if (!highlightKey) {
+    return <div className={className}>{children}</div>
+  }
+
+  const isLit = lockedKey === highlightKey
+  return (
+    <div
+      data-highlight-row={highlightKey}
+      tabIndex={0}
+      className={`rounded cursor-default focus-visible:outline-none focus-visible:ring-1
+        focus-visible:ring-white/20 transition-colors
+        ${isLit ? 'bg-white/[0.06]' : 'hover:bg-white/[0.03]'} ${className ?? ''}`}
+      onMouseEnter={() => { if (!lockedKey) setHighlight(highlightKey) }}
+      onMouseLeave={() => { if (!lockedKey) setHighlight(null) }}
+      onFocus={() => setHighlight(highlightKey)}
+      onBlur={() => { if (!lockedKey) setHighlight(null) }}
+    >
+      {children}
     </div>
   )
 }
@@ -284,11 +354,11 @@ function MarketStructureSection({ d }: { d: PipelineResult }) {
         BOS Events ({ms.bos.events.length})
       </span>
       {ms.bos.events.slice(-6).map((e, i) => (
-        <div key={i} className="flex items-center gap-1.5 py-[2px]">
+        <HRow key={i} highlightKey={`ms:bos:${e.timestamp}`} className="flex items-center gap-1.5 py-[2px]">
           <DirChip dir={e.direction} />
           <span className="text-[10px] font-mono text-slate-300 flex-1">{formatPrice(e.level)}</span>
           <span className="text-[9px] text-slate-600 flex-shrink-0">{formatTimestamp(e.timestamp)}</span>
-        </div>
+        </HRow>
       ))}
       {ms.bos.events.length === 0 && <span className="text-[10px] text-slate-600">none</span>}
       <Divider />
@@ -296,11 +366,11 @@ function MarketStructureSection({ d }: { d: PipelineResult }) {
         CHoCH Events ({ms.choch.events.length})
       </span>
       {ms.choch.events.slice(-4).map((e, i) => (
-        <div key={i} className="flex items-center gap-1.5 py-[2px]">
+        <HRow key={i} highlightKey={`ms:choch:${e.timestamp}`} className="flex items-center gap-1.5 py-[2px]">
           <DirChip dir={e.direction} />
           <span className="text-[10px] font-mono text-slate-300 flex-1">{formatPrice(e.level)}</span>
           <span className="text-[9px] text-slate-600 flex-shrink-0">{formatTimestamp(e.timestamp)}</span>
-        </div>
+        </HRow>
       ))}
       {ms.choch.events.length === 0 && <span className="text-[10px] text-slate-600">none</span>}
       <Divider />
@@ -327,13 +397,13 @@ function MarketStructureSection({ d }: { d: PipelineResult }) {
         Recent Swings (last 10)
       </span>
       {ms.swings.slice(-10).map((s, i) => (
-        <div key={i} className="flex items-center gap-1.5 py-[2px]">
+        <HRow key={i} highlightKey={`ms:swing:${s.timestamp}`} className="flex items-center gap-1.5 py-[2px]">
           <span className={`text-[9px] font-mono font-semibold w-4 ${s.type === 'high' ? 'text-red-400/80' : 'text-emerald-400/80'}`}>
             {s.type === 'high' ? 'H' : 'L'}
           </span>
           <span className="text-[9px] font-mono w-6 text-slate-400">{s.label ?? '  '}</span>
           <span className="text-[10px] font-mono text-slate-300 flex-1">{formatPrice(s.price)}</span>
-        </div>
+        </HRow>
       ))}
       {ms.swings.length === 0 && <span className="text-[10px] text-slate-600">no swings detected</span>}
     </Section>
@@ -352,10 +422,10 @@ function SRSection({ d }: { d: PipelineResult }) {
     <Section icon={<Target size={11} />} title="Support / Resistance"
       badge={<span className="text-[9px] text-slate-600 font-mono">{zones.length}</span>}
     >
-      <Row label="Nearest Support">
+      <Row label="Nearest Support" highlightKey="sr:nearest-support">
         <Val v={supportResistance.nearestSupport ? formatPrice(supportResistance.nearestSupport.center) : null} />
       </Row>
-      <Row label="Nearest Resistance">
+      <Row label="Nearest Resistance" highlightKey="sr:nearest-resistance">
         <Val v={supportResistance.nearestResistance ? formatPrice(supportResistance.nearestResistance.center) : null} />
       </Row>
       <Divider />
@@ -363,7 +433,7 @@ function SRSection({ d }: { d: PipelineResult }) {
       {zones.map((z, i) => {
         const dist = ((z.center - currentPrice) / currentPrice) * 100
         return (
-          <div key={z.id ?? i} className="flex items-center gap-1.5 py-[2px]">
+          <HRow key={z.id ?? i} highlightKey={z.id ? `sr:zone:${z.id}` : undefined} className="flex items-center gap-1.5 py-[2px]">
             <span className={`text-[9px] font-mono font-semibold w-4 flex-shrink-0 ${z.type === 'support' ? 'text-emerald-400/80' : 'text-red-400/80'}`}>
               {z.type === 'support' ? 'S' : 'R'}
             </span>
@@ -373,7 +443,7 @@ function SRSection({ d }: { d: PipelineResult }) {
             </span>
             <span className="text-[9px] text-slate-600 flex-shrink-0 w-6 text-right">{z.strength.toFixed(1)}</span>
             <span className="text-[9px] text-slate-600 flex-shrink-0">×{z.touchCount}</span>
-          </div>
+          </HRow>
         )
       })}
     </Section>
@@ -407,28 +477,33 @@ function FibonacciSection({ d }: { d: PipelineResult }) {
         <span className="ml-1 text-[9px] text-slate-600">{formatTimestamp(fib.swingLow.timestamp)}</span>
       </Row>
       <Divider />
-      {fib.levels.map((lv, i) => (
-        <div key={i} className="flex items-center gap-1.5 py-[2px]">
-          <span className={`text-[9px] font-mono font-semibold w-8 flex-shrink-0 ${
-            lv.isGoldenPocket ? 'text-yellow-400' : lv.isExtension ? 'text-emerald-400/70' : 'text-slate-400'
-          }`}>
-            {lv.label}
-          </span>
-          <span className="text-[10px] font-mono text-slate-300 flex-1">{formatPrice(lv.price)}</span>
-          {lv.confluence && (
-            <span className={`text-[9px] px-1 rounded font-medium flex-shrink-0 ${
-              lv.confluenceType === 'support'
-                ? 'text-emerald-400 bg-emerald-500/10'
-                : 'text-red-400 bg-red-500/10'
+      {fib.levels.map((lv, i) => {
+        const hKey = (lv.ratio === 0.618 || lv.ratio === 0.650)
+          ? 'fib:golden-pocket'
+          : `fib:ratio:${lv.ratio}`
+        return (
+          <HRow key={i} highlightKey={hKey} className="flex items-center gap-1.5 py-[2px]">
+            <span className={`text-[9px] font-mono font-semibold w-8 flex-shrink-0 ${
+              lv.isGoldenPocket ? 'text-yellow-400' : lv.isExtension ? 'text-emerald-400/70' : 'text-slate-400'
             }`}>
-              {lv.confluenceType}
+              {lv.label}
             </span>
-          )}
-          {lv.isGoldenPocket && (
-            <span className="text-[9px] text-yellow-400/70 flex-shrink-0">GP</span>
-          )}
-        </div>
-      ))}
+            <span className="text-[10px] font-mono text-slate-300 flex-1">{formatPrice(lv.price)}</span>
+            {lv.confluence && (
+              <span className={`text-[9px] px-1 rounded font-medium flex-shrink-0 ${
+                lv.confluenceType === 'support'
+                  ? 'text-emerald-400 bg-emerald-500/10'
+                  : 'text-red-400 bg-red-500/10'
+              }`}>
+                {lv.confluenceType}
+              </span>
+            )}
+            {lv.isGoldenPocket && (
+              <span className="text-[9px] text-yellow-400/70 flex-shrink-0">GP</span>
+            )}
+          </HRow>
+        )
+      })}
     </Section>
   )
 }
@@ -441,10 +516,10 @@ function IndicatorsSection({ d }: { d: PipelineResult }) {
   return (
     <Section icon={<Activity size={11} />} title="Indicators (Raw)">
       <span className="text-[9px] text-slate-600 font-semibold uppercase tracking-wide block mb-0.5">EMAs</span>
-      <Row label="EMA 20"><Val v={ind.ema20 !== null ? formatPrice(ind.ema20) : null} /></Row>
-      <Row label="EMA 50"><Val v={ind.ema50 !== null ? formatPrice(ind.ema50) : null} /></Row>
-      <Row label="EMA 100"><Val v={ind.ema100 !== null ? formatPrice(ind.ema100) : null} /></Row>
-      <Row label="EMA 200"><Val v={ind.ema200 !== null ? formatPrice(ind.ema200) : null} /></Row>
+      <Row label="EMA 20" highlightKey="ema:20"><Val v={ind.ema20 !== null ? formatPrice(ind.ema20) : null} /></Row>
+      <Row label="EMA 50" highlightKey="ema:50"><Val v={ind.ema50 !== null ? formatPrice(ind.ema50) : null} /></Row>
+      <Row label="EMA 100" highlightKey="ema:100"><Val v={ind.ema100 !== null ? formatPrice(ind.ema100) : null} /></Row>
+      <Row label="EMA 200" highlightKey="ema:200"><Val v={ind.ema200 !== null ? formatPrice(ind.ema200) : null} /></Row>
       <Divider />
       <Row label="RSI">
         <Val v={ind.rsi !== null ? ind.rsi.toFixed(2) : null} />
@@ -534,16 +609,16 @@ function TradePlanSection({ d }: { d: PipelineResult }) {
       <Divider />
       {plan.entryZone ? (
         <>
-          <Row label="Entry Low"><Val v={formatPrice(plan.entryZone.lower)} /></Row>
-          <Row label="Entry High"><Val v={formatPrice(plan.entryZone.upper)} /></Row>
+          <Row label="Entry Low" highlightKey="entry:zone"><Val v={formatPrice(plan.entryZone.lower)} /></Row>
+          <Row label="Entry High" highlightKey="entry:zone"><Val v={formatPrice(plan.entryZone.upper)} /></Row>
         </>
       ) : (
         <Row label="Entry Zone"><Val v={null} /></Row>
       )}
-      <Row label="Stop / Invalidation">
+      <Row label="Stop / Invalidation" highlightKey="stop:loss">
         <Val v={plan.invalidationLevel !== null ? formatPrice(plan.invalidationLevel) : null} />
       </Row>
-      <Row label="Target">
+      <Row label="Target" highlightKey="tp:1">
         <Val v={plan.targetLevel !== null ? formatPrice(plan.targetLevel) : null} />
       </Row>
       <Row label="RR">
@@ -693,46 +768,100 @@ function TimingSection({ d }: { d: PipelineResult }) {
 
 interface AnalysisInspectorProps {
   data: PipelineResult
+  onHighlight: (key: string | null) => void
   onClose: () => void
 }
 
-export function AnalysisInspector({ data, onClose }: AnalysisInspectorProps) {
-  return (
-    <div className="flex flex-col h-full bg-[#08090f]/97 backdrop-blur-sm border-l border-white/8">
-      {/* Header */}
-      <div className="flex-shrink-0 flex items-center justify-between px-3 py-2 border-b border-white/8">
-        <div className="flex items-center gap-1.5">
-          <Info size={11} className="text-slate-500" />
-          <span className="text-[10px] font-semibold uppercase tracking-widest text-slate-400">
-            Analysis Inspector
-          </span>
-        </div>
-        <div className="flex items-center gap-2">
-          <span className="text-[9px] font-mono text-slate-600">
-            {data.metadata.symbol} · {data.metadata.interval}
-          </span>
-          <button
-            onClick={onClose}
-            className="p-0.5 rounded hover:bg-white/10 text-slate-500 hover:text-slate-300 transition-colors focus-visible:outline-none"
-            aria-label="Close inspector"
-          >
-            <X size={11} />
-          </button>
-        </div>
-      </div>
+export function AnalysisInspector({ data, onHighlight, onClose }: AnalysisInspectorProps) {
+  const [lockedKey, setLockedKey] = useState<string | null>(null)
+  const scrollRef = useRef<HTMLDivElement>(null)
 
-      {/* Scrollable content */}
-      <div className="flex-1 overflow-y-auto min-h-0">
-        <SummarySection d={data} />
-        <ConfidenceSection d={data} />
-        <MarketStructureSection d={data} />
-        <SRSection d={data} />
-        <FibonacciSection d={data} />
-        <IndicatorsSection d={data} />
-        <TradePlanSection d={data} />
-        <ValidationSection d={data} />
-        <TimingSection d={data} />
+  function handleKeyDown(e: React.KeyboardEvent<HTMLDivElement>) {
+    if (!scrollRef.current) return
+    const rows = [...scrollRef.current.querySelectorAll<HTMLElement>('[data-highlight-row]')]
+    const currentIdx = rows.indexOf(document.activeElement as HTMLElement)
+
+    switch (e.key) {
+      case 'ArrowDown': {
+        e.preventDefault()
+        const next = currentIdx < 0 ? 0 : (currentIdx + 1) % rows.length
+        rows[next]?.focus()
+        break
+      }
+      case 'ArrowUp': {
+        e.preventDefault()
+        const prev = currentIdx < 0 ? rows.length - 1 : (currentIdx - 1 + rows.length) % rows.length
+        rows[prev]?.focus()
+        break
+      }
+      case 'Enter': {
+        if (currentIdx >= 0) {
+          e.preventDefault()
+          const key = rows[currentIdx].dataset.highlightRow ?? null
+          if (lockedKey === key) {
+            setLockedKey(null)
+            onHighlight(null)
+          } else {
+            setLockedKey(key)
+            if (key) onHighlight(key)
+          }
+        }
+        break
+      }
+      case 'Escape': {
+        e.preventDefault()
+        setLockedKey(null)
+        onHighlight(null)
+        break
+      }
+    }
+  }
+
+  return (
+    <HighlightCtx.Provider value={{ lockedKey, setHighlight: onHighlight }}>
+      <div className="flex flex-col h-full bg-[#08090f]/97 backdrop-blur-sm border-l border-white/8">
+        {/* Header */}
+        <div className="flex-shrink-0 flex items-center justify-between px-3 py-2 border-b border-white/8">
+          <div className="flex items-center gap-1.5">
+            <Info size={11} className="text-slate-500" />
+            <span className="text-[10px] font-semibold uppercase tracking-widest text-slate-400">
+              Analysis Inspector
+            </span>
+          </div>
+          <div className="flex items-center gap-2">
+            {lockedKey && (
+              <span className="text-[9px] font-mono text-blue-400/70 bg-blue-500/10 px-1 py-px rounded">locked</span>
+            )}
+            <span className="text-[9px] font-mono text-slate-600">
+              {data.metadata.symbol} · {data.metadata.interval}
+            </span>
+            <button
+              onClick={onClose}
+              className="p-0.5 rounded hover:bg-white/10 text-slate-500 hover:text-slate-300 transition-colors focus-visible:outline-none"
+              aria-label="Close inspector"
+            >
+              <X size={11} />
+            </button>
+          </div>
+        </div>
+
+        {/* Scrollable content */}
+        <div
+          ref={scrollRef}
+          className="flex-1 overflow-y-auto min-h-0 focus-within:outline-none"
+          onKeyDown={handleKeyDown}
+        >
+          <SummarySection d={data} />
+          <ConfidenceSection d={data} />
+          <MarketStructureSection d={data} />
+          <SRSection d={data} />
+          <FibonacciSection d={data} />
+          <IndicatorsSection d={data} />
+          <TradePlanSection d={data} />
+          <ValidationSection d={data} />
+          <TimingSection d={data} />
+        </div>
       </div>
-    </div>
+    </HighlightCtx.Provider>
   )
 }

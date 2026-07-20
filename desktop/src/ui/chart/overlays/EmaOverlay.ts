@@ -18,6 +18,7 @@ export class EmaOverlay implements IOverlay {
   private readonly config: EmaConfig
   private chart: IChartApi | null = null
   private series: ISeriesApi<'Line'> | null = null
+  private lit = false
 
   constructor(config: EmaConfig) {
     this.config = config
@@ -52,6 +53,14 @@ export class EmaOverlay implements IOverlay {
 
   setVisible(visible: boolean): void {
     this.series?.applyOptions({ visible })
+  }
+
+  highlight(key: string | null): void {
+    if (!this.series) return
+    const mine = key === `ema:${this.config.period}` || key === 'ema:all'
+    if (mine === this.lit) return
+    this.lit = mine
+    this.series.applyOptions({ lineWidth: mine ? 3 : 1 })
   }
 
   dispose(): void {

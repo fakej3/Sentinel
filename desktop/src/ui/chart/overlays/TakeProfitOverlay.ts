@@ -17,11 +17,16 @@ function isBullish(plan: TradePlan): boolean {
     plan.invalidationLevel < plan.entryZone.lower
 }
 
+interface TpLine {
+  line: IPriceLine
+  index: number  // 0-based
+}
+
 export class TakeProfitOverlay implements IAnalysisOverlay {
   readonly id = 'take-profit'
   private chart: IChartApi | null = null
   private host: ISeriesApi<'Line'> | null = null
-  private lines: IPriceLine[] = []
+  private tpLines: TpLine[] = []
 
   mount(chart: IChartApi): void {
     this.chart = chart
@@ -43,10 +48,8 @@ export class TakeProfitOverlay implements IAnalysisOverlay {
     const entryMid = (plan.entryZone.lower + plan.entryZone.upper) / 2
     const risk = Math.abs(entryMid - plan.invalidationLevel)
 
-    // TP1 from the trade plan's computed target
     const targets: number[] = [plan.targetLevel]
 
-    // TP2 / TP3 from the next S/R zones beyond TP1
     const zones = bullish
       ? data.supportResistance.activeResistance
       : data.supportResistance.activeSupport
@@ -62,21 +65,31 @@ export class TakeProfitOverlay implements IAnalysisOverlay {
     for (let i = 0; i < targets.length; i++) {
       const price = targets[i]
       const rr = risk > 0 ? (Math.abs(price - entryMid) / risk).toFixed(1) : '—'
-      this.lines.push(this.host!.createPriceLine({
+      const line = this.host!.createPriceLine({
         price,
         color: TP_COLORS[i],
         lineWidth: 1,
         lineStyle: LineStyle.Solid,
         axisLabelVisible: true,
         title: `TP${i + 1}  ${rr}R`,
-      }))
+      })
+      this.tpLines.push({ line, index: i })
+    }
+  }
+
+  highlight(key: string | null): void {
+    for (const { line, index } of this.tpLines) {
+      const lit =
+        key === 'trade:full' ||
+        key === `tp:${index + 1}`
+      line.applyOptions({ lineWidth: lit ? 3 : 1 })
     }
   }
 
   private clearLines(): void {
     if (!this.host) return
-    for (const line of this.lines) this.host.removePriceLine(line)
-    this.lines = []
+    for (const { line } of this.tpLines) this.host.removePriceLine(line)
+    this.tpLines = []
   }
 
   dispose(): void {

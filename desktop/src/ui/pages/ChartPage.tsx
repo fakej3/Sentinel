@@ -1,6 +1,6 @@
-import { useState } from 'react'
+import { useState, useRef, useCallback } from 'react'
 import { Crosshair } from 'lucide-react'
-import { TradingViewChart } from '../components/layout/TradingViewChart'
+import { TradingViewChart, type TradingViewChartHandle } from '../components/layout/TradingViewChart'
 import { PriceHeader } from '../components/layout/PriceHeader'
 import { AnalysisInspector } from '../components/inspector/AnalysisInspector'
 import type { PipelineResult } from '../types'
@@ -15,6 +15,10 @@ interface ChartPageProps {
 
 export function ChartPage({ symbol, interval, data }: ChartPageProps) {
   const [inspectorOpen, setInspectorOpen] = useState(false)
+  const chartRef = useRef<TradingViewChartHandle>(null)
+  const handleHighlight = useCallback((key: string | null) => {
+    chartRef.current?.highlight(key)
+  }, [])
 
   return (
     <div className="flex flex-col flex-1 min-h-0">
@@ -22,7 +26,7 @@ export function ChartPage({ symbol, interval, data }: ChartPageProps) {
       <div className="flex-1 min-h-0 flex">
         {/* Chart area */}
         <div className="flex-1 min-w-0 relative">
-          <TradingViewChart symbol={symbol || DEFAULT_SYMBOL} interval={interval} data={data} />
+          <TradingViewChart ref={chartRef} symbol={symbol || DEFAULT_SYMBOL} interval={interval} data={data} />
 
           {/* Inspector toggle — only visible when analysis data is available */}
           {data && (
@@ -47,7 +51,7 @@ export function ChartPage({ symbol, interval, data }: ChartPageProps) {
         {/* Inspector panel */}
         {inspectorOpen && data && (
           <div className="w-[280px] flex-shrink-0 border-l border-border-subtle overflow-hidden">
-            <AnalysisInspector data={data} onClose={() => setInspectorOpen(false)} />
+            <AnalysisInspector data={data} onHighlight={handleHighlight} onClose={() => setInspectorOpen(false)} />
           </div>
         )}
       </div>

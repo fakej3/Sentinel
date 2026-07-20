@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, forwardRef, useImperativeHandle } from 'react'
 import { createChart, type IChartApi } from 'lightweight-charts'
 import { fetchCandles } from '../../../modules/binance/endpoints'
 import type { Timeframe } from '../../../modules/market/types'
@@ -15,18 +15,27 @@ import { RiskRewardOverlay } from '../../chart/overlays/RiskRewardOverlay'
 import { FibonacciOverlay } from '../../chart/overlays/FibonacciOverlay'
 import { MarketStructureOverlay } from '../../chart/overlays/MarketStructureOverlay'
 
+export interface TradingViewChartHandle {
+  highlight(key: string | null): void
+}
+
 interface TradingViewChartProps {
   symbol: string
   interval: string
   data: PipelineResult | null
 }
 
-export function TradingViewChart({ symbol, interval, data }: TradingViewChartProps) {
+export const TradingViewChart = forwardRef<TradingViewChartHandle, TradingViewChartProps>(
+function TradingViewChart({ symbol, interval, data }, ref) {
   const containerRef = useRef<HTMLDivElement>(null)
   const chartRef = useRef<IChartApi | null>(null)
   const managerRef = useRef<OverlayManager | null>(null)
   const [status, setStatus] = useState<'loading' | 'error' | 'ready'>('loading')
   const [errorMsg, setErrorMsg] = useState('')
+
+  useImperativeHandle(ref, () => ({
+    highlight(key: string | null) { managerRef.current?.highlight(key) },
+  }), [])
 
   // Create chart and overlay manager once — never recreated on prop changes.
   useEffect(() => {
@@ -134,4 +143,4 @@ export function TradingViewChart({ symbol, interval, data }: TradingViewChartPro
       )}
     </div>
   )
-}
+})

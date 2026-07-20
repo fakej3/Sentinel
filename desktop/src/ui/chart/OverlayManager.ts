@@ -50,6 +50,16 @@ export class OverlayManager {
     }
   }
 
+  /**
+   * Broadcast a highlight key to every overlay.
+   * Each overlay independently decides whether the key refers to it.
+   * Passing `null` clears all highlights.
+   */
+  highlight(key: string | null): void {
+    for (const overlay of this.overlays.values()) overlay.highlight?.(key)
+    for (const overlay of this.analysisOverlays.values()) overlay.highlight?.(key)
+  }
+
   dispose(): void {
     for (const overlay of this.overlays.values()) overlay.dispose()
     this.overlays.clear()
