@@ -1,6 +1,6 @@
 import { useState, useRef, useCallback, useEffect } from 'react'
 import { clsx } from 'clsx'
-import { Film, BarChart2, ListOrdered, TrendingUp, FlaskConical, Save, X, Loader2 } from 'lucide-react'
+import { Film, BarChart2, ListOrdered, TrendingUp, FlaskConical, Save, X, Loader2, type LucideIcon } from 'lucide-react'
 import { fetchCandles } from '../../modules/binance/endpoints'
 import type { Timeframe } from '../../modules/market/types'
 import { TradingViewChart, type TradingViewChartHandle } from '../components/layout/TradingViewChart'
@@ -27,7 +27,6 @@ export function ReplayPage({ initialSymbol = 'BTCUSDT', initialInterval = '1h' }
   const [fetchError, setFetchError] = useState<string | null>(null)
   const [fetchingCandles, setFetchingCandles] = useState(false)
   const [sidePanel, setSidePanel] = useState<SidePanel>('inspector')
-  const [showStats, setShowStats] = useState(false)
   const [snapshotLabel, setSnapshotLabel] = useState('')
   const [showSnapshotInput, setShowSnapshotInput] = useState(false)
 
@@ -75,7 +74,6 @@ export function ReplayPage({ initialSymbol = 'BTCUSDT', initialInterval = '1h' }
 
   const handleComputeStats = () => {
     replayActions.computeStats()
-    setShowStats(true)
     setSidePanel('stats')
   }
 
@@ -87,7 +85,6 @@ export function ReplayPage({ initialSymbol = 'BTCUSDT', initialInterval = '1h' }
   }
 
   const isLoaded = frame !== null
-  const engine   = isLoaded
 
   return (
     <div className="flex flex-col h-full min-h-0 bg-surface-950">
@@ -329,7 +326,7 @@ export function ReplayPage({ initialSymbol = 'BTCUSDT', initialInterval = '1h' }
 function PanelTab({
   icon: Icon, label, active, onClick, count,
 }: {
-  icon: React.ComponentType<{ size: number; className?: string }>
+  icon: LucideIcon
   label: string
   active: boolean
   onClick: () => void

@@ -24,10 +24,19 @@ if (isTauriEnv()) {
 }
 
 /**
+ * Override the singleton transport. Call once at startup (e.g. web app's main.tsx)
+ * before any component mounts to replace the default HttpTransport.
+ */
+export function setTransport(t: AnalysisTransport): void {
+  _transport = t
+}
+
+/**
  * Returns the active transport implementation.
  *
  * - Inside Tauri webview → TauriTransport (runs the pipeline locally)
  * - Browser / dev server → HttpTransport (VITE_API_URL or localhost:3000)
+ * - Web app → BrowserTransport (set via setTransport() in main.tsx)
  */
 export function getTransport(): AnalysisTransport {
   if (_transport) return _transport

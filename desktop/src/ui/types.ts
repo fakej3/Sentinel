@@ -128,6 +128,7 @@ export type AppPage =
   | 'history'
   | 'settings'
   | 'replay'
+  | 'scanner'
 
 export interface AnalyzeParams {
   symbol: string
