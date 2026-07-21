@@ -17,6 +17,7 @@ export class VolumeOverlay implements IOverlay {
     this.series = chart.addSeries(HistogramSeries, {
       priceFormat: { type: 'volume' },
       priceScaleId: 'volume',
+      lastValueVisible: false,
     })
     chart.priceScale('volume').applyOptions({
       scaleMargins: { top: 0.8, bottom: 0 },
@@ -27,7 +28,7 @@ export class VolumeOverlay implements IOverlay {
     this.series?.setData(candles.map(c => ({
       time: Math.floor(c.openTime / 1000) as UTCTimestamp,
       value: c.volume,
-      color: c.close >= c.open ? '#26a69a40' : '#ef535040',
+      color: c.close >= c.open ? '#26a69a28' : '#ef535028',
     })))
   }
 

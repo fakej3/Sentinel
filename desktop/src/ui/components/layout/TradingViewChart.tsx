@@ -102,8 +102,8 @@ function TradingViewChart({ symbol, interval, data, candles: controlledCandles }
     manager.add(new CandlestickOverlay())
     manager.add(new VolumeOverlay())
     // EMA visual hierarchy: 200 dominates (trend filter), 20 is the active signal
-    manager.add(new EmaOverlay({ period: 20,  color: '#60a5fa',               lineWidth: 1 })) // blue-400: fast signal
-    manager.add(new EmaOverlay({ period: 50,  color: '#f97316',               lineWidth: 1 })) // orange-500: medium trend
+    manager.add(new EmaOverlay({ period: 20,  color: 'rgba(96, 165, 250, 0.55)', lineWidth: 1 })) // blue-400: fast signal
+    manager.add(new EmaOverlay({ period: 50,  color: 'rgba(249, 115, 22, 0.60)', lineWidth: 1 })) // orange-500: medium trend
     manager.add(new EmaOverlay({ period: 100, color: 'rgba(148,163,184,0.4)', lineWidth: 1 })) // slate-400 dim: slow reference
     manager.add(new EmaOverlay({ period: 200, color: '#eab308',               lineWidth: 2 })) // yellow-500 thick: key trend filter
 

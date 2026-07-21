@@ -19,8 +19,8 @@ import type { IAnalysisOverlay } from '../types'
 
 // ── Config ────────────────────────────────────────────────────────────────────
 
-const MAX_BOS_LINES    = 3
-const MAX_CHOCH_LINES  = 2
+const MAX_BOS_LINES    = 2
+const MAX_CHOCH_LINES  = 1
 const MAX_SWING_NODES  = 10  // recent swings for marker labels (20 is too many, clutters candles)
 const MAX_ZIGZAG_NODES = 10  // recent swings drawn in the zigzag line
 
@@ -33,9 +33,9 @@ function trendLabel(trend: TrendDirection, strength: TrendStrength): string {
 }
 
 function trendColor(trend: TrendDirection): string {
-  if (trend === 'bullish') return 'rgba(34, 197, 94, 0.50)'
-  if (trend === 'bearish') return 'rgba(239, 83, 80, 0.50)'
-  return 'rgba(148, 163, 184, 0.45)'
+  if (trend === 'bullish') return 'rgba(34, 197, 94, 0.40)'
+  if (trend === 'bearish') return 'rgba(239, 83, 80, 0.40)'
+  return 'rgba(148, 163, 184, 0.35)'
 }
 
 type SwingLabel = 'HH' | 'HL' | 'LH' | 'LL' | 'EH' | 'EL'
@@ -117,7 +117,7 @@ export class MarketStructureOverlay implements IAnalysisOverlay {
     this.trendBadge = createTextWatermark(pane, {
       horzAlign: 'left',
       vertAlign: 'top',
-      lines: [{ text: '', color: 'rgba(0,0,0,0)', fontSize: 12, fontStyle: 'bold' }],
+      lines: [{ text: '', color: 'rgba(0,0,0,0)', fontSize: 10, fontStyle: 'bold' }],
     })
   }
 
@@ -130,7 +130,7 @@ export class MarketStructureOverlay implements IAnalysisOverlay {
       this.markerHost?.setData([])
       this.lastMarkers = []
       this.trendBadge?.applyOptions({
-        lines: [{ text: '', color: 'rgba(0,0,0,0)', fontSize: 12 }],
+        lines: [{ text: '', color: 'rgba(0,0,0,0)', fontSize: 10 }],
       })
       return
     }
@@ -184,7 +184,7 @@ export class MarketStructureOverlay implements IAnalysisOverlay {
       const isLatest = i === visibleBos.length - 1
       const line = this.eventHost!.createPriceLine({
         price: e.level,
-        color: isBull ? 'rgba(34,197,94,0.8)' : 'rgba(239,83,80,0.8)',
+        color: isBull ? 'rgba(34,197,94,0.6)' : 'rgba(239,83,80,0.6)',
         lineWidth: isLatest ? 1 : 1,
         lineStyle: LineStyle.Solid,
         axisLabelVisible: isLatest,
@@ -200,7 +200,7 @@ export class MarketStructureOverlay implements IAnalysisOverlay {
       const isLatest = i === visibleChoch.length - 1
       const line = this.eventHost!.createPriceLine({
         price: e.level,
-        color: 'rgba(168,85,247,0.8)',
+        color: 'rgba(168,85,247,0.6)',
         lineWidth: 1,
         lineStyle: LineStyle.Dashed,
         axisLabelVisible: isLatest,
@@ -214,7 +214,7 @@ export class MarketStructureOverlay implements IAnalysisOverlay {
       lines: [{
         text: trendLabel(marketStructure.trend, marketStructure.strength),
         color: trendColor(marketStructure.trend),
-        fontSize: 12,
+        fontSize: 10,
         fontStyle: 'bold',
       }],
     })

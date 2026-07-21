@@ -9,7 +9,7 @@ import type { PipelineResult } from '../../../modules/pipeline/types'
 import type { PriceZone } from '../../../modules/support-resistance/types'
 import type { IAnalysisOverlay } from '../types'
 
-const MAX_ZONES = 5
+const MAX_ZONES = 3
 
 // Zone center lines (solid, labeled on axis)
 const SUPPORT_CENTER    = '#22c55e'

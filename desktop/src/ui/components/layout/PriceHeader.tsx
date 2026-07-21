@@ -79,9 +79,6 @@ export function PriceHeader({ result }: PriceHeaderProps) {
           <div className="text-right">
             <p className="section-label mb-1">Trend</p>
             <TrendBadge trend={analysis.fullTrend.trend} />
-            <p className="text-[10px] text-slate-500 mt-1 font-mono">
-              {analysis.fullTrend.bullishConditionsMet}/5 bull · {analysis.fullTrend.bearishConditionsMet}/5 bear
-            </p>
           </div>
 
           <div className="w-px h-10 bg-border-subtle" />

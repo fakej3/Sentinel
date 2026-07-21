@@ -72,7 +72,7 @@ export class TakeProfitOverlay implements IAnalysisOverlay {
         lineWidth: 1,
         lineStyle: LineStyle.Solid,
         axisLabelVisible: true,
-        title: `TP${i + 1}  ${rr}R`,
+        title: `TP${i + 1} ${rr}R`,
       })
       this.tpLines.push({ line, index: i })
     }
