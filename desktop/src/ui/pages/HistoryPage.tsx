@@ -140,7 +140,7 @@ export function HistoryPage({
       <div>
         <div className="flex items-center justify-between mb-2">
           <p className="section-label flex items-center gap-1">
-            <FolderOpen size={9} className="text-slate-600" />
+            <FolderOpen size={11} className="text-slate-600" />
             Saved Analyses
           </p>
           <span className="text-[10px] text-slate-600">
@@ -230,7 +230,7 @@ export function HistoryPage({
         <div>
           <div className="flex items-center justify-between mb-2">
             <p className="section-label flex items-center gap-1">
-              <Clock size={9} className="text-slate-600" />
+              <Clock size={11} className="text-slate-600" />
               Recent (this session)
             </p>
             <button
