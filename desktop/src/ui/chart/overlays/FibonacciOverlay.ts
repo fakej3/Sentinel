@@ -136,6 +136,11 @@ export class FibonacciOverlay implements IAnalysisOverlay {
     }
   }
 
+  setVisible(visible: boolean): void {
+    this.gpFill?.applyOptions({ visible })
+    this.host?.applyOptions({ visible })
+  }
+
   // ── Highlight ────────────────────────────────────────────────────────────────
 
   highlight(key: string | null): void {

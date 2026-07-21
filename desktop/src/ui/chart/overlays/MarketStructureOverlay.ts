@@ -201,6 +201,18 @@ export class MarketStructureOverlay implements IAnalysisOverlay {
     })
   }
 
+  setVisible(visible: boolean): void {
+    this.eventHost?.applyOptions({ visible })
+    this.markerHost?.applyOptions({ visible })
+    this.swingLine?.applyOptions({ visible })
+    if (!visible) {
+      this.trendBadge?.applyOptions({
+        lines: [{ text: '', color: 'rgba(0,0,0,0)', fontSize: 10 }],
+      })
+    }
+    // On setVisible(true), OverlayManager immediately calls update(lastData) to restore
+  }
+
   // ── Highlight ────────────────────────────────────────────────────────────────
 
   highlight(key: string | null): void {

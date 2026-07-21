@@ -96,6 +96,11 @@ export class EntryZoneOverlay implements IAnalysisOverlay {
     }))
   }
 
+  setVisible(visible: boolean): void {
+    this.fill?.applyOptions({ visible })
+    this.host?.applyOptions({ visible })
+  }
+
   highlight(key: string | null): void {
     const lit = key === 'entry:zone' || key === 'trade:full'
     if (lit === this.lit) return

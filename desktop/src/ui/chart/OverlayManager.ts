@@ -7,6 +7,8 @@ export class OverlayManager {
   private readonly chart: IChartApi
   private readonly overlays = new Map<string, IOverlay>()
   private readonly analysisOverlays = new Map<string, IAnalysisOverlay>()
+  private readonly hiddenAnalysis = new Set<string>()
+  private lastAnalysisData: PipelineResult | null | undefined = undefined
 
   constructor(chart: IChartApi) {
     this.chart = chart
@@ -40,13 +42,27 @@ export class OverlayManager {
   }
 
   updateAnalysis(data: PipelineResult | null): void {
-    for (const overlay of this.analysisOverlays.values()) {
+    this.lastAnalysisData = data
+    for (const [id, overlay] of this.analysisOverlays.entries()) {
+      if (this.hiddenAnalysis.has(id)) continue
       overlay.update(data)
     }
   }
 
   setVisible(id: string, visible: boolean): void {
     this.overlays.get(id)?.setVisible(visible)
+  }
+
+  setVisibleAnalysis(id: string, visible: boolean): void {
+    const overlay = this.analysisOverlays.get(id)
+    if (!overlay) return
+    overlay.setVisible?.(visible)
+    if (visible) {
+      this.hiddenAnalysis.delete(id)
+      if (this.lastAnalysisData !== undefined) overlay.update(this.lastAnalysisData)
+    } else {
+      this.hiddenAnalysis.add(id)
+    }
   }
 
   remove(id: string): void {
@@ -72,5 +88,7 @@ export class OverlayManager {
     this.overlays.clear()
     for (const overlay of this.analysisOverlays.values()) overlay.dispose()
     this.analysisOverlays.clear()
+    this.hiddenAnalysis.clear()
+    this.lastAnalysisData = undefined
   }
 }

@@ -29,6 +29,7 @@ export interface IAnalysisOverlay {
   readonly id: string
   mount(chart: IChartApi): void
   update(data: PipelineResult | null): void
+  setVisible?(visible: boolean): void
   /** Same contract as IOverlay.highlight. */
   highlight?(key: string | null): void
   dispose(): void

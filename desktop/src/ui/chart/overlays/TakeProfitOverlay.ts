@@ -78,6 +78,10 @@ export class TakeProfitOverlay implements IAnalysisOverlay {
     }
   }
 
+  setVisible(visible: boolean): void {
+    this.host?.applyOptions({ visible })
+  }
+
   highlight(key: string | null): void {
     for (const { line, index } of this.tpLines) {
       const lit =

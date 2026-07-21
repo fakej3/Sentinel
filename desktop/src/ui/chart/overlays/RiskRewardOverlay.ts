@@ -110,6 +110,12 @@ export class RiskRewardOverlay implements IAnalysisOverlay {
     }))
   }
 
+  setVisible(visible: boolean): void {
+    this.riskFill?.applyOptions({ visible })
+    this.rewardFill?.applyOptions({ visible })
+    this.host?.applyOptions({ visible })
+  }
+
   highlight(key: string | null): void {
     const lit = key === 'trade:full' || key === 'entry:zone' || key === 'stop:loss' || (key?.startsWith('tp:') ?? false)
     if (lit === this.lit) return

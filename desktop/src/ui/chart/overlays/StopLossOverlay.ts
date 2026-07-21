@@ -42,6 +42,10 @@ export class StopLossOverlay implements IAnalysisOverlay {
     })
   }
 
+  setVisible(visible: boolean): void {
+    this.host?.applyOptions({ visible })
+  }
+
   highlight(key: string | null): void {
     if (!this.line) return
     const lit = key === 'stop:loss' || key === 'trade:full'

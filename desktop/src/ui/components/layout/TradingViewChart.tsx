@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, forwardRef, useImperativeHandle } from 'react'
+import { useEffect, useRef, useState, useCallback, forwardRef, useImperativeHandle } from 'react'
 import { createChart, CrosshairMode, type IChartApi, type MouseEventParams, type Time } from 'lightweight-charts'
 import { fetchCandles } from '../../../modules/binance/endpoints'
 import { subscribeLiveCandles } from '../../../modules/binance/ws'
@@ -16,6 +16,7 @@ import { RiskRewardOverlay } from '../../chart/overlays/RiskRewardOverlay'
 import { FibonacciOverlay } from '../../chart/overlays/FibonacciOverlay'
 import { MarketStructureOverlay } from '../../chart/overlays/MarketStructureOverlay'
 import { formatPrice, formatPercent, formatVolume, formatTimestamp } from '../../utils/format'
+import { IndicatorPanel, INDICATORS, loadIndicatorVisibility, type IndicatorId } from './IndicatorPanel'
 
 export interface TradingViewChartHandle {
   highlight(key: string | null): void
@@ -112,6 +113,15 @@ function TradingViewChart({ symbol, interval, data, candles: controlledCandles }
 
     chartRef.current  = chart
     managerRef.current = manager
+
+    // Apply stored visibility (persisted from previous session)
+    const stored = loadIndicatorVisibility()
+    for (const ind of INDICATORS) {
+      if (!stored[ind.id]) {
+        if (ind.group === 'overlay') manager.setVisible(ind.id, false)
+        else manager.setVisibleAnalysis(ind.id, false)
+      }
+    }
 
     // Crosshair HUD — update DOM directly on every move, no React re-render
     const onCrosshair = (param: MouseEventParams<Time>) => {
@@ -232,9 +242,20 @@ function TradingViewChart({ symbol, interval, data, candles: controlledCandles }
     managerRef.current?.updateAnalysis(data)
   }, [data])
 
+  const handleToggle = useCallback((id: IndicatorId, visible: boolean) => {
+    const ind = INDICATORS.find(i => i.id === id)
+    if (!ind) return
+    const mgr = managerRef.current
+    if (!mgr) return
+    if (ind.group === 'overlay') mgr.setVisible(id, visible)
+    else mgr.setVisibleAnalysis(id, visible)
+  }, [])
+
   return (
     <div className="relative w-full h-full">
       <div ref={containerRef} className="w-full h-full" />
+
+      <IndicatorPanel onToggle={handleToggle} />
 
       {/* Crosshair OHLCV HUD — DOM-updated directly, no re-render on cursor move */}
       <div

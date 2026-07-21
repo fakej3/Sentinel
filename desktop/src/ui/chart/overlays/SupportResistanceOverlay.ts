@@ -80,6 +80,10 @@ export class SupportResistanceOverlay implements IAnalysisOverlay {
     }
   }
 
+  setVisible(visible: boolean): void {
+    this.host?.applyOptions({ visible })
+  }
+
   highlight(key: string | null): void {
     for (const { line, zone, isNearest } of this.zoneLines) {
       const isSupport = zone.id === this.nearestSupportId ||
