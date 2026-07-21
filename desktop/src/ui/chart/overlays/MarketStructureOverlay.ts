@@ -21,8 +21,8 @@ import type { IAnalysisOverlay } from '../types'
 
 const MAX_BOS_LINES    = 3
 const MAX_CHOCH_LINES  = 2
-const MAX_SWING_NODES  = 20  // recent swings for marker labels
-const MAX_ZIGZAG_NODES = 12  // recent swings drawn in the zigzag line
+const MAX_SWING_NODES  = 10  // recent swings for marker labels (20 is too many, clutters candles)
+const MAX_ZIGZAG_NODES = 10  // recent swings drawn in the zigzag line
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -103,12 +103,13 @@ export class MarketStructureOverlay implements IAnalysisOverlay {
     this.markerPlugin = createSeriesMarkers(this.markerHost) as ISeriesMarkersPluginApi<UTCTimestamp>
 
     this.swingLine = chart.addSeries(LineSeries, {
-      color: 'rgba(100, 116, 139, 0.30)',
+      color: 'rgba(100, 116, 139, 0.45)',
       lineWidth: 1,
       priceLineVisible: false,
       lastValueVisible: false,
       crosshairMarkerVisible: false,
       lineStyle: LineStyle.Dashed,
+      autoscaleInfoProvider: () => null,
     })
     this.swingLine.setData([])
 

@@ -11,6 +11,11 @@ import type { PipelineResult } from '../../../modules/pipeline/types'
 import type { FibLevel } from '../../../modules/fibonacci/types'
 import type { IAnalysisOverlay } from '../types'
 
+// Only draw levels within this % distance of current price.
+// Extensions at 1.618× or 2.000× can be 20-100% away — drawing them forces
+// the user's chart view to zoom out massively to fit them.
+const MAX_DIST_PCT = 0.15
+
 // ── Visual helpers ────────────────────────────────────────────────────────────
 
 function colorForLevel(level: FibLevel): string {
@@ -83,12 +88,15 @@ export class FibonacciOverlay implements IAnalysisOverlay {
     })
     this.gpFill.setData([])
 
-    // Invisible host series for price lines
+    // Invisible host series for price lines.
+    // autoscaleInfoProvider: () => null prevents extension levels (1.272×, 1.618×,
+    // 2.000×) from forcing the chart to zoom out to fit them in view.
     this.host = chart.addSeries(LineSeries, {
       color: 'rgba(0,0,0,0)',
       priceLineVisible: false,
       lastValueVisible: false,
       crosshairMarkerVisible: false,
+      autoscaleInfoProvider: () => null,
     })
     this.host.setData([])
   }
@@ -102,6 +110,8 @@ export class FibonacciOverlay implements IAnalysisOverlay {
       return
     }
 
+    const currentPrice = data!.analysis.price.current
+
     // Golden pocket fill between 0.618 and 0.650
     const gp618 = fib.levels.find(l => l.ratio === 0.618)
     const gp650 = fib.levels.find(l => l.ratio === 0.650)
@@ -109,23 +119,31 @@ export class FibonacciOverlay implements IAnalysisOverlay {
     if (gp618 && gp650) {
       const gpTop = Math.max(gp618.price, gp650.price)
       const gpBot = Math.min(gp618.price, gp650.price)
-      // Draw fill only from the earlier swing anchor — matching how TradingView's
-      // fib tool anchors its zone to the selected swing range.
-      const anchorMs = Math.min(fib.swingHigh.timestamp, fib.swingLow.timestamp)
-      const fillCandles = data!.candles.filter(c => c.openTime >= anchorMs)
-      this.gpFill!.applyOptions({ ...GP_BASE, baseValue: { type: 'price', price: gpBot } })
-      this.gpFill!.setData(fillCandles.map(c => ({
-        time: Math.floor(c.openTime / 1000) as UTCTimestamp,
-        value: gpTop,
-      })))
+      // Only draw the golden pocket fill if it's visible near current price
+      const gpMid = (gpTop + gpBot) / 2
+      if (Math.abs(gpMid - currentPrice) / currentPrice <= MAX_DIST_PCT) {
+        const anchorMs = Math.min(fib.swingHigh.timestamp, fib.swingLow.timestamp)
+        const fillCandles = data!.candles.filter(c => c.openTime >= anchorMs)
+        this.gpFill!.applyOptions({ ...GP_BASE, baseValue: { type: 'price', price: gpBot } })
+        this.gpFill!.setData(fillCandles.map(c => ({
+          time: Math.floor(c.openTime / 1000) as UTCTimestamp,
+          value: gpTop,
+        })))
+      } else {
+        this.gpFill?.setData([])
+      }
     } else {
       this.gpFill?.setData([])
     }
 
-    // Draw a price line per level
+    // Draw a price line per level — skip levels too far from current price.
+    // The axis already labels the price, so the title just needs the ratio.
     for (const level of fib.levels) {
-      const suffix = level.confluence ? '  ✦' : ''
-      const title  = `${level.label}  ${level.price.toLocaleString('en-US', { maximumFractionDigits: 2 })}${suffix}`
+      const distPct = Math.abs(level.price - currentPrice) / currentPrice
+      if (distPct > MAX_DIST_PCT) continue
+
+      const suffix = level.confluence ? ' ✦' : ''
+      const title  = `${level.label}${suffix}`
       const line = this.host!.createPriceLine({
         price: level.price,
         color: colorForLevel(level),
