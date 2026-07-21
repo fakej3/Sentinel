@@ -53,7 +53,7 @@ export function IndicatorPanel({ onToggle }: IndicatorPanelProps) {
   }
 
   return (
-    <div className="absolute top-2 right-2 z-10 flex items-center gap-1 flex-wrap justify-end pointer-events-auto max-w-[220px]">
+    <div className="absolute bottom-8 left-2 z-10 flex items-center gap-1 flex-wrap justify-start pointer-events-auto max-w-[220px]">
       {INDICATORS.map(({ id, label }) => (
         <button
           key={id}

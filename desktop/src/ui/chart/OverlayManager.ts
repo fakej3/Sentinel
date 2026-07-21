@@ -65,14 +65,6 @@ export class OverlayManager {
     }
   }
 
-  remove(id: string): void {
-    const overlay = this.overlays.get(id)
-    if (overlay) {
-      overlay.dispose()
-      this.overlays.delete(id)
-    }
-  }
-
   /**
    * Broadcast a highlight key to every overlay.
    * Each overlay independently decides whether the key refers to it.

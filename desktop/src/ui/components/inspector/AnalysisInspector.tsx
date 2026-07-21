@@ -50,7 +50,7 @@ function Row({ label, children, className, highlightKey }: {
           ${isLit ? 'bg-white/[0.06]' : 'hover:bg-white/[0.03]'} ${className ?? ''}`}
         onMouseEnter={() => { if (!lockedKey) setHighlight(highlightKey) }}
         onMouseLeave={() => { if (!lockedKey) setHighlight(null) }}
-        onFocus={() => setHighlight(highlightKey)}
+        onFocus={() => { if (!lockedKey) setHighlight(highlightKey) }}
         onBlur={() => { if (!lockedKey) setHighlight(null) }}
       >
         <span className="text-[10px] text-slate-500 flex-shrink-0 min-w-0">{label}</span>
@@ -89,7 +89,7 @@ function HRow({ highlightKey, children, className }: {
         ${isLit ? 'bg-white/[0.06]' : 'hover:bg-white/[0.03]'} ${className ?? ''}`}
       onMouseEnter={() => { if (!lockedKey) setHighlight(highlightKey) }}
       onMouseLeave={() => { if (!lockedKey) setHighlight(null) }}
-      onFocus={() => setHighlight(highlightKey)}
+      onFocus={() => { if (!lockedKey) setHighlight(highlightKey) }}
       onBlur={() => { if (!lockedKey) setHighlight(null) }}
     >
       {children}
