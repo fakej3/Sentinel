@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, forwardRef, useImperativeHandle } from 'react'
-import { createChart, type IChartApi } from 'lightweight-charts'
+import { createChart, CrosshairMode, type IChartApi } from 'lightweight-charts'
 import { getProvider } from '../../../modules/market-data/registry'
 import type { Candle, Timeframe } from '../../../modules/market/types'
 import type { PipelineResult } from '../../../modules/pipeline/types'
@@ -34,6 +34,7 @@ function TradingViewChart({ symbol, interval, data, candles: controlledCandles }
   const chartRef = useRef<IChartApi | null>(null)
   const managerRef = useRef<OverlayManager | null>(null)
   const fitDoneRef = useRef(false)
+  const hasLoadedOnceRef = useRef(false)
   const [status, setStatus] = useState<'loading' | 'error' | 'ready'>('loading')
   const [errorMsg, setErrorMsg] = useState('')
 
@@ -61,26 +62,37 @@ function TradingViewChart({ symbol, interval, data, candles: controlledCandles }
         horzLines: { color: '#1a2035' },
       },
       crosshair: {
-        vertLine: { color: '#334155', width: 1, style: 2, labelBackgroundColor: '#1e293b' },
-        horzLine: { color: '#334155', width: 1, style: 2, labelBackgroundColor: '#1e293b' },
+        mode: CrosshairMode.MagnetOHLC,
+        vertLine: { color: '#475569', width: 1, style: 0, labelBackgroundColor: '#1e293b' },
+        horzLine: { color: '#475569', width: 1, style: 0, labelBackgroundColor: '#1e293b' },
       },
       timeScale: {
         borderColor: '#1e2a3a',
         timeVisible: true,
         secondsVisible: false,
+        barSpacing: 8,
+        minBarSpacing: 3,
+        rightOffset: 10,
       },
       rightPriceScale: {
         borderColor: '#1e2a3a',
+        scaleMargins: { top: 0.08, bottom: 0.25 },
       },
       kineticScroll: {
         mouse: true,
         touch: true,
       },
+      handleScroll: {
+        mouseWheel: true,
+        pressedMouseMove: true,
+        horzTouchDrag: true,
+        vertTouchDrag: false,
+      },
       handleScale: {
-        axisDoubleClickReset: {
-          time: true,
-          price: true,
-        },
+        mouseWheel: true,
+        pinch: true,
+        axisPressedMouseMove: { time: true, price: true },
+        axisDoubleClickReset: { time: true, price: true },
       },
     })
 
@@ -120,7 +132,9 @@ function TradingViewChart({ symbol, interval, data, candles: controlledCandles }
     if (controlledCandles !== undefined) return // replay mode — candles are injected externally
     fitDoneRef.current = false
     let cancelled = false
-    setStatus('loading')
+    // Only show the loading overlay on the very first load — subsequent fetches
+    // (symbol/timeframe switches) keep the old chart visible while new data arrives.
+    if (!hasLoadedOnceRef.current) setStatus('loading')
     setErrorMsg('')
 
     getProvider().fetchCandles(symbol, interval as Timeframe)
@@ -131,6 +145,7 @@ function TradingViewChart({ symbol, interval, data, candles: controlledCandles }
 
         manager.updateAll(candles)
         chartRef.current?.timeScale().fitContent()
+        hasLoadedOnceRef.current = true
         setStatus('ready')
       })
       .catch((err: unknown) => {
