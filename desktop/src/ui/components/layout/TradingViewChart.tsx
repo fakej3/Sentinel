@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, forwardRef, useImperativeHandle } from 'react'
 import { createChart, type IChartApi } from 'lightweight-charts'
-import { fetchCandles } from '../../../modules/binance/endpoints'
+import { getProvider } from '../../../modules/market-data/registry'
 import type { Candle, Timeframe } from '../../../modules/market/types'
 import type { PipelineResult } from '../../../modules/pipeline/types'
 import { OverlayManager } from '../../chart/OverlayManager'
@@ -123,7 +123,7 @@ function TradingViewChart({ symbol, interval, data, candles: controlledCandles }
     setStatus('loading')
     setErrorMsg('')
 
-    fetchCandles(symbol, interval as Timeframe)
+    getProvider().fetchCandles(symbol, interval as Timeframe)
       .then(candles => {
         if (cancelled) return
         const manager = managerRef.current
