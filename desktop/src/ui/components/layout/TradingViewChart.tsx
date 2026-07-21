@@ -37,6 +37,7 @@ function TradingViewChart({ symbol, interval, data, candles: controlledCandles }
   const chartRef      = useRef<IChartApi | null>(null)
   const managerRef    = useRef<OverlayManager | null>(null)
   const candlesRef    = useRef<Candle[]>([])
+  const candleMapRef  = useRef<Map<number, Candle>>(new Map())
 
   // HUD element refs — updated via direct DOM writes on every crosshair move (no re-render)
   const hudRef        = useRef<HTMLDivElement>(null)
@@ -55,6 +56,7 @@ function TradingViewChart({ symbol, interval, data, candles: controlledCandles }
     highlight(key: string | null) { managerRef.current?.highlight(key) },
     loadCandles(candles: Candle[]) {
       candlesRef.current = candles
+      candleMapRef.current = new Map(candles.map(c => [c.openTime, c]))
       managerRef.current?.updateAll(candles)
       chartRef.current?.timeScale().fitContent()
     },
@@ -134,7 +136,7 @@ function TradingViewChart({ symbol, interval, data, candles: controlledCandles }
       }
 
       const timeMs = (param.time as number) * 1000
-      const candle = candlesRef.current.find(c => c.openTime === timeMs)
+      const candle = candleMapRef.current.get(timeMs)
       if (!candle) { hud.style.display = 'none'; return }
 
       hud.style.display = 'flex'
@@ -187,7 +189,8 @@ function TradingViewChart({ symbol, interval, data, candles: controlledCandles }
         const manager = managerRef.current
         if (!manager) return
 
-        candlesRef.current = initial
+        candlesRef.current   = initial
+        candleMapRef.current = new Map(initial.map(c => [c.openTime, c]))
         manager.updateAll(initial)
         chartRef.current?.timeScale().fitContent()
         setStatus('ready')
@@ -198,6 +201,9 @@ function TradingViewChart({ symbol, interval, data, candles: controlledCandles }
           if (!mgr) return
 
           mgr.tickCandle(live)
+
+          // Update map first (O(1)), then the array buffer
+          candleMapRef.current.set(live.openTime, live)
 
           const prev = candlesRef.current
           const idx  = prev.findIndex(c => c.openTime === live.openTime)
@@ -229,7 +235,8 @@ function TradingViewChart({ symbol, interval, data, candles: controlledCandles }
   // In controlled (replay) mode, push candles whenever they change.
   useEffect(() => {
     if (controlledCandles === undefined) return
-    candlesRef.current = controlledCandles  // keep in sync for HUD lookup
+    candlesRef.current   = controlledCandles
+    candleMapRef.current = new Map(controlledCandles.map(c => [c.openTime, c]))
     const manager = managerRef.current
     if (!manager) return
     manager.updateAll(controlledCandles)

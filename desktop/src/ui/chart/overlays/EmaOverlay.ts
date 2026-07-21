@@ -19,6 +19,8 @@ export class EmaOverlay implements IOverlay {
   private chart: IChartApi | null = null
   private series: ISeriesApi<'Line'> | null = null
   private lit = false
+  private lastLength = 0
+  private lastClose  = NaN
 
   constructor(config: EmaConfig) {
     this.config = config
@@ -38,6 +40,10 @@ export class EmaOverlay implements IOverlay {
 
   update(candles: Candle[]): void {
     if (!this.series || candles.length === 0) return
+    const last = candles[candles.length - 1]
+    if (candles.length === this.lastLength && last.close === this.lastClose) return
+    this.lastLength = candles.length
+    this.lastClose  = last.close
     const closes = candles.map(c => c.close)
     const emaValues = computeEma(closes, this.config.period)
     if (emaValues.length === 0) {
@@ -67,7 +73,9 @@ export class EmaOverlay implements IOverlay {
     if (this.series && this.chart) {
       this.chart.removeSeries(this.series)
     }
-    this.series = null
-    this.chart = null
+    this.series     = null
+    this.chart      = null
+    this.lastLength = 0
+    this.lastClose  = NaN
   }
 }
