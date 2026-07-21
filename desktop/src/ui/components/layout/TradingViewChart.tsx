@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, forwardRef, useImperativeHandle } from 'react'
-import { createChart, CrosshairMode, type IChartApi } from 'lightweight-charts'
+import { createChart, CrosshairMode, type IChartApi, type MouseEventParams, type Time } from 'lightweight-charts'
 import { fetchCandles } from '../../../modules/binance/endpoints'
 import { subscribeLiveCandles } from '../../../modules/binance/ws'
 import type { Candle, Timeframe } from '../../../modules/market/types'
@@ -15,6 +15,7 @@ import { TakeProfitOverlay } from '../../chart/overlays/TakeProfitOverlay'
 import { RiskRewardOverlay } from '../../chart/overlays/RiskRewardOverlay'
 import { FibonacciOverlay } from '../../chart/overlays/FibonacciOverlay'
 import { MarketStructureOverlay } from '../../chart/overlays/MarketStructureOverlay'
+import { formatPrice, formatPercent, formatVolume, formatTimestamp } from '../../utils/format'
 
 export interface TradingViewChartHandle {
   highlight(key: string | null): void
@@ -31,11 +32,22 @@ interface TradingViewChartProps {
 
 export const TradingViewChart = forwardRef<TradingViewChartHandle, TradingViewChartProps>(
 function TradingViewChart({ symbol, interval, data, candles: controlledCandles }, ref) {
-  const containerRef = useRef<HTMLDivElement>(null)
-  const chartRef = useRef<IChartApi | null>(null)
-  const managerRef = useRef<OverlayManager | null>(null)
-  const candlesRef = useRef<Candle[]>([])   // live candle buffer — mutated without re-renders
-  const [status, setStatus] = useState<'loading' | 'error' | 'ready'>('loading')
+  const containerRef  = useRef<HTMLDivElement>(null)
+  const chartRef      = useRef<IChartApi | null>(null)
+  const managerRef    = useRef<OverlayManager | null>(null)
+  const candlesRef    = useRef<Candle[]>([])
+
+  // HUD element refs — updated via direct DOM writes on every crosshair move (no re-render)
+  const hudRef        = useRef<HTMLDivElement>(null)
+  const hudTimeRef    = useRef<HTMLSpanElement>(null)
+  const hudOpenRef    = useRef<HTMLSpanElement>(null)
+  const hudHighRef    = useRef<HTMLSpanElement>(null)
+  const hudLowRef     = useRef<HTMLSpanElement>(null)
+  const hudCloseRef   = useRef<HTMLSpanElement>(null)
+  const hudChangeRef  = useRef<HTMLSpanElement>(null)
+  const hudVolRef     = useRef<HTMLSpanElement>(null)
+
+  const [status,   setStatus]   = useState<'loading' | 'error' | 'ready'>('loading')
   const [errorMsg, setErrorMsg] = useState('')
 
   useImperativeHandle(ref, () => ({
@@ -47,7 +59,7 @@ function TradingViewChart({ symbol, interval, data, candles: controlledCandles }
     },
   }), [])
 
-  // Create chart and overlay manager once — never recreated on prop changes.
+  // Create chart, overlay manager, and crosshair HUD — runs once.
   useEffect(() => {
     const el = containerRef.current
     if (!el) return
@@ -83,7 +95,6 @@ function TradingViewChart({ symbol, interval, data, candles: controlledCandles }
 
     const manager = new OverlayManager(chart)
 
-    // Market data overlays (driven by fetchCandles)
     manager.add(new CandlestickOverlay())
     manager.add(new VolumeOverlay())
     manager.add(new EmaOverlay({ period: 20,  color: 'rgba(59, 130, 246, 0.45)' }))
@@ -91,7 +102,6 @@ function TradingViewChart({ symbol, interval, data, candles: controlledCandles }
     manager.add(new EmaOverlay({ period: 100, color: 'rgba(16, 185, 129, 0.60)' }))
     manager.add(new EmaOverlay({ period: 200, color: 'rgba(139, 92, 246, 0.85)' }))
 
-    // Analysis overlays (driven by PipelineResult)
     manager.addAnalysis(new SupportResistanceOverlay())
     manager.addAnalysis(new EntryZoneOverlay())
     manager.addAnalysis(new StopLossOverlay())
@@ -100,21 +110,63 @@ function TradingViewChart({ symbol, interval, data, candles: controlledCandles }
     manager.addAnalysis(new FibonacciOverlay())
     manager.addAnalysis(new MarketStructureOverlay())
 
-    chartRef.current = chart
+    chartRef.current  = chart
     managerRef.current = manager
 
+    // Crosshair HUD — update DOM directly on every move, no React re-render
+    const onCrosshair = (param: MouseEventParams<Time>) => {
+      const hud = hudRef.current
+      if (!hud) return
+
+      if (!param.time || !param.point) {
+        hud.style.display = 'none'
+        return
+      }
+
+      const timeMs = (param.time as number) * 1000
+      const candle = candlesRef.current.find(c => c.openTime === timeMs)
+      if (!candle) { hud.style.display = 'none'; return }
+
+      hud.style.display = 'flex'
+
+      const timeEl   = hudTimeRef.current
+      const openEl   = hudOpenRef.current
+      const highEl   = hudHighRef.current
+      const lowEl    = hudLowRef.current
+      const closeEl  = hudCloseRef.current
+      const changeEl = hudChangeRef.current
+      const volEl    = hudVolRef.current
+
+      if (timeEl)   timeEl.textContent  = formatTimestamp(timeMs)
+      if (openEl)   openEl.textContent  = formatPrice(candle.open)
+      if (highEl)   highEl.textContent  = formatPrice(candle.high)
+      if (lowEl)    lowEl.textContent   = formatPrice(candle.low)
+      if (closeEl)  closeEl.textContent = formatPrice(candle.close)
+
+      if (changeEl) {
+        const chg = candle.open !== 0 ? ((candle.close - candle.open) / candle.open) * 100 : 0
+        changeEl.textContent  = formatPercent(chg)
+        changeEl.style.color  = chg >= 0 ? '#34d399' : '#f87171'
+      }
+
+      if (volEl) volEl.textContent = formatVolume(candle.volume)
+    }
+
+    chart.subscribeCrosshairMove(onCrosshair)
+
     return () => {
+      chart.unsubscribeCrosshairMove(onCrosshair)
       manager.dispose()
       chart.remove()
-      chartRef.current = null
+      chartRef.current  = null
       managerRef.current = null
     }
   }, [])
 
   // Fetch historical candles then subscribe to live WS ticks (live mode only).
   useEffect(() => {
-    if (controlledCandles !== undefined) return  // replay mode — skip live feed
-    let cancelled  = false
+    if (controlledCandles !== undefined) return
+    let cancelled = false
     let unsubWs: (() => void) | null = null
     setStatus('loading')
     setErrorMsg('')
@@ -130,16 +182,13 @@ function TradingViewChart({ symbol, interval, data, candles: controlledCandles }
         chartRef.current?.timeScale().fitContent()
         setStatus('ready')
 
-        // Start live WS feed — updates arrive without triggering React re-renders.
         unsubWs = subscribeLiveCandles(symbol, interval as Timeframe, live => {
           if (cancelled) return
           const mgr = managerRef.current
           if (!mgr) return
 
-          // Fast visual update: candlestick + volume only (O(1) series.update call).
           mgr.tickCandle(live)
 
-          // Maintain the candles buffer — upsert by openTime.
           const prev = candlesRef.current
           const idx  = prev.findIndex(c => c.openTime === live.openTime)
           if (idx >= 0) {
@@ -150,7 +199,6 @@ function TradingViewChart({ symbol, interval, data, candles: controlledCandles }
             candlesRef.current = prev.concat(live)
           }
 
-          // On candle close, do a full update so EMAs and analysis overlays can refresh.
           if (live.isClosed) {
             mgr.updateAll(candlesRef.current)
           }
@@ -171,6 +219,7 @@ function TradingViewChart({ symbol, interval, data, candles: controlledCandles }
   // In controlled (replay) mode, push candles whenever they change.
   useEffect(() => {
     if (controlledCandles === undefined) return
+    candlesRef.current = controlledCandles  // keep in sync for HUD lookup
     const manager = managerRef.current
     if (!manager) return
     manager.updateAll(controlledCandles)
@@ -186,6 +235,26 @@ function TradingViewChart({ symbol, interval, data, candles: controlledCandles }
   return (
     <div className="relative w-full h-full">
       <div ref={containerRef} className="w-full h-full" />
+
+      {/* Crosshair OHLCV HUD — DOM-updated directly, no re-render on cursor move */}
+      <div
+        ref={hudRef}
+        style={{ display: 'none' }}
+        className="absolute top-2 left-2 pointer-events-none z-10 flex items-center gap-2.5 px-2.5 py-1 rounded bg-[#0c0f18]/90 border border-white/[0.06] text-[11px] font-mono"
+      >
+        <span ref={hudTimeRef}   className="text-slate-500" />
+        <span className="text-slate-600">O</span>
+        <span ref={hudOpenRef}   className="text-slate-200" />
+        <span className="text-slate-600">H</span>
+        <span ref={hudHighRef}   className="text-slate-200" />
+        <span className="text-slate-600">L</span>
+        <span ref={hudLowRef}    className="text-slate-200" />
+        <span className="text-slate-600">C</span>
+        <span ref={hudCloseRef}  className="text-slate-200" />
+        <span ref={hudChangeRef} />
+        <span className="text-slate-600">Vol</span>
+        <span ref={hudVolRef}    className="text-slate-400" />
+      </div>
 
       {status === 'loading' && (
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
