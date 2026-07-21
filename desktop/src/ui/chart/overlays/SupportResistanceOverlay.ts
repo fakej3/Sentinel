@@ -86,8 +86,6 @@ export class SupportResistanceOverlay implements IAnalysisOverlay {
 
   highlight(key: string | null): void {
     for (const { line, zone, isNearest } of this.zoneLines) {
-      const isSupport = zone.id === this.nearestSupportId ||
-        !this.zoneLines.some(z => z.zone.id === this.nearestResistanceId && z.zone.id === zone.id)
       const lit =
         key === 'sr:all' ||
         key === `sr:zone:${zone.id}` ||
