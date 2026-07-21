@@ -63,17 +63,21 @@ export class TakeProfitOverlay implements IAnalysisOverlay {
       }
     }
 
+    const usedCoords: number[] = []
     for (let i = 0; i < targets.length; i++) {
       const price = targets[i]
       const rr = risk > 0 ? (Math.abs(price - entryMid) / risk).toFixed(1) : '—'
+      const coord = this.host!.priceToCoordinate(price)
+      const tooClose = coord !== null && usedCoords.some(c => Math.abs(c - Number(coord)) < 14)
       const line = this.host!.createPriceLine({
         price,
         color: TP_COLORS[i],
         lineWidth: 1,
         lineStyle: LineStyle.Solid,
-        axisLabelVisible: true,
+        axisLabelVisible: !tooClose,
         title: `TP${i + 1} ${rr}R`,
       })
+      if (!tooClose && coord !== null) usedCoords.push(Number(coord))
       this.tpLines.push({ line, index: i })
     }
   }

@@ -134,6 +134,33 @@ export class FibonacciOverlay implements IAnalysisOverlay {
       })
       this.levelLines.push({ line, level })
     }
+
+    // Suppress labels for retrace levels within 14px of a higher-priority neighbour.
+    // This prevents 0.618/0.650 golden pocket labels from overlapping at compressed zoom.
+    this.deCollideLabels()
+  }
+
+  private deCollideLabels(): void {
+    if (!this.host) return
+    // Lower index = higher priority
+    const PRIORITY: Partial<Record<number, number>> = {
+      0.618: 1, 0.650: 2, 0.500: 3, 0.382: 4, 1.000: 5, 0.786: 6, 0.236: 7,
+    }
+    const retrace = this.levelLines
+      .filter(({ level }) => !level.isExtension)
+      .sort((a, b) => (PRIORITY[a.level.ratio] ?? 99) - (PRIORITY[b.level.ratio] ?? 99))
+
+    const usedCoords: number[] = []
+    for (const { line, level } of retrace) {
+      const coord = this.host.priceToCoordinate(level.price)
+      if (coord === null) continue
+      const tooClose = usedCoords.some(c => Math.abs(c - Number(coord)) < 14)
+      if (tooClose) {
+        line.applyOptions({ axisLabelVisible: false })
+      } else {
+        usedCoords.push(Number(coord))
+      }
+    }
   }
 
   setVisible(visible: boolean): void {
