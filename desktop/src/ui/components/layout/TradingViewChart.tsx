@@ -59,12 +59,12 @@ function TradingViewChart({ symbol, interval, data, candles: controlledCandles }
       },
       grid: {
         vertLines: { color: '#1a2035' },
-        horzLines: { color: '#1a2035' },
+        horzLines: { color: '#1e2640' },
       },
       crosshair: {
         mode: CrosshairMode.MagnetOHLC,
-        vertLine: { color: '#475569', width: 1, style: 0, labelBackgroundColor: '#1e293b' },
-        horzLine: { color: '#475569', width: 1, style: 0, labelBackgroundColor: '#1e293b' },
+        vertLine: { color: '#64748b', width: 1, style: 0, labelBackgroundColor: '#1e293b' },
+        horzLine: { color: '#64748b', width: 1, style: 0, labelBackgroundColor: '#1e293b' },
       },
       timeScale: {
         borderColor: '#1e2a3a',

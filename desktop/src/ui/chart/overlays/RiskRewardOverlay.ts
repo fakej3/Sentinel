@@ -115,7 +115,7 @@ export class RiskRewardOverlay implements IAnalysisOverlay {
       lineWidth: 1,
       lineStyle: LineStyle.Dotted,
       axisLabelVisible: false,
-      title: `RR  ${rr}`,
+      title: `RR ${rr}`,
     }))
   }
 

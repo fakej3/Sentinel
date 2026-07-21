@@ -144,12 +144,17 @@ export class FibonacciOverlay implements IAnalysisOverlay {
 
       const suffix = level.confluence ? ' ✦' : ''
       const title  = `${level.label}${suffix}`
+      // Only show axis labels for the key actionable levels and confluence hits.
+      // Minor levels (0.236, 0.786, extensions) are visible as lines but not labeled
+      // on the axis to keep the price scale readable.
+      const KEY_RATIOS = new Set([0.382, 0.500, 0.618, 0.650])
+      const axisLabelVisible = KEY_RATIOS.has(level.ratio) || !!level.confluence
       const line = this.host!.createPriceLine({
         price: level.price,
         color: colorForLevel(level),
         lineWidth: lineWidthForLevel(level),
         lineStyle: lineStyleForLevel(level),
-        axisLabelVisible: true,
+        axisLabelVisible,
         title,
       })
       this.levelLines.push({ line, level })

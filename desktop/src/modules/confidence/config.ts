@@ -137,9 +137,9 @@ export const DEFAULT_CONFIDENCE_CONFIG: ConfidenceConfig = {
     [F_WEAK_VOLUME_ON_BREAKOUT]:   -12,
   } satisfies Record<EvidenceFactor, number>,
 
-  normalizationDivisor: 10,
+  normalizationDivisor: 15,
 
-  warningScorePenalty: 0.5,
+  warningScorePenalty: 0.75,
 
   criticalScoreCap: 3.0,
 
@@ -150,17 +150,17 @@ export const DEFAULT_CONFIDENCE_CONFIG: ConfidenceConfig = {
     mixed:      3.0,
   },
 
-  contradictionPenaltyFactor: 0.3,
+  contradictionPenaltyFactor: 0.4,
 
   neutralStrengthFactor: 0.5,
 
-  overconfidenceThreshold: 8.0,
+  overconfidenceThreshold: 7.5,
 
-  trustPenaltyLow: 1.6,
+  trustPenaltyLow: 2.5,
 
-  trustPenaltyMedium: 0.75,
+  trustPenaltyMedium: 1.5,
 
-  weakTrendScoreCap: 6.5,
+  weakTrendScoreCap: 5.5,
 
   sparseDataPenalty: 1.5,
 

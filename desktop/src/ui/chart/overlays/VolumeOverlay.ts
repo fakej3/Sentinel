@@ -28,7 +28,7 @@ export class VolumeOverlay implements IOverlay {
     this.series?.setData(candles.map(c => ({
       time: Math.floor(c.openTime / 1000) as UTCTimestamp,
       value: c.volume,
-      color: c.close >= c.open ? '#26a69a28' : '#ef535028',
+      color: c.close >= c.open ? '#26a69a45' : '#ef535045',
     })))
   }
 
