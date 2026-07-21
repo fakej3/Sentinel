@@ -27,12 +27,13 @@ const FILL_BASE = {
   bottomFillColor2: 'transparent',
   bottomLineColor: 'transparent',
   baseValue: { type: 'price' as const, price: 0 },
+  autoscaleInfoProvider: () => null,
 }
 
-const RISK_DIM = { topFillColor1: 'rgba(239, 83, 80, 0.10)', topFillColor2: 'rgba(239, 83, 80, 0.10)' } as const
-const RISK_LIT = { topFillColor1: 'rgba(239, 83, 80, 0.25)', topFillColor2: 'rgba(239, 83, 80, 0.25)' } as const
-const REWARD_DIM = { topFillColor1: 'rgba(34, 197, 94, 0.10)', topFillColor2: 'rgba(34, 197, 94, 0.10)' } as const
-const REWARD_LIT = { topFillColor1: 'rgba(34, 197, 94, 0.25)', topFillColor2: 'rgba(34, 197, 94, 0.25)' } as const
+const RISK_DIM = { topFillColor1: 'rgba(239, 83, 80, 0.08)', topFillColor2: 'rgba(239, 83, 80, 0.08)' } as const
+const RISK_LIT = { topFillColor1: 'rgba(239, 83, 80, 0.22)', topFillColor2: 'rgba(239, 83, 80, 0.22)' } as const
+const REWARD_DIM = { topFillColor1: 'rgba(34, 197, 94, 0.08)', topFillColor2: 'rgba(34, 197, 94, 0.08)' } as const
+const REWARD_LIT = { topFillColor1: 'rgba(34, 197, 94, 0.22)', topFillColor2: 'rgba(34, 197, 94, 0.22)' } as const
 
 export class RiskRewardOverlay implements IAnalysisOverlay {
   readonly id = 'risk-reward'
@@ -57,6 +58,7 @@ export class RiskRewardOverlay implements IAnalysisOverlay {
       priceLineVisible: false,
       lastValueVisible: false,
       crosshairMarkerVisible: false,
+      autoscaleInfoProvider: () => null,
     })
     this.host.setData([])
   }
@@ -80,7 +82,9 @@ export class RiskRewardOverlay implements IAnalysisOverlay {
     const reward = Math.abs(tp - entryMid)
     const rr = risk > 0 ? (reward / risk).toFixed(2) : '—'
 
-    const times = data.candles.map(c => Math.floor(c.openTime / 1000) as UTCTimestamp)
+    // Fills only over the most recent 80 candles so they don't colour all history
+    const recentCandles = data.candles.slice(-80)
+    const times = recentCandles.map(c => Math.floor(c.openTime / 1000) as UTCTimestamp)
 
     if (bullish) {
       this.riskFill!.applyOptions({ ...RISK_DIM, baseValue: { type: 'price', price: stop } })
@@ -94,24 +98,15 @@ export class RiskRewardOverlay implements IAnalysisOverlay {
       this.rewardFill!.setData(times.map(time => ({ time, value: entryLow })))
     }
 
-    const riskMid   = (stop + (bullish ? entryLow : entryHigh)) / 2
-    const rewardMid = (tp   + (bullish ? entryHigh : entryLow)) / 2
-
-    this.lines.push(this.host!.createPriceLine({
-      price: riskMid,
-      color: 'rgba(239, 83, 80, 0.6)',
-      lineWidth: 1,
-      lineStyle: LineStyle.Dotted,
-      axisLabelVisible: false,
-      title: 'Risk',
-    }))
+    // Single RR label — no mid-zone dotted lines (clutter)
+    const rewardMid = (tp + (bullish ? entryHigh : entryLow)) / 2
     this.lines.push(this.host!.createPriceLine({
       price: rewardMid,
-      color: 'rgba(34, 197, 94, 0.6)',
+      color: 'rgba(0,0,0,0)',
       lineWidth: 1,
       lineStyle: LineStyle.Dotted,
       axisLabelVisible: false,
-      title: `RR  ${rr}`,
+      title: `RR ${rr}`,
     }))
   }
 

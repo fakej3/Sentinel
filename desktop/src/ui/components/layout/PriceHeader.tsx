@@ -56,10 +56,6 @@ export function PriceHeader({ result }: PriceHeaderProps) {
                 <p className="text-sm font-mono text-slate-200">{price.atrPercent.toFixed(2)}%</p>
               </div>
             )}
-            <div>
-              <p className="section-label mb-0.5">Candles</p>
-              <p className="text-sm font-mono text-slate-200">{metadata.candleCount}</p>
-            </div>
           </div>
         </div>
 
@@ -83,9 +79,6 @@ export function PriceHeader({ result }: PriceHeaderProps) {
           <div className="text-right">
             <p className="section-label mb-1">Trend</p>
             <TrendBadge trend={analysis.fullTrend.trend} />
-            <p className="text-[10px] text-slate-500 mt-1 font-mono">
-              {analysis.fullTrend.bullishConditionsMet}B / {analysis.fullTrend.bearishConditionsMet}Br
-            </p>
           </div>
 
           <div className="w-px h-10 bg-border-subtle" />

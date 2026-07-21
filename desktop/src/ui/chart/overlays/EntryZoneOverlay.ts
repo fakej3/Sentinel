@@ -10,8 +10,8 @@ import {
 import type { PipelineResult } from '../../../modules/pipeline/types'
 import type { IAnalysisOverlay } from '../types'
 
-const FILL_DIM = { topFillColor1: 'rgba(59, 130, 246, 0.12)', topFillColor2: 'rgba(59, 130, 246, 0.12)', topLineColor: 'rgba(59, 130, 246, 0.5)' } as const
-const FILL_LIT = { topFillColor1: 'rgba(59, 130, 246, 0.28)', topFillColor2: 'rgba(59, 130, 246, 0.28)', topLineColor: 'rgba(59, 130, 246, 0.9)' } as const
+const FILL_DIM = { topFillColor1: 'rgba(59, 130, 246, 0.10)', topFillColor2: 'rgba(59, 130, 246, 0.10)', topLineColor: 'rgba(59, 130, 246, 0.4)' } as const
+const FILL_LIT = { topFillColor1: 'rgba(59, 130, 246, 0.25)', topFillColor2: 'rgba(59, 130, 246, 0.25)', topLineColor: 'rgba(59, 130, 246, 0.9)' } as const
 
 export class EntryZoneOverlay implements IAnalysisOverlay {
   readonly id = 'entry-zone'
@@ -34,6 +34,7 @@ export class EntryZoneOverlay implements IAnalysisOverlay {
       priceLineVisible: false,
       lastValueVisible: false,
       crosshairMarkerVisible: false,
+      autoscaleInfoProvider: () => null,
     })
     this.fill.setData([])
 
@@ -42,6 +43,7 @@ export class EntryZoneOverlay implements IAnalysisOverlay {
       priceLineVisible: false,
       lastValueVisible: false,
       crosshairMarkerVisible: false,
+      autoscaleInfoProvider: () => null,
     })
     this.host.setData([])
   }
@@ -56,28 +58,41 @@ export class EntryZoneOverlay implements IAnalysisOverlay {
     }
 
     const { lower, upper } = plan.entryZone
+    const mid = (lower + upper) / 2
 
+    // Fill only the most recent 80 candles so it reads as a current zone
+    const recentCandles = data.candles.slice(-80)
     this.fill!.applyOptions({ baseValue: { type: 'price', price: lower } })
-    this.fill!.setData(data.candles.map(c => ({
+    this.fill!.setData(recentCandles.map(c => ({
       time: Math.floor(c.openTime / 1000) as UTCTimestamp,
       value: upper,
     })))
 
+    // Single boundary lines — no axis labels except center label
     this.lines.push(this.host!.createPriceLine({
       price: lower,
-      color: '#3b82f6',
+      color: 'rgba(59, 130, 246, 0.5)',
       lineWidth: 1,
       lineStyle: LineStyle.Dashed,
-      axisLabelVisible: true,
-      title: 'Entry Low',
+      axisLabelVisible: false,
+      title: '',
     }))
     this.lines.push(this.host!.createPriceLine({
       price: upper,
-      color: '#3b82f6',
+      color: 'rgba(59, 130, 246, 0.5)',
       lineWidth: 1,
       lineStyle: LineStyle.Dashed,
+      axisLabelVisible: false,
+      title: '',
+    }))
+    // Single 'Entry' label at midpoint
+    this.lines.push(this.host!.createPriceLine({
+      price: mid,
+      color: 'rgba(0,0,0,0)',
+      lineWidth: 1,
+      lineStyle: LineStyle.Solid,
       axisLabelVisible: true,
-      title: 'Entry High',
+      title: 'Entry',
     }))
   }
 
@@ -86,7 +101,7 @@ export class EntryZoneOverlay implements IAnalysisOverlay {
     if (lit === this.lit) return
     this.lit = lit
     this.fill?.applyOptions(lit ? FILL_LIT : FILL_DIM)
-    const w = lit ? 3 : 1
+    const w = lit ? 2 : 1
     for (const line of this.lines) line.applyOptions({ lineWidth: w })
   }
 

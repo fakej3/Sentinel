@@ -9,12 +9,18 @@ import type { PipelineResult } from '../../../modules/pipeline/types'
 import type { PriceZone } from '../../../modules/support-resistance/types'
 import type { IAnalysisOverlay } from '../types'
 
-const MAX_ZONES = 8
+const MAX_ZONES = 3
+
+// Distinct from candle teal — use a muted cyan for support, muted rose for resistance
+const SUPPORT_COLOR    = 'rgba(34, 211, 238, 0.55)'   // cyan-400
+const RESISTANCE_COLOR = 'rgba(248, 113, 113, 0.55)'  // red-400
+const SUPPORT_NEAR     = 'rgba(34, 211, 238, 0.90)'
+const RESISTANCE_NEAR  = 'rgba(248, 113, 113, 0.90)'
 
 interface ZoneLine {
   line: IPriceLine
   zone: PriceZone
-  baseWidth: 1 | 2
+  isNearest: boolean
 }
 
 export class SupportResistanceOverlay implements IAnalysisOverlay {
@@ -32,6 +38,7 @@ export class SupportResistanceOverlay implements IAnalysisOverlay {
       priceLineVisible: false,
       lastValueVisible: false,
       crosshairMarkerVisible: false,
+      autoscaleInfoProvider: () => null,
     })
     this.host.setData([])
   }
@@ -47,40 +54,43 @@ export class SupportResistanceOverlay implements IAnalysisOverlay {
     const resistance = data.supportResistance.activeResistance.slice(0, MAX_ZONES)
 
     for (const zone of support) {
-      const baseWidth: 1 | 2 = zone.strength >= 7 ? 2 : 1
+      const isNearest = zone.id === this.nearestSupportId
       const line = this.host.createPriceLine({
         price: zone.center,
-        color: '#26a69a',
-        lineWidth: baseWidth,
+        color: isNearest ? SUPPORT_NEAR : SUPPORT_COLOR,
+        lineWidth: isNearest ? 2 : 1,
         lineStyle: LineStyle.Solid,
-        axisLabelVisible: true,
-        title: `S  ${zone.strength.toFixed(1)}`,
+        axisLabelVisible: isNearest,
+        title: 'S',
       })
-      this.zoneLines.push({ line, zone, baseWidth })
+      this.zoneLines.push({ line, zone, isNearest })
     }
 
     for (const zone of resistance) {
-      const baseWidth: 1 | 2 = zone.strength >= 7 ? 2 : 1
+      const isNearest = zone.id === this.nearestResistanceId
       const line = this.host.createPriceLine({
         price: zone.center,
-        color: '#ef5350',
-        lineWidth: baseWidth,
+        color: isNearest ? RESISTANCE_NEAR : RESISTANCE_COLOR,
+        lineWidth: isNearest ? 2 : 1,
         lineStyle: LineStyle.Solid,
-        axisLabelVisible: true,
-        title: `R  ${zone.strength.toFixed(1)}`,
+        axisLabelVisible: isNearest,
+        title: 'R',
       })
-      this.zoneLines.push({ line, zone, baseWidth })
+      this.zoneLines.push({ line, zone, isNearest })
     }
   }
 
   highlight(key: string | null): void {
-    for (const { line, zone, baseWidth } of this.zoneLines) {
+    for (const { line, zone, isNearest } of this.zoneLines) {
+      const isSupport = zone.id === this.nearestSupportId ||
+        !this.zoneLines.some(z => z.zone.id === this.nearestResistanceId && z.zone.id === zone.id)
       const lit =
         key === 'sr:all' ||
         key === `sr:zone:${zone.id}` ||
         (key === 'sr:nearest-support'    && zone.id === this.nearestSupportId) ||
         (key === 'sr:nearest-resistance' && zone.id === this.nearestResistanceId)
 
+      const baseWidth = isNearest ? 2 : 1
       const w = lit ? Math.min(baseWidth + 2, 4) as 1 | 2 | 3 | 4 : baseWidth
       line.applyOptions({ lineWidth: w })
     }

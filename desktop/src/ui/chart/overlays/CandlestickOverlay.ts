@@ -20,6 +20,8 @@ export class CandlestickOverlay implements IOverlay {
       borderVisible: false,
       wickUpColor: '#26a69a',
       wickDownColor: '#ef5350',
+      priceLineVisible: false,
+      lastValueVisible: false,
     })
   }
 

@@ -9,7 +9,7 @@ import type { PipelineResult } from '../../../modules/pipeline/types'
 import type { TradePlan } from '../../../modules/pipeline/types'
 import type { IAnalysisOverlay } from '../types'
 
-const TP_COLORS: [string, string, string] = ['#22c55e', '#16a34a', '#15803d']
+const TP_COLORS: [string, string, string] = ['#22c55e', 'rgba(34, 197, 94, 0.65)', 'rgba(34, 197, 94, 0.40)']
 
 function isBullish(plan: TradePlan): boolean {
   return plan.entryZone !== null &&
@@ -35,6 +35,7 @@ export class TakeProfitOverlay implements IAnalysisOverlay {
       priceLineVisible: false,
       lastValueVisible: false,
       crosshairMarkerVisible: false,
+      autoscaleInfoProvider: () => null,
     })
     this.host.setData([])
   }
@@ -71,7 +72,7 @@ export class TakeProfitOverlay implements IAnalysisOverlay {
         lineWidth: 1,
         lineStyle: LineStyle.Solid,
         axisLabelVisible: true,
-        title: `TP${i + 1}  ${rr}R`,
+        title: `TP${i + 1} ${rr}R`,
       })
       this.tpLines.push({ line, index: i })
     }

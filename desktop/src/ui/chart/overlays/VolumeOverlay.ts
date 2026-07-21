@@ -17,6 +17,8 @@ export class VolumeOverlay implements IOverlay {
     this.series = chart.addSeries(HistogramSeries, {
       priceFormat: { type: 'volume' },
       priceScaleId: 'volume',
+      lastValueVisible: false,
+      priceLineVisible: false,
     })
     chart.priceScale('volume').applyOptions({
       scaleMargins: { top: 0.8, bottom: 0 },

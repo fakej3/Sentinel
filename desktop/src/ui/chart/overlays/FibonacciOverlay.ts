@@ -77,6 +77,7 @@ export class FibonacciOverlay implements IAnalysisOverlay {
       priceLineVisible: false,
       lastValueVisible: false,
       crosshairMarkerVisible: false,
+      autoscaleInfoProvider: () => null,
       ...GP_BASE,
       baseValue: { type: 'price', price: 0 },
     })
@@ -88,6 +89,7 @@ export class FibonacciOverlay implements IAnalysisOverlay {
       priceLineVisible: false,
       lastValueVisible: false,
       crosshairMarkerVisible: false,
+      autoscaleInfoProvider: () => null,
     })
     this.host.setData([])
   }
@@ -101,31 +103,33 @@ export class FibonacciOverlay implements IAnalysisOverlay {
       return
     }
 
-    const times = data!.candles.map(c => Math.floor(c.openTime / 1000) as UTCTimestamp)
+    const allTimes = data!.candles.map(c => Math.floor(c.openTime / 1000) as UTCTimestamp)
+    // Golden pocket fill only over the most recent 80 candles so it reads as a current zone
+    const recentTimes = allTimes.slice(-80)
 
     // Golden pocket fill between 0.618 and 0.650
     const gp618 = fib.levels.find(l => l.ratio === 0.618)
     const gp650 = fib.levels.find(l => l.ratio === 0.650)
 
-    if (gp618 && gp650) {
+    if (gp618 && gp650 && recentTimes.length > 0) {
       const gpTop = Math.max(gp618.price, gp650.price)
       const gpBot = Math.min(gp618.price, gp650.price)
       this.gpFill!.applyOptions({ ...GP_BASE, baseValue: { type: 'price', price: gpBot } })
-      this.gpFill!.setData(times.map(time => ({ time, value: gpTop })))
+      this.gpFill!.setData(recentTimes.map(time => ({ time, value: gpTop })))
     } else {
       this.gpFill?.setData([])
     }
 
-    // Draw a price line per level
+    // Draw a price line per level — hide axis label on extension levels to reduce clutter
     for (const level of fib.levels) {
-      const suffix = level.confluence ? '  ✦' : ''
-      const title  = `${level.label}  ${level.price.toLocaleString('en-US', { maximumFractionDigits: 2 })}${suffix}`
+      const suffix = level.confluence ? ' ✦' : ''
+      const title  = `${level.label}${suffix}`
       const line = this.host!.createPriceLine({
         price: level.price,
         color: colorForLevel(level),
         lineWidth: lineWidthForLevel(level),
         lineStyle: lineStyleForLevel(level),
-        axisLabelVisible: true,
+        axisLabelVisible: !level.isExtension,
         title,
       })
       this.levelLines.push({ line, level })

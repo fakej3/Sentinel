@@ -22,6 +22,7 @@ export class StopLossOverlay implements IAnalysisOverlay {
       priceLineVisible: false,
       lastValueVisible: false,
       crosshairMarkerVisible: false,
+      autoscaleInfoProvider: () => null,
     })
     this.host.setData([])
   }
@@ -37,7 +38,7 @@ export class StopLossOverlay implements IAnalysisOverlay {
       lineWidth: 2,
       lineStyle: LineStyle.Solid,
       axisLabelVisible: true,
-      title: 'Stop Loss',
+      title: 'SL',
     })
   }
 

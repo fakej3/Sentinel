@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, forwardRef, useImperativeHandle } from 'react'
-import { createChart, type IChartApi } from 'lightweight-charts'
+import { createChart, CrosshairMode, type IChartApi } from 'lightweight-charts'
 import { fetchCandles } from '../../../modules/binance/endpoints'
 import type { Candle, Timeframe } from '../../../modules/market/types'
 import type { PipelineResult } from '../../../modules/pipeline/types'
@@ -56,20 +56,25 @@ function TradingViewChart({ symbol, interval, data, candles: controlledCandles }
         textColor: '#94a3b8',
       },
       grid: {
-        vertLines: { color: '#1a2035' },
+        vertLines: { color: '#111827' },
         horzLines: { color: '#1a2035' },
       },
       crosshair: {
-        vertLine: { color: '#334155', width: 1, style: 2, labelBackgroundColor: '#1e293b' },
-        horzLine: { color: '#334155', width: 1, style: 2, labelBackgroundColor: '#1e293b' },
+        mode: CrosshairMode.Magnet,
+        vertLine: { color: 'rgba(119,134,150,0.4)', width: 1, style: 0, labelBackgroundColor: '#1e293b' },
+        horzLine: { color: 'rgba(119,134,150,0.4)', width: 1, style: 0, labelBackgroundColor: '#1e293b' },
       },
       timeScale: {
         borderColor: '#1e2a3a',
         timeVisible: true,
         secondsVisible: false,
+        rightOffset: 12,
+        barSpacing: 8,
+        minBarSpacing: 3,
       },
       rightPriceScale: {
         borderColor: '#1e2a3a',
+        scaleMargins: { top: 0.12, bottom: 0.08 },
       },
     })
 
@@ -78,10 +83,10 @@ function TradingViewChart({ symbol, interval, data, candles: controlledCandles }
     // Market data overlays (driven by fetchCandles)
     manager.add(new CandlestickOverlay())
     manager.add(new VolumeOverlay())
-    manager.add(new EmaOverlay({ period: 20,  color: '#3b82f6' }))
-    manager.add(new EmaOverlay({ period: 50,  color: '#f59e0b' }))
-    manager.add(new EmaOverlay({ period: 100, color: '#10b981' }))
-    manager.add(new EmaOverlay({ period: 200, color: '#8b5cf6' }))
+    manager.add(new EmaOverlay({ period: 20,  color: 'rgba(59, 130, 246, 0.45)' }))
+    manager.add(new EmaOverlay({ period: 50,  color: 'rgba(234, 179, 8, 0.60)' }))
+    manager.add(new EmaOverlay({ period: 100, color: 'rgba(16, 185, 129, 0.60)' }))
+    manager.add(new EmaOverlay({ period: 200, color: 'rgba(139, 92, 246, 0.85)' }))
 
     // Analysis overlays (driven by PipelineResult)
     manager.addAnalysis(new SupportResistanceOverlay())
