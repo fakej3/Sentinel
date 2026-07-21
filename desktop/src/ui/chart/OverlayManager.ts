@@ -32,6 +32,13 @@ export class OverlayManager {
     }
   }
 
+  /** Fast single-bar update for live WebSocket ticks — skips overlays that don't implement tick(). */
+  tickCandle(candle: Candle): void {
+    for (const overlay of this.overlays.values()) {
+      overlay.tick?.(candle)
+    }
+  }
+
   updateAnalysis(data: PipelineResult | null): void {
     for (const overlay of this.analysisOverlays.values()) {
       overlay.update(data)

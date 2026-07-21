@@ -33,6 +33,14 @@ export class VolumeOverlay implements IOverlay {
     })))
   }
 
+  tick(candle: Candle): void {
+    this.series?.update({
+      time:  Math.floor(candle.openTime / 1000) as UTCTimestamp,
+      value: candle.volume,
+      color: candle.close >= candle.open ? '#26a69a40' : '#ef535040',
+    })
+  }
+
   setVisible(visible: boolean): void {
     this.series?.applyOptions({ visible })
   }

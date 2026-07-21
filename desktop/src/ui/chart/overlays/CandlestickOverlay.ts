@@ -3,6 +3,7 @@ import {
   type IChartApi,
   type ISeriesApi,
   type UTCTimestamp,
+  type CandlestickData,
 } from 'lightweight-charts'
 import type { Candle } from '../../../modules/market/types'
 import type { IOverlay } from '../types'
@@ -33,6 +34,17 @@ export class CandlestickOverlay implements IOverlay {
       low: c.low,
       close: c.close,
     })))
+  }
+
+  tick(candle: Candle): void {
+    if (!this.series) return
+    this.series.update({
+      time:  Math.floor(candle.openTime / 1000) as UTCTimestamp,
+      open:  candle.open,
+      high:  candle.high,
+      low:   candle.low,
+      close: candle.close,
+    } satisfies CandlestickData<UTCTimestamp>)
   }
 
   setVisible(visible: boolean): void {

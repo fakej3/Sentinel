@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, forwardRef, useImperativeHandle } from 'react'
 import { createChart, CrosshairMode, type IChartApi } from 'lightweight-charts'
 import { fetchCandles } from '../../../modules/binance/endpoints'
+import { subscribeLiveCandles } from '../../../modules/binance/ws'
 import type { Candle, Timeframe } from '../../../modules/market/types'
 import type { PipelineResult } from '../../../modules/pipeline/types'
 import { OverlayManager } from '../../chart/OverlayManager'
@@ -33,12 +34,14 @@ function TradingViewChart({ symbol, interval, data, candles: controlledCandles }
   const containerRef = useRef<HTMLDivElement>(null)
   const chartRef = useRef<IChartApi | null>(null)
   const managerRef = useRef<OverlayManager | null>(null)
+  const candlesRef = useRef<Candle[]>([])   // live candle buffer — mutated without re-renders
   const [status, setStatus] = useState<'loading' | 'error' | 'ready'>('loading')
   const [errorMsg, setErrorMsg] = useState('')
 
   useImperativeHandle(ref, () => ({
     highlight(key: string | null) { managerRef.current?.highlight(key) },
     loadCandles(candles: Candle[]) {
+      candlesRef.current = candles
       managerRef.current?.updateAll(candles)
       chartRef.current?.timeScale().fitContent()
     },
@@ -108,22 +111,50 @@ function TradingViewChart({ symbol, interval, data, candles: controlledCandles }
     }
   }, [])
 
-  // Fetch and load market data whenever symbol or interval changes (live mode only).
+  // Fetch historical candles then subscribe to live WS ticks (live mode only).
   useEffect(() => {
-    if (controlledCandles !== undefined) return // replay mode — candles are injected externally
-    let cancelled = false
+    if (controlledCandles !== undefined) return  // replay mode — skip live feed
+    let cancelled  = false
+    let unsubWs: (() => void) | null = null
     setStatus('loading')
     setErrorMsg('')
 
     fetchCandles(symbol, interval as Timeframe)
-      .then(candles => {
+      .then(initial => {
         if (cancelled) return
         const manager = managerRef.current
         if (!manager) return
 
-        manager.updateAll(candles)
+        candlesRef.current = initial
+        manager.updateAll(initial)
         chartRef.current?.timeScale().fitContent()
         setStatus('ready')
+
+        // Start live WS feed — updates arrive without triggering React re-renders.
+        unsubWs = subscribeLiveCandles(symbol, interval as Timeframe, live => {
+          if (cancelled) return
+          const mgr = managerRef.current
+          if (!mgr) return
+
+          // Fast visual update: candlestick + volume only (O(1) series.update call).
+          mgr.tickCandle(live)
+
+          // Maintain the candles buffer — upsert by openTime.
+          const prev = candlesRef.current
+          const idx  = prev.findIndex(c => c.openTime === live.openTime)
+          if (idx >= 0) {
+            const next = prev.slice()
+            next[idx]  = live
+            candlesRef.current = next
+          } else {
+            candlesRef.current = prev.concat(live)
+          }
+
+          // On candle close, do a full update so EMAs and analysis overlays can refresh.
+          if (live.isClosed) {
+            mgr.updateAll(candlesRef.current)
+          }
+        })
       })
       .catch((err: unknown) => {
         if (cancelled) return
@@ -131,7 +162,10 @@ function TradingViewChart({ symbol, interval, data, candles: controlledCandles }
         setStatus('error')
       })
 
-    return () => { cancelled = true }
+    return () => {
+      cancelled = true
+      unsubWs?.()
+    }
   }, [symbol, interval, controlledCandles])
 
   // In controlled (replay) mode, push candles whenever they change.
