@@ -7,12 +7,18 @@ import { WebSidebar } from './components/WebSidebar'
 import { WebBottomNav } from './components/WebBottomNav'
 import { useAppState } from './hooks/useAppState'
 
-const WEB_PAGES = new Set<AppPage>(['dashboard', 'chart', 'replay', 'scanner', 'settings'])
+const WEB_PAGES = new Set<AppPage>([
+  'dashboard', 'chart', 'analysis', 'watchlist', 'history',
+  'replay', 'scanner', 'settings',
+])
 
-const DashboardPage  = lazy(() => import('@ui/pages/DashboardPage').then(m => ({ default: m.DashboardPage })))
-const ChartPage      = lazy(() => import('@ui/pages/ChartPage').then(m => ({ default: m.ChartPage })))
-const ReplayPage     = lazy(() => import('@ui/pages/ReplayPage').then(m => ({ default: m.ReplayPage })))
-const ScannerPage    = lazy(() => import('./pages/ScannerPage').then(m => ({ default: m.ScannerPage })))
+const DashboardPage   = lazy(() => import('@ui/pages/DashboardPage').then(m => ({ default: m.DashboardPage })))
+const ChartPage       = lazy(() => import('@ui/pages/ChartPage').then(m => ({ default: m.ChartPage })))
+const AnalysisPage    = lazy(() => import('@ui/pages/AnalysisPage').then(m => ({ default: m.AnalysisPage })))
+const WatchlistPage   = lazy(() => import('@ui/pages/WatchlistPage').then(m => ({ default: m.WatchlistPage })))
+const HistoryPage     = lazy(() => import('@ui/pages/HistoryPage').then(m => ({ default: m.HistoryPage })))
+const ReplayPage      = lazy(() => import('@ui/pages/ReplayPage').then(m => ({ default: m.ReplayPage })))
+const ScannerPage     = lazy(() => import('./pages/ScannerPage').then(m => ({ default: m.ScannerPage })))
 const WebSettingsPage = lazy(() => import('./pages/WebSettingsPage').then(m => ({ default: m.WebSettingsPage })))
 
 const DEFAULT_SYMBOL = 'BTCUSDT'
@@ -23,6 +29,7 @@ export default function App() {
     interval, setInterval,
     page, setPage,
     sidebarCollapsed,
+    watchlist,
     recentAnalyses,
     savedEntry,
     saving,
@@ -31,6 +38,9 @@ export default function App() {
     handleSaveAnalysis,
     handleSelectSymbol,
     handleToggleSidebar,
+    handleAddToWatchlist,
+    handleRemoveFromWatchlist,
+    handleLoadEntry,
     handleClearHistory,
     handleClearWatchlist,
     handleClearAll,
@@ -50,16 +60,12 @@ export default function App() {
     return () => window.removeEventListener('keydown', onKeyDown)
   }, [])
 
-  // Map desktop-only pages to their closest web equivalent so a stale
-  // localStorage value never leaves the user on a blank screen.
   const handleNavigate = useCallback((p: AppPage) => {
-    if (p === 'analysis') setPage('chart')
-    else if (!WEB_PAGES.has(p)) setPage('dashboard')
+    if (!WEB_PAGES.has(p)) setPage('dashboard')
     else setPage(p)
   }, [setPage])
 
-  // Guard: if localStorage holds a value from the desktop app that isn't
-  // supported here, reset it once on mount.
+  // Guard: if localStorage holds a page not supported here, reset once on mount.
   useEffect(() => {
     if (!WEB_PAGES.has(page)) setPage('dashboard')
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -116,6 +122,37 @@ export default function App() {
                 symbol={symbol || DEFAULT_SYMBOL}
                 interval={interval}
                 data={data}
+              />
+            )}
+            {page === 'analysis' && (
+              <AnalysisPage
+                data={data}
+                loading={loading}
+                savedEntry={savedEntry}
+                saving={saving}
+                onAnalyze={handleAnalyze}
+                onSave={handleSaveAnalysis}
+                symbol={symbol}
+              />
+            )}
+            {page === 'watchlist' && (
+              <WatchlistPage
+                symbol={symbol}
+                watchlist={watchlist}
+                recentAnalyses={recentAnalyses}
+                onAddToWatchlist={handleAddToWatchlist}
+                onRemoveFromWatchlist={handleRemoveFromWatchlist}
+                onSelectSymbol={handleSelectSymbol}
+                onAnalyze={handleAnalyze}
+              />
+            )}
+            {page === 'history' && (
+              <HistoryPage
+                recentAnalyses={recentAnalyses}
+                onSelectSymbol={handleSelectSymbol}
+                onClearHistory={handleClearHistory}
+                onNavigate={handleNavigate}
+                onLoadEntry={handleLoadEntry}
               />
             )}
             {page === 'replay' && (

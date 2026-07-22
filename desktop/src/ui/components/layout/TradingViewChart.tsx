@@ -51,6 +51,7 @@ function TradingViewChart({ symbol, interval, data, candles: controlledCandles }
 
   const [status,   setStatus]   = useState<'loading' | 'error' | 'ready'>('loading')
   const [errorMsg, setErrorMsg] = useState('')
+  const [retryKey, setRetryKey] = useState(0)
 
   useImperativeHandle(ref, () => ({
     highlight(key: string | null) { managerRef.current?.highlight(key) },
@@ -230,7 +231,7 @@ function TradingViewChart({ symbol, interval, data, candles: controlledCandles }
       cancelled = true
       unsubWs?.()
     }
-  }, [symbol, interval, controlledCandles])
+  }, [symbol, interval, controlledCandles, retryKey])
 
   // In controlled (replay) mode, push candles whenever they change.
   useEffect(() => {
@@ -291,8 +292,19 @@ function TradingViewChart({ symbol, interval, data, candles: controlledCandles }
       )}
 
       {status === 'error' && (
-        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-          <span className="text-red-400 text-sm">{errorMsg}</span>
+        <div className="absolute inset-0 flex flex-col items-center justify-center gap-3">
+          <span className="text-red-400 text-sm text-center max-w-xs px-4">{errorMsg}</span>
+          <p className="text-slate-500 text-xs text-center max-w-xs px-4">
+            Check that the symbol is valid (e.g. BTCUSDT) and your connection is active.
+          </p>
+          <button
+            onClick={() => setRetryKey(k => k + 1)}
+            className="h-7 px-4 text-xs font-medium bg-surface-700 hover:bg-surface-600 text-slate-300
+                       border border-border-subtle rounded-lg transition-colors
+                       focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-blue-500"
+          >
+            Retry
+          </button>
         </div>
       )}
     </div>

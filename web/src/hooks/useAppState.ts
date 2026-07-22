@@ -5,7 +5,7 @@ import { resolveSymbol } from '@ui/utils/symbolSearch'
 import { getTransport } from '../transport'
 import { STORAGE_KEYS } from '@ui/constants/storageKeys'
 import type { AppPage, RecentAnalysis } from '@ui/types'
-import type { HistoryMeta } from '../transport'
+import type { HistoryMeta, HistoryEntry } from '../transport'
 
 const DEFAULT_SYMBOL   = 'BTCUSDT'
 const DEFAULT_INTERVAL = '1h'
@@ -68,6 +68,14 @@ export function useAppState() {
   const handleAddToWatchlist      = useCallback((sym: string) => setWatchlist(p => p.includes(sym) ? p : [...p, sym]), [setWatchlist])
   const handleRemoveFromWatchlist = useCallback((sym: string) => setWatchlist(p => p.filter(s => s !== sym)), [setWatchlist])
 
+  const handleLoadEntry = useCallback((entry: HistoryEntry) => {
+    const { result, ...meta } = entry
+    setSymbol(meta.symbol)
+    setInterval(meta.interval)
+    setSavedEntry(meta)
+    loadData(result)
+  }, [setSymbol, setInterval, loadData])
+
   const handleClearHistory   = useCallback(() => setRecentAnalyses([]), [setRecentAnalyses])
   const handleClearWatchlist = useCallback(() => setWatchlist([]), [setWatchlist])
 
@@ -101,6 +109,7 @@ export function useAppState() {
     handleToggleSidebar,
     handleAddToWatchlist,
     handleRemoveFromWatchlist,
+    handleLoadEntry,
     handleClearHistory,
     handleClearWatchlist,
     handleClearAll,

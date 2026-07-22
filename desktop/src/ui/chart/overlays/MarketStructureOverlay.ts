@@ -21,7 +21,6 @@ import type { IAnalysisOverlay } from '../types'
 
 const MAX_BOS_LINES   = 2
 const MAX_CHOCH_LINES = 1
-const MAX_SWING_NODES = 10
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -138,10 +137,9 @@ export class MarketStructureOverlay implements IAnalysisOverlay {
     const times = candles.map(c => Math.floor(c.openTime / 1000) as UTCTimestamp)
     this.markerHost?.setData(times.map(time => ({ time, value: 0 })))
 
-    // ── Swing markers ─────────────────────────────────────────────────────────
-    const recentSwings = marketStructure.swings.slice(-MAX_SWING_NODES)
-    const markers: SeriesMarker<UTCTimestamp>[] = recentSwings
-      .filter(s => s.label !== null)
+    // ── Swing markers — all labeled swings so HH/HL/LH/LL labels are correct ─
+    const labeledSwings = marketStructure.swings.filter(s => s.label !== null)
+    const markers: SeriesMarker<UTCTimestamp>[] = labeledSwings
       .map(s => ({
         time: Math.floor(s.timestamp / 1000) as UTCTimestamp,
         position: s.type === 'high' ? 'aboveBar' : 'belowBar',
@@ -155,8 +153,7 @@ export class MarketStructureOverlay implements IAnalysisOverlay {
     this.markerPlugin?.setMarkers(markers)
 
     // ── Zigzag ───────────────────────────────────────────────────────────────
-    const zigzag = recentSwings
-      .filter(s => s.label !== null)
+    const zigzag = labeledSwings
       .map(s => ({
         time: Math.floor(s.timestamp / 1000) as UTCTimestamp,
         value: s.price,
