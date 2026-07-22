@@ -21,6 +21,7 @@ export class EmaOverlay implements IOverlay {
   private lit = false
   private lastLength = 0
   private lastClose  = NaN
+  private valueMap: Map<number, number> = new Map()
 
   constructor(config: EmaConfig) {
     this.config = config
@@ -48,13 +49,16 @@ export class EmaOverlay implements IOverlay {
     const emaValues = computeEma(closes, this.config.period)
     if (emaValues.length === 0) {
       this.series.setData([])
+      this.valueMap.clear()
       return
     }
     const offset = candles.length - emaValues.length
-    this.series.setData(emaValues.map((value, i) => ({
+    const data = emaValues.map((value, i) => ({
       time: Math.floor(candles[offset + i].openTime / 1000) as UTCTimestamp,
       value,
-    })))
+    }))
+    this.series.setData(data)
+    this.valueMap = new Map(data.map(d => [d.time as number, d.value]))
   }
 
   setVisible(visible: boolean): void {
@@ -69,6 +73,10 @@ export class EmaOverlay implements IOverlay {
     this.series.applyOptions({ lineWidth: mine ? 3 : 1 })
   }
 
+  getValueAt(time: number): number | undefined {
+    return this.valueMap.get(time)
+  }
+
   dispose(): void {
     if (this.series && this.chart) {
       this.chart.removeSeries(this.series)
@@ -77,5 +85,6 @@ export class EmaOverlay implements IOverlay {
     this.chart      = null
     this.lastLength = 0
     this.lastClose  = NaN
+    this.valueMap.clear()
   }
 }

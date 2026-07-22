@@ -101,12 +101,13 @@ export class MarketStructureOverlay implements IAnalysisOverlay {
     this.markerPlugin = createSeriesMarkers(this.markerHost) as ISeriesMarkersPluginApi<UTCTimestamp>
 
     this.swingLine = chart.addSeries(LineSeries, {
-      color: 'rgba(100, 116, 139, 0.30)',
+      color: 'rgba(100, 116, 139, 0.45)',
       lineWidth: 1,
       priceLineVisible: false,
       lastValueVisible: false,
       crosshairMarkerVisible: false,
       lineStyle: LineStyle.Dashed,
+      autoscaleInfoProvider: () => null,
     })
     this.swingLine.setData([])
 
@@ -114,7 +115,7 @@ export class MarketStructureOverlay implements IAnalysisOverlay {
     this.trendBadge = createTextWatermark(pane, {
       horzAlign: 'left',
       vertAlign: 'top',
-      lines: [{ text: '', color: 'rgba(0,0,0,0)', fontSize: 10, fontStyle: 'bold' }],
+      lines: [{ text: '', color: 'rgba(0,0,0,0)', fontSize: 11, fontStyle: 'bold' }],
     })
   }
 
@@ -127,7 +128,7 @@ export class MarketStructureOverlay implements IAnalysisOverlay {
       this.markerHost?.setData([])
       this.lastMarkers = []
       this.trendBadge?.applyOptions({
-        lines: [{ text: '', color: 'rgba(0,0,0,0)', fontSize: 10 }],
+        lines: [{ text: '', color: 'rgba(0,0,0,0)', fontSize: 11 }],
       })
       return
     }
@@ -203,7 +204,7 @@ export class MarketStructureOverlay implements IAnalysisOverlay {
       lines: [{
         text: trendLabel(marketStructure.trend, marketStructure.strength),
         color: trendColor(marketStructure.trend),
-        fontSize: 10,
+        fontSize: 11,
         fontStyle: 'bold',
       }],
     })
@@ -215,7 +216,7 @@ export class MarketStructureOverlay implements IAnalysisOverlay {
     this.swingLine?.applyOptions({ visible })
     if (!visible) {
       this.trendBadge?.applyOptions({
-        lines: [{ text: '', color: 'rgba(0,0,0,0)', fontSize: 10 }],
+        lines: [{ text: '', color: 'rgba(0,0,0,0)', fontSize: 11 }],
       })
     }
     // On setVisible(true), OverlayManager immediately calls update(lastData) to restore

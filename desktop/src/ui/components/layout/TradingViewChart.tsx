@@ -31,6 +31,14 @@ interface TradingViewChartProps {
   candles?: Candle[]
 }
 
+// EMA config in declaration order — used both for overlay creation and HUD coloring
+const EMA_CONFIGS = [
+  { period: 20,  color: 'rgba(59, 130, 246, 0.50)',  hudColor: '#60a5fa' },
+  { period: 50,  color: 'rgba(234, 179, 8, 0.65)',   hudColor: '#fbbf24' },
+  { period: 100, color: 'rgba(16, 185, 129, 0.65)',  hudColor: '#34d399' },
+  { period: 200, color: 'rgba(139, 92, 246, 0.85)',  hudColor: '#a78bfa' },
+] as const
+
 export const TradingViewChart = forwardRef<TradingViewChartHandle, TradingViewChartProps>(
 function TradingViewChart({ symbol, interval, data, candles: controlledCandles }, ref) {
   const containerRef  = useRef<HTMLDivElement>(null)
@@ -39,6 +47,9 @@ function TradingViewChart({ symbol, interval, data, candles: controlledCandles }
   const candlesRef    = useRef<Candle[]>([])
   const candleMapRef  = useRef<Map<number, Candle>>(new Map())
   const marketTypeRef = useRef<'spot' | 'futures'>('spot')
+
+  // References to EMA overlays for crosshair value lookup
+  const emaOverlaysRef = useRef<EmaOverlay[]>([])
 
   // HUD element refs — updated via direct DOM writes on every crosshair move (no re-render)
   const hudRef        = useRef<HTMLDivElement>(null)
@@ -49,6 +60,8 @@ function TradingViewChart({ symbol, interval, data, candles: controlledCandles }
   const hudCloseRef   = useRef<HTMLSpanElement>(null)
   const hudChangeRef  = useRef<HTMLSpanElement>(null)
   const hudVolRef     = useRef<HTMLSpanElement>(null)
+  // EMA value spans (indexed 0-3 = E20, E50, E100, E200)
+  const hudEmaRefs    = useRef<(HTMLSpanElement | null)[]>([null, null, null, null])
 
   const [status,   setStatus]   = useState<'loading' | 'error' | 'ready'>('loading')
   const [errorMsg, setErrorMsg] = useState('')
@@ -74,27 +87,38 @@ function TradingViewChart({ symbol, interval, data, candles: controlledCandles }
       layout: {
         background: { color: '#0c0f18' },
         textColor: '#94a3b8',
+        fontSize: 11,
       },
       grid: {
-        vertLines: { color: '#111827' },
-        horzLines: { color: '#1a2035' },
+        vertLines: { color: '#0f1621' },
+        horzLines: { color: '#141e2e' },
       },
       crosshair: {
         mode: CrosshairMode.Magnet,
-        vertLine: { color: 'rgba(119,134,150,0.4)', width: 1, style: 0, labelBackgroundColor: '#1e293b' },
-        horzLine: { color: 'rgba(119,134,150,0.4)', width: 1, style: 0, labelBackgroundColor: '#1e293b' },
+        vertLine: {
+          color: 'rgba(148, 163, 184, 0.35)',
+          width: 1,
+          style: 0,
+          labelBackgroundColor: '#1e293b',
+        },
+        horzLine: {
+          color: 'rgba(148, 163, 184, 0.35)',
+          width: 1,
+          style: 0,
+          labelBackgroundColor: '#1e293b',
+        },
       },
       timeScale: {
-        borderColor: '#1e2a3a',
+        borderColor: '#1a2535',
         timeVisible: true,
         secondsVisible: false,
-        rightOffset: 12,
+        rightOffset: 15,
         barSpacing: 8,
-        minBarSpacing: 3,
+        minBarSpacing: 2,
       },
       rightPriceScale: {
-        borderColor: '#1e2a3a',
-        scaleMargins: { top: 0.12, bottom: 0.08 },
+        borderColor: '#1a2535',
+        scaleMargins: { top: 0.15, bottom: 0.10 },
       },
     })
 
@@ -102,10 +126,13 @@ function TradingViewChart({ symbol, interval, data, candles: controlledCandles }
 
     manager.add(new CandlestickOverlay())
     manager.add(new VolumeOverlay())
-    manager.add(new EmaOverlay({ period: 20,  color: 'rgba(59, 130, 246, 0.45)' }))
-    manager.add(new EmaOverlay({ period: 50,  color: 'rgba(234, 179, 8, 0.60)' }))
-    manager.add(new EmaOverlay({ period: 100, color: 'rgba(16, 185, 129, 0.60)' }))
-    manager.add(new EmaOverlay({ period: 200, color: 'rgba(139, 92, 246, 0.85)' }))
+
+    const emaOverlays = EMA_CONFIGS.map(cfg => {
+      const ema = new EmaOverlay({ period: cfg.period, color: cfg.color })
+      manager.add(ema)
+      return ema
+    })
+    emaOverlaysRef.current = emaOverlays
 
     manager.addAnalysis(new SupportResistanceOverlay())
     manager.addAnalysis(new EntryZoneOverlay())
@@ -164,6 +191,15 @@ function TradingViewChart({ symbol, interval, data, candles: controlledCandles }
       }
 
       if (volEl) volEl.textContent = formatVolume(candle.volume)
+
+      // EMA values at this candle
+      const utcSec = param.time as number
+      emaOverlaysRef.current.forEach((ema, i) => {
+        const el = hudEmaRefs.current[i]
+        if (!el) return
+        const v = ema.getValueAt(utcSec)
+        el.textContent = v !== undefined ? formatPrice(v) : ''
+      })
     }
 
     chart.subscribeCrosshairMove(onCrosshair)
@@ -172,8 +208,9 @@ function TradingViewChart({ symbol, interval, data, candles: controlledCandles }
       chart.unsubscribeCrosshairMove(onCrosshair)
       manager.dispose()
       chart.remove()
-      chartRef.current  = null
-      managerRef.current = null
+      chartRef.current     = null
+      managerRef.current   = null
+      emaOverlaysRef.current = []
     }
   }, [])
 
@@ -267,24 +304,38 @@ function TradingViewChart({ symbol, interval, data, candles: controlledCandles }
 
       <IndicatorPanel onToggle={handleToggle} />
 
-      {/* Crosshair OHLCV HUD — DOM-updated directly, no re-render on cursor move */}
+      {/* Crosshair OHLCV + EMA HUD — DOM-updated directly, no re-render on cursor move */}
       <div
         ref={hudRef}
         style={{ display: 'none' }}
-        className="absolute top-2 left-2 pointer-events-none z-10 flex items-center gap-2.5 px-2.5 py-1 rounded bg-[#0c0f18]/90 border border-white/[0.06] text-[11px] font-mono"
+        className="absolute top-2 left-2 pointer-events-none z-10 flex items-center gap-2 px-2.5 py-1 rounded bg-[#0c0f18]/90 border border-white/[0.06] text-[11px] font-mono"
       >
-        <span ref={hudTimeRef}   className="text-slate-500" />
-        <span className="text-slate-600">O</span>
-        <span ref={hudOpenRef}   className="text-slate-200" />
-        <span className="text-slate-600">H</span>
-        <span ref={hudHighRef}   className="text-slate-200" />
-        <span className="text-slate-600">L</span>
-        <span ref={hudLowRef}    className="text-slate-200" />
-        <span className="text-slate-600">C</span>
-        <span ref={hudCloseRef}  className="text-slate-200" />
-        <span ref={hudChangeRef} />
-        <span className="text-slate-600">Vol</span>
-        <span ref={hudVolRef}    className="text-slate-400" />
+        <span ref={hudTimeRef} className="text-slate-500 mr-0.5" />
+        <span className="text-slate-700">|</span>
+        <span className="text-slate-600 text-[10px]">O</span>
+        <span ref={hudOpenRef}  className="text-slate-200" />
+        <span className="text-slate-600 text-[10px]">H</span>
+        <span ref={hudHighRef}  className="text-slate-200" />
+        <span className="text-slate-600 text-[10px]">L</span>
+        <span ref={hudLowRef}   className="text-slate-200" />
+        <span className="text-slate-600 text-[10px]">C</span>
+        <span ref={hudCloseRef} className="text-slate-200" />
+        <span ref={hudChangeRef} className="ml-0.5" />
+        <span className="text-slate-700">|</span>
+        <span className="text-slate-600 text-[10px]">Vol</span>
+        <span ref={hudVolRef}   className="text-slate-400" />
+        {/* EMA values — colored to match their line */}
+        <span className="text-slate-700">|</span>
+        {EMA_CONFIGS.map((cfg, i) => (
+          <span key={cfg.period} className="flex items-center gap-1">
+            <span className="text-[9px]" style={{ color: cfg.hudColor }}>E{cfg.period}</span>
+            <span
+              ref={el => { hudEmaRefs.current[i] = el }}
+              className="text-[11px]"
+              style={{ color: cfg.hudColor }}
+            />
+          </span>
+        ))}
       </div>
 
       {status === 'loading' && (
