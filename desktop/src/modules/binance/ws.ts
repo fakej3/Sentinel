@@ -1,6 +1,7 @@
 import type { Candle, Timeframe } from '../market/types'
 
-const WS_BASE            = 'wss://stream.binance.com:9443/ws'
+const WS_SPOT_BASE       = 'wss://stream.binance.com:9443/ws'
+const WS_FUTURES_BASE    = 'wss://fstream.binance.com/ws'
 const INITIAL_BACKOFF_MS = 1_000
 const MAX_BACKOFF_MS     = 30_000
 
@@ -20,9 +21,11 @@ export function subscribeLiveCandles(
   symbol: string,
   interval: Timeframe,
   onCandle: LiveCandleHandler,
+  market: 'spot' | 'futures' = 'spot',
 ): () => void {
+  const wsBase = market === 'futures' ? WS_FUTURES_BASE : WS_SPOT_BASE
   const stream = `${symbol.toLowerCase()}@kline_${interval}`
-  const url    = `${WS_BASE}/${stream}`
+  const url    = `${wsBase}/${stream}`
 
   let ws: WebSocket | null = null
   let retryDelay           = INITIAL_BACKOFF_MS

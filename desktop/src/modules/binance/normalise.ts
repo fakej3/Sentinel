@@ -46,6 +46,23 @@ export interface RawOpenInterest {
   time: number
 }
 
+// Binance Futures /fapi/v1/ticker/24hr — no bid/ask fields
+export interface RawFuturesTicker24h {
+  symbol: string
+  priceChange: string
+  priceChangePercent: string
+  weightedAvgPrice: string
+  lastPrice: string
+  openPrice: string
+  highPrice: string
+  lowPrice: string
+  volume: string
+  quoteVolume: string
+  openTime: number
+  closeTime: number
+  count: number
+}
+
 export function normaliseCandle(raw: RawCandle): Candle {
   const totalVolume = parseFloat(raw[5])
   const takerBuyVolume = parseFloat(raw[9])
@@ -101,5 +118,26 @@ export function normaliseOpenInterest(raw: RawOpenInterest): OpenInterest {
     symbol: raw.symbol,
     openInterest: parseFloat(raw.openInterest),
     timestamp: raw.time,
+  }
+}
+
+export function normaliseFuturesTicker24h(raw: RawFuturesTicker24h): Ticker24h {
+  const lastPrice = parseFloat(raw.lastPrice)
+  return {
+    symbol: raw.symbol,
+    priceChange: parseFloat(raw.priceChange),
+    priceChangePercent: parseFloat(raw.priceChangePercent),
+    weightedAvgPrice: parseFloat(raw.weightedAvgPrice),
+    lastPrice,
+    bidPrice: lastPrice,
+    askPrice: lastPrice,
+    openPrice: parseFloat(raw.openPrice),
+    highPrice: parseFloat(raw.highPrice),
+    lowPrice: parseFloat(raw.lowPrice),
+    volume: parseFloat(raw.volume),
+    quoteVolume: parseFloat(raw.quoteVolume),
+    openTime: raw.openTime,
+    closeTime: raw.closeTime,
+    tradeCount: raw.count,
   }
 }

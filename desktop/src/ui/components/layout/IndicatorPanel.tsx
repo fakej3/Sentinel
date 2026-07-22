@@ -18,6 +18,9 @@ export const INDICATORS = [
 export type IndicatorId    = typeof INDICATORS[number]['id']
 export type IndicatorGroup = typeof INDICATORS[number]['group']
 
+const ROW1 = INDICATORS.slice(0, 6)
+const ROW2 = INDICATORS.slice(6)
+
 const STORAGE_KEY = 'sentinel:indicator-visibility'
 
 type VisibilityMap = Record<IndicatorId, boolean>
@@ -52,21 +55,27 @@ export function IndicatorPanel({ onToggle }: IndicatorPanelProps) {
     onToggle(id, next)
   }
 
+  const chipClass = (id: IndicatorId) =>
+    visibility[id]
+      ? 'h-5 px-1.5 text-[10px] font-medium rounded border leading-none transition-colors bg-slate-700/70 border-slate-500/60 text-slate-200 hover:bg-slate-600/70 hover:border-slate-400/60'
+      : 'h-5 px-1.5 text-[10px] font-medium rounded border leading-none transition-colors bg-slate-900/40 border-slate-700/30 text-slate-600 hover:border-slate-600/50 hover:text-slate-500'
+
   return (
-    <div className="absolute bottom-8 left-2 z-10 flex items-center gap-1 flex-wrap justify-start pointer-events-auto max-w-[220px]">
-      {INDICATORS.map(({ id, label }) => (
-        <button
-          key={id}
-          onClick={() => toggle(id)}
-          className={`px-1.5 py-0.5 text-[10px] font-mono rounded border leading-none transition-colors ${
-            visibility[id]
-              ? 'bg-slate-700/60 border-slate-600/80 text-slate-300 hover:bg-slate-600/60'
-              : 'bg-transparent border-slate-700/30 text-slate-600 hover:border-slate-600/50 hover:text-slate-500'
-          }`}
-        >
-          {label}
-        </button>
-      ))}
+    <div className="absolute bottom-8 left-2 z-10 flex flex-col gap-0.5 pointer-events-auto">
+      <div className="flex items-center gap-1">
+        {ROW1.map(({ id, label }) => (
+          <button key={id} onClick={() => toggle(id)} className={chipClass(id)}>
+            {label}
+          </button>
+        ))}
+      </div>
+      <div className="flex items-center gap-1">
+        {ROW2.map(({ id, label }) => (
+          <button key={id} onClick={() => toggle(id)} className={chipClass(id)}>
+            {label}
+          </button>
+        ))}
+      </div>
     </div>
   )
 }

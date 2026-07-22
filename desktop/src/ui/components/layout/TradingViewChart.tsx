@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, useCallback, forwardRef, useImperativeHandle } from 'react'
 import { createChart, CrosshairMode, type IChartApi, type MouseEventParams, type Time } from 'lightweight-charts'
-import { fetchCandles } from '../../../modules/binance/endpoints'
+import { fetchCandlesAuto } from '../../../modules/binance/endpoints'
 import { subscribeLiveCandles } from '../../../modules/binance/ws'
 import type { Candle, Timeframe } from '../../../modules/market/types'
 import type { PipelineResult } from '../../../modules/pipeline/types'
@@ -38,6 +38,7 @@ function TradingViewChart({ symbol, interval, data, candles: controlledCandles }
   const managerRef    = useRef<OverlayManager | null>(null)
   const candlesRef    = useRef<Candle[]>([])
   const candleMapRef  = useRef<Map<number, Candle>>(new Map())
+  const marketTypeRef = useRef<'spot' | 'futures'>('spot')
 
   // HUD element refs — updated via direct DOM writes on every crosshair move (no re-render)
   const hudRef        = useRef<HTMLDivElement>(null)
@@ -184,12 +185,13 @@ function TradingViewChart({ symbol, interval, data, candles: controlledCandles }
     setStatus('loading')
     setErrorMsg('')
 
-    fetchCandles(symbol, interval as Timeframe)
-      .then(initial => {
+    fetchCandlesAuto(symbol, interval as Timeframe)
+      .then(({ candles: initial, market }) => {
         if (cancelled) return
         const manager = managerRef.current
         if (!manager) return
 
+        marketTypeRef.current = market
         candlesRef.current   = initial
         candleMapRef.current = new Map(initial.map(c => [c.openTime, c]))
         manager.updateAll(initial)
@@ -219,7 +221,7 @@ function TradingViewChart({ symbol, interval, data, candles: controlledCandles }
           if (live.isClosed) {
             mgr.updateAll(candlesRef.current)
           }
-        })
+        }, marketTypeRef.current)
       })
       .catch((err: unknown) => {
         if (cancelled) return

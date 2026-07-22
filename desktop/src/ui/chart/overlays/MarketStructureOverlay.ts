@@ -95,6 +95,7 @@ export class MarketStructureOverlay implements IAnalysisOverlay {
       priceLineVisible: false,
       lastValueVisible: false,
       crosshairMarkerVisible: false,
+      autoscaleInfoProvider: () => null,
     })
     this.markerHost.setData([])
     this.markerPlugin = createSeriesMarkers(this.markerHost) as ISeriesMarkersPluginApi<UTCTimestamp>
@@ -133,9 +134,19 @@ export class MarketStructureOverlay implements IAnalysisOverlay {
 
     const { marketStructure, candles } = data
 
-    // Anchor marker host to all candle timestamps
+    // Anchor marker host to all candle timestamps; use actual prices so markers
+    // appear at the correct chart position (aboveBar/belowBar is relative to series value).
+    const candleByTime = new Map(candles.map(c => [Math.floor(c.openTime / 1000), c]))
+    const swingByTime  = new Map(marketStructure.swings.map(s => [Math.floor(s.timestamp / 1000), s]))
     const times = candles.map(c => Math.floor(c.openTime / 1000) as UTCTimestamp)
-    this.markerHost?.setData(times.map(time => ({ time, value: 0 })))
+    this.markerHost?.setData(times.map(time => {
+      const swing  = swingByTime.get(time as number)
+      const candle = candleByTime.get(time as number)
+      if (swing && candle) {
+        return { time, value: swing.type === 'high' ? candle.high : candle.low }
+      }
+      return { time, value: candle?.close ?? 0 }
+    }))
 
     // ── Swing markers — all labeled swings so HH/HL/LH/LL labels are correct ─
     const labeledSwings = marketStructure.swings.filter(s => s.label !== null)

@@ -7,11 +7,12 @@
  * Deps:    Binance REST API (external)
  */
 import { BinanceApiError } from './client'
-import { fetchCandles, fetchTicker24h, fetchFundingRate, fetchOpenInterest } from './endpoints'
+import { fetchCandlesAuto, fetchTicker24hAuto, fetchFundingRate, fetchOpenInterest } from './endpoints'
 import { VALID_TIMEFRAMES, DEFAULT_CANDLE_LIMIT } from './constants'
 import type { MarketData, Timeframe, FetchOptions } from './types'
 
 export { BinanceApiError } from './client'
+export type { MarketType } from './endpoints'
 export type {
   MarketData,
   Candle,
@@ -39,9 +40,9 @@ export async function fetchMarketData(
     includeOpenInterest = false,
   } = options
 
-  const [candles, ticker] = await Promise.all([
-    fetchCandles(upperSymbol, timeframe, candleLimit),
-    fetchTicker24h(upperSymbol),
+  const [{ candles }, { ticker }] = await Promise.all([
+    fetchCandlesAuto(upperSymbol, timeframe, candleLimit),
+    fetchTicker24hAuto(upperSymbol),
   ])
 
   const [fundingRate, openInterest] = await Promise.all([
