@@ -185,13 +185,24 @@ export function collectEvidence(
   }
 
   // ── MACD evidence ─────────────────────────────────────────────────────────
+  // Per ENGINE_RULES.md §4: require histogram to be moving in the signal direction.
+  // When previousHistogram is null (first MACD bar), emit on bias alone.
+  // When decelerating (histogram shrinking toward zero), suppress the evidence item —
+  // momentum is fading and the confidence boost is no longer warranted.
+  const macdPrevHist = indicators.macd?.previousHistogram ?? null
   if (indicatorSummary.macd.bias === 'bullish') {
-    items.push(item(F_MACD_BULLISH, 'medium',
-      `MACD line above signal line (histogram ${indicatorSummary.macd.histogram?.toFixed(4) ?? '?'})`, 'indicators', 'bullish'))
+    const accelerating = macdPrevHist === null || indicators.macd!.histogram > macdPrevHist
+    if (accelerating) {
+      items.push(item(F_MACD_BULLISH, 'medium',
+        `MACD line above signal line (histogram ${indicatorSummary.macd.histogram?.toFixed(4) ?? '?'})`, 'indicators', 'bullish'))
+    }
   }
   if (indicatorSummary.macd.bias === 'bearish') {
-    items.push(item(F_MACD_BEARISH, 'medium',
-      `MACD line below signal line (histogram ${indicatorSummary.macd.histogram?.toFixed(4) ?? '?'})`, 'indicators', 'bearish'))
+    const accelerating = macdPrevHist === null || indicators.macd!.histogram < macdPrevHist
+    if (accelerating) {
+      items.push(item(F_MACD_BEARISH, 'medium',
+        `MACD line below signal line (histogram ${indicatorSummary.macd.histogram?.toFixed(4) ?? '?'})`, 'indicators', 'bearish'))
+    }
   }
 
   // ── ADX evidence ──────────────────────────────────────────────────────────

@@ -55,11 +55,17 @@ export function computeTradePlan(
   // ── Invalidation level ────────────────────────────────────────────────────
   // Bullish: a close below support breaks the thesis.
   // Bearish: a close above resistance breaks the thesis.
+  // Stop buffer scales with ATR so high-volatility assets get a wider cushion
+  // (fixed 0.5% is too tight for crypto with 2–5% daily ATR).
+  const atrPct = analysis.price.atrPercent
+  const stopBufferFraction = atrPct !== null
+    ? Math.max(0.005, atrPct / 200)   // max(0.5%, half ATR as a fraction)
+    : 0.005
   let invalidationLevel: number | null = null
   if (isBullish && effectiveSupport) {
-    invalidationLevel = effectiveSupport.lower * 0.995
+    invalidationLevel = effectiveSupport.lower * (1 - stopBufferFraction)
   } else if (isBearish && effectiveResistance) {
-    invalidationLevel = effectiveResistance.upper * 1.005
+    invalidationLevel = effectiveResistance.upper * (1 + stopBufferFraction)
   }
 
   // ── Target level ──────────────────────────────────────────────────────────

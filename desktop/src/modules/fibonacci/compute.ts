@@ -16,11 +16,40 @@ function labelFor(ratio: number): string {
   return ratio.toFixed(3)
 }
 
+/**
+ * Returns the most recently completed impulse leg that matches the trend:
+ *   Bullish — most recent HH swing + the most recent HL that immediately preceded it.
+ *   Bearish — most recent LL swing + the most recent LH that immediately preceded it.
+ *
+ * Anchoring to the most recent impulse keeps Fibonacci levels tied to the move traders
+ * are currently watching rather than to whatever historical leg happened to be largest.
+ */
+function findMostRecentImpulse(
+  labeled: SwingPoint[],
+  trend: TrendDirection,
+): { high: SwingPoint; low: SwingPoint } | null {
+  if (trend === 'bullish') {
+    const hhs = labeled.filter(s => s.label === 'HH').sort((a, b) => b.index - a.index)
+    const hls = labeled.filter(s => s.label === 'HL')
+    for (const hh of hhs) {
+      const hl = hls.filter(l => l.index < hh.index).sort((a, b) => b.index - a.index)[0]
+      if (hl && hh.price > hl.price) return { high: hh, low: hl }
+    }
+  } else if (trend === 'bearish') {
+    const lls = labeled.filter(s => s.label === 'LL').sort((a, b) => b.index - a.index)
+    const lhs = labeled.filter(s => s.label === 'LH')
+    for (const ll of lls) {
+      const lh = lhs.filter(h => h.index < ll.index).sort((a, b) => b.index - a.index)[0]
+      if (lh && lh.price > ll.price) return { high: lh, low: ll }
+    }
+  }
+  return null
+}
+
 function findDominantPair(
   swings: SwingPoint[],
   trend: TrendDirection,
 ): { high: SwingPoint; low: SwingPoint } | null {
-  // Use the last SWING_LOOKBACK labeled swings that have a classification
   const labeled = swings.filter(s => s.label !== null).slice(-SWING_LOOKBACK)
   if (labeled.length < 2) return null
 
@@ -28,18 +57,20 @@ function findDominantPair(
   const lows  = labeled.filter(s => s.type === 'low')
   if (highs.length === 0 || lows.length === 0) return null
 
-  // For bullish/bearish trends, prefer pairs whose time ordering matches the trend:
-  //   Bullish → low precedes high (price moved up from low to high)
-  //   Bearish → high precedes low (price moved down from high to low)
-  // Among qualifying pairs, select the one with the largest price range.
-  // If no trend-ordered pair exists, fall back to the unconstrained max-range pair.
+  // Primary: anchor to the most recent confirmed impulse leg — traders use the
+  // current move's swing points, not the historically largest range.
+  const recentImpulse = findMostRecentImpulse(labeled, trend)
+  if (recentImpulse) return recentImpulse
+
+  // Fallback: use the largest trend-ordered pair (original behaviour).
+  // Covers ranging markets and situations where no labelled impulse is found.
   let bestHigh: SwingPoint | null = null
   let bestLow: SwingPoint | null  = null
   let maxRange = 0
 
   const orderedOk = (h: SwingPoint, l: SwingPoint) => {
-    if (trend === 'bullish') return l.index < h.index   // low came first
-    if (trend === 'bearish') return h.index < l.index   // high came first
+    if (trend === 'bullish') return l.index < h.index
+    if (trend === 'bearish') return h.index < l.index
     return true
   }
 
@@ -54,7 +85,6 @@ function findDominantPair(
     }
   }
 
-  // Fallback: if no trend-ordered pair found, use the unconstrained max-range pair.
   if (!bestHigh || !bestLow) {
     maxRange = 0
     for (const h of highs) {
