@@ -23,7 +23,7 @@ export function useAppState() {
   const [saving,      setSaving     ] = useState(false)
   const savingRef = useRef(false)
 
-  const { data, loading, stage, error, analyze, cancel, loadData } = useAnalyze()
+  const { data, loading, stage, error, errorDetail, analyze, cancel, loadData } = useAnalyze()
 
   const handleAnalyze = useCallback(async (symOverride?: string) => {
     const sym = resolveSymbol(symOverride ?? symbol)
@@ -103,7 +103,7 @@ export function useAppState() {
     savedEntry,
     saving,
     // Analysis state from useAnalyze
-    data, loading, stage, error, cancel,
+    data, loading, stage, error, errorDetail, cancel,
     // Callbacks
     handleAnalyze,
     handleSaveAnalysis,

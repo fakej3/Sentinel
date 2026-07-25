@@ -1,8 +1,26 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
-vi.mock('../client', () => ({
-  spotRequest: vi.fn(),
-  futuresRequest: vi.fn(),
+vi.mock('../client', () => {
+  class BinanceApiError extends Error {
+    statusCode?: number
+    endpoint?: string
+    constructor(message: string, statusCode?: number, endpoint?: string) {
+      super(message)
+      this.name = 'BinanceApiError'
+      this.statusCode = statusCode
+      this.endpoint = endpoint
+    }
+  }
+  return { BinanceApiError, spotRequest: vi.fn(), futuresRequest: vi.fn() }
+})
+
+vi.mock('../registry', () => ({
+  symbolRegistry: {
+    prime: vi.fn(),
+    getMarket: vi.fn(() => 'unknown'),
+    getAll: vi.fn(() => []),
+    isReady: vi.fn(() => false),
+  },
 }))
 
 import { spotRequest, futuresRequest } from '../client'

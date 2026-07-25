@@ -13,6 +13,7 @@ interface DashboardPageProps {
   interval: string
   loading: boolean
   error: string | null
+  errorDetail?: string
   data: PipelineResult | null
   recentAnalyses: RecentAnalysis[]
   savedEntry: HistoryMeta | null
@@ -24,7 +25,7 @@ interface DashboardPageProps {
 }
 
 export function DashboardPage({
-  symbol, interval, loading, error, data, recentAnalyses,
+  symbol, interval, loading, error, errorDetail, data, recentAnalyses,
   savedEntry, saving, onAnalyze, onSave, onSymbolSelect, onNavigate,
 }: DashboardPageProps) {
   if (loading) return <SkeletonDashboard />
@@ -35,6 +36,7 @@ export function DashboardPage({
         symbol={symbol}
         loading={loading}
         error={error}
+        errorDetail={errorDetail}
         onAnalyze={onAnalyze}
         recentAnalyses={recentAnalyses}
         onSymbolSelect={onSymbolSelect}
@@ -314,10 +316,11 @@ function MetricCard({ label, value, sub, valueClass }: {
   )
 }
 
-function EmptyDashboard({ symbol, loading, error, onAnalyze, recentAnalyses, onSymbolSelect }: {
+function EmptyDashboard({ symbol, loading, error, errorDetail, onAnalyze, recentAnalyses, onSymbolSelect }: {
   symbol: string
   loading: boolean
   error: string | null
+  errorDetail?: string
   onAnalyze: () => void
   recentAnalyses: RecentAnalysis[]
   onSymbolSelect: (sym: string, interval?: string) => void
@@ -329,7 +332,12 @@ function EmptyDashboard({ symbol, loading, error, onAnalyze, recentAnalyses, onS
       </div>
       <h2 className="text-sm font-semibold text-slate-300 mb-1.5">Crypto Analysis</h2>
       {error ? (
-        <p className="text-xs text-red-400 max-w-xs leading-relaxed mb-5">{error}</p>
+        <div className="mb-5">
+          <p className="text-xs text-red-400 max-w-xs leading-relaxed">{error}</p>
+          {errorDetail && (
+            <p className="text-xs text-slate-500 max-w-xs leading-relaxed mt-1 font-mono break-all">{errorDetail}</p>
+          )}
+        </div>
       ) : (
         <p className="text-xs text-slate-500 max-w-xs leading-relaxed mb-5">
           Set a symbol in the header and click Analyze to run the full 11-stage pipeline.

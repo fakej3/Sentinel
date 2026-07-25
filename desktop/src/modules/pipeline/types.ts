@@ -349,6 +349,7 @@ export interface PipelineMetadata {
   executionTime: number
   version: string
   timings: PipelineTimings
+  market?: 'spot' | 'futures'
 }
 
 export interface PipelineResult {

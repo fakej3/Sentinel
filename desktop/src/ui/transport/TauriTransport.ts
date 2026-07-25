@@ -8,13 +8,22 @@ import { STORAGE_KEYS } from '../constants/storageKeys'
 
 // ── Error mapping ─────────────────────────────────────────────────────────────
 
-function friendlyForCode(code: string, fallback: string): string {
+function friendlyForCode(code: string, reason: string): string {
   switch (code) {
-    case 'fetch_failure':        return 'Could not reach the data source. The upstream market data API may be unavailable.'
+    case 'fetch_failure': {
+      const match = reason.match(/:\s*([^:]+)$/)
+      const detail = match ? match[1].trim() : null
+      if (!detail) return 'Market data fetch failed. Check your internet connection.'
+      const lower = detail.toLowerCase()
+      if (lower.includes('invalid symbol')) return 'Symbol not found on Binance. Verify the ticker is correct.'
+      if (lower.includes('timeout') || lower.includes('timed out')) return 'Market data request timed out. Check your internet connection.'
+      if (lower.includes('network error') || lower.includes('failed to fetch')) return 'Network error reaching Binance. Check your internet connection.'
+      return `Market data error: ${detail}`
+    }
     case 'insufficient_candles': return 'Not enough candle data for this symbol and timeframe.'
     case 'configuration_error':  return 'Invalid request configuration.'
     case 'validation_failure':   return 'The analysis output failed internal validation.'
-    default:                     return fallback
+    default:                     return reason
   }
 }
 

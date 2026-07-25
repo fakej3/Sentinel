@@ -1,20 +1,29 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
 vi.mock('../endpoints', () => ({
-  fetchCandles: vi.fn(),
-  fetchTicker24h: vi.fn(),
+  fetchCandlesAuto: vi.fn(),
+  fetchTicker24hAuto: vi.fn(),
   fetchFundingRate: vi.fn(),
   fetchOpenInterest: vi.fn(),
+}))
+
+vi.mock('../registry', () => ({
+  symbolRegistry: {
+    prime: vi.fn(),
+    getMarket: vi.fn(() => 'unknown'),
+    getAll: vi.fn(() => []),
+    isReady: vi.fn(() => false),
+  },
 }))
 
 import { fetchMarketData, BinanceApiError } from '../index'
 import * as endpoints from '../endpoints'
 import type { Candle, Ticker24h, FundingRate, OpenInterest } from '../types'
 
-const mockFetchCandles = vi.mocked(endpoints.fetchCandles)
-const mockFetchTicker = vi.mocked(endpoints.fetchTicker24h)
-const mockFetchFunding = vi.mocked(endpoints.fetchFundingRate)
-const mockFetchOI = vi.mocked(endpoints.fetchOpenInterest)
+const mockFetchCandlesAuto = vi.mocked(endpoints.fetchCandlesAuto)
+const mockFetchTickerAuto  = vi.mocked(endpoints.fetchTicker24hAuto)
+const mockFetchFunding     = vi.mocked(endpoints.fetchFundingRate)
+const mockFetchOI          = vi.mocked(endpoints.fetchOpenInterest)
 
 const STUB_CANDLE: Candle = {
   openTime: 1700000000000, closeTime: 1700003599999,
@@ -43,8 +52,8 @@ const STUB_OI: OpenInterest = {
 
 beforeEach(() => {
   vi.clearAllMocks()
-  mockFetchCandles.mockResolvedValue([STUB_CANDLE])
-  mockFetchTicker.mockResolvedValue(STUB_TICKER)
+  mockFetchCandlesAuto.mockResolvedValue({ candles: [STUB_CANDLE], market: 'spot' })
+  mockFetchTickerAuto.mockResolvedValue({ ticker: STUB_TICKER, market: 'spot' })
   mockFetchFunding.mockResolvedValue(STUB_FUNDING)
   mockFetchOI.mockResolvedValue(STUB_OI)
 })
@@ -64,8 +73,8 @@ describe('fetchMarketData', () => {
   it('uppercases the symbol', async () => {
     const data = await fetchMarketData('btcusdt', '1h')
     expect(data.symbol).toBe('BTCUSDT')
-    expect(mockFetchCandles).toHaveBeenCalledWith('BTCUSDT', '1h', expect.any(Number))
-    expect(mockFetchTicker).toHaveBeenCalledWith('BTCUSDT')
+    expect(mockFetchCandlesAuto).toHaveBeenCalledWith('BTCUSDT', '1h', expect.any(Number))
+    expect(mockFetchTickerAuto).toHaveBeenCalledWith('BTCUSDT')
   })
 
   it('throws BinanceApiError for an invalid timeframe', async () => {
@@ -95,25 +104,24 @@ describe('fetchMarketData', () => {
     expect(data.openInterest).toEqual(STUB_OI)
   })
 
-  it('passes candleLimit option to fetchCandles', async () => {
+  it('passes candleLimit option to fetchCandlesAuto', async () => {
     await fetchMarketData('BTCUSDT', '1d', { candleLimit: 50 })
-    expect(mockFetchCandles).toHaveBeenCalledWith('BTCUSDT', '1d', 50)
+    expect(mockFetchCandlesAuto).toHaveBeenCalledWith('BTCUSDT', '1d', 50)
   })
 
   it('fetches candles and ticker concurrently', async () => {
     const order: string[] = []
-    mockFetchCandles.mockImplementation(async () => { order.push('candles'); return [STUB_CANDLE] })
-    mockFetchTicker.mockImplementation(async () => { order.push('ticker'); return STUB_TICKER })
+    mockFetchCandlesAuto.mockImplementation(async () => { order.push('candles'); return { candles: [STUB_CANDLE], market: 'spot' as const } })
+    mockFetchTickerAuto.mockImplementation(async () => { order.push('ticker'); return { ticker: STUB_TICKER, market: 'spot' as const } })
     await fetchMarketData('BTCUSDT', '4h')
-    // Both called — order may vary since they run concurrently
     expect(order).toContain('candles')
     expect(order).toContain('ticker')
-    expect(mockFetchCandles).toHaveBeenCalledOnce()
-    expect(mockFetchTicker).toHaveBeenCalledOnce()
+    expect(mockFetchCandlesAuto).toHaveBeenCalledOnce()
+    expect(mockFetchTickerAuto).toHaveBeenCalledOnce()
   })
 
-  it('propagates errors from fetchCandles', async () => {
-    mockFetchCandles.mockRejectedValue(new Error('API unavailable'))
+  it('propagates errors from fetchCandlesAuto', async () => {
+    mockFetchCandlesAuto.mockRejectedValue(new Error('API unavailable'))
     await expect(fetchMarketData('BTCUSDT', '4h')).rejects.toThrow('API unavailable')
   })
 })

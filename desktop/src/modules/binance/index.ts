@@ -13,6 +13,8 @@ import type { MarketData, Timeframe, FetchOptions } from './types'
 
 export { BinanceApiError } from './client'
 export type { MarketType } from './endpoints'
+export { symbolRegistry } from './registry'
+export type { SymbolMarket, RegistryEntry } from './registry'
 export type {
   MarketData,
   Candle,
@@ -40,7 +42,7 @@ export async function fetchMarketData(
     includeOpenInterest = false,
   } = options
 
-  const [{ candles }, { ticker }] = await Promise.all([
+  const [{ candles, market }, { ticker }] = await Promise.all([
     fetchCandlesAuto(upperSymbol, timeframe, candleLimit),
     fetchTicker24hAuto(upperSymbol),
   ])
@@ -56,6 +58,7 @@ export async function fetchMarketData(
     fetchedAt: Date.now(),
     candles,
     ticker,
+    market,
     fundingRate,
     openInterest,
   }

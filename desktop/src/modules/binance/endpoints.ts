@@ -13,6 +13,7 @@ import {
 } from './normalise'
 import type { Candle, Ticker24h, FundingRate, OpenInterest, Timeframe } from './types'
 import { DEFAULT_CANDLE_LIMIT, MAX_CANDLE_LIMIT } from './constants'
+import { symbolRegistry } from './registry'
 
 export type MarketType = 'spot' | 'futures'
 
@@ -22,6 +23,19 @@ export async function fetchCandlesAuto(
   limit: number = DEFAULT_CANDLE_LIMIT,
 ): Promise<{ candles: Candle[]; market: MarketType }> {
   const safeLimit = Math.min(Math.max(1, limit), MAX_CANDLE_LIMIT)
+  const market = symbolRegistry.getMarket(symbol)
+
+  if (market === 'futures') {
+    const raw = await futuresRequest<RawCandle[]>('/fapi/v1/klines', { symbol, interval, limit: safeLimit })
+    return { candles: normaliseCandles(raw), market: 'futures' }
+  }
+
+  if (market === 'spot' || market === 'both') {
+    const raw = await spotRequest<RawCandle[]>('/api/v3/klines', { symbol, interval, limit: safeLimit })
+    return { candles: normaliseCandles(raw), market: 'spot' }
+  }
+
+  // 'unknown' — registry not loaded yet; fall back to spot→futures retry
   try {
     const raw = await spotRequest<RawCandle[]>('/api/v3/klines', { symbol, interval, limit: safeLimit })
     return { candles: normaliseCandles(raw), market: 'spot' }
@@ -35,6 +49,19 @@ export async function fetchCandlesAuto(
 }
 
 export async function fetchTicker24hAuto(symbol: string): Promise<{ ticker: Ticker24h; market: MarketType }> {
+  const market = symbolRegistry.getMarket(symbol)
+
+  if (market === 'futures') {
+    const raw = await futuresRequest<RawFuturesTicker24h>('/fapi/v1/ticker/24hr', { symbol })
+    return { ticker: normaliseFuturesTicker24h(raw), market: 'futures' }
+  }
+
+  if (market === 'spot' || market === 'both') {
+    const raw = await spotRequest<RawTicker24h>('/api/v3/ticker/24hr', { symbol })
+    return { ticker: normaliseTicker24h(raw), market: 'spot' }
+  }
+
+  // 'unknown' — registry not loaded yet; fall back to spot→futures retry
   try {
     const raw = await spotRequest<RawTicker24h>('/api/v3/ticker/24hr', { symbol })
     return { ticker: normaliseTicker24h(raw), market: 'spot' }

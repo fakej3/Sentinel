@@ -59,6 +59,7 @@ export interface MarketData {
   ticker: Ticker24h
   fundingRate: FundingRate | null
   openInterest: OpenInterest | null
+  market?: 'spot' | 'futures'
 }
 
 export interface FetchOptions {

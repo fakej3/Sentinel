@@ -32,7 +32,7 @@ export default function App() {
     recentAnalyses,
     savedEntry,
     saving,
-    data, loading, stage, error, cancel,
+    data, loading, stage, error, errorDetail, cancel,
     handleAnalyze,
     handleSaveAnalysis,
     handleSelectSymbol,
@@ -118,6 +118,7 @@ export default function App() {
                 interval={interval}
                 loading={loading}
                 error={error}
+                errorDetail={errorDetail}
                 data={data}
                 recentAnalyses={recentAnalyses}
                 savedEntry={savedEntry}

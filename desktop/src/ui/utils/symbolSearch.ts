@@ -124,95 +124,14 @@ export interface SymbolSuggestion {
   quote: string
 }
 
-// ─── Dynamic symbol cache ─────────────────────────────────────────────────────
-
-interface CachedSymbol {
-  symbol: string
-  base: string
-  quote: string
-}
-
-interface SymbolCache {
-  symbols: CachedSymbol[]
-  loadedAt: number
-}
-
-const CACHE_TTL_MS   = 5 * 60 * 1000  // 5 minutes
-const FETCH_TIMEOUT  = 10_000
-
-const SPOT_INFO_URL    = 'https://api.binance.com/api/v3/exchangeInfo'
-const FUTURES_INFO_URL = 'https://fapi.binance.com/fapi/v1/exchangeInfo'
-
-let _cache:   SymbolCache | null = null
-let _loading: Promise<void> | null = null
-
-async function fetchJson(url: string): Promise<unknown> {
-  const ctrl  = new AbortController()
-  const timer = setTimeout(() => ctrl.abort(), FETCH_TIMEOUT)
-  try {
-    const res = await fetch(url, { signal: ctrl.signal })
-    clearTimeout(timer)
-    if (!res.ok) throw new Error(`HTTP ${res.status}`)
-    return res.json()
-  } catch (err) {
-    clearTimeout(timer)
-    throw err
-  }
-}
-
-async function buildCache(): Promise<void> {
-  if (typeof fetch === 'undefined') return
-
-  const [spotResult, futResult] = await Promise.allSettled([
-    fetchJson(SPOT_INFO_URL),
-    fetchJson(FUTURES_INFO_URL),
-  ])
-
-  const seen = new Map<string, CachedSymbol>()
-
-  if (spotResult.status === 'fulfilled') {
-    const data = spotResult.value as {
-      symbols?: Array<{ symbol: string; baseAsset: string; quoteAsset: string; status: string }>
-    }
-    for (const s of data.symbols ?? []) {
-      if (s.status === 'TRADING' && s.quoteAsset === 'USDT') {
-        seen.set(s.symbol, { symbol: s.symbol, base: s.baseAsset, quote: 'USDT' })
-      }
-    }
-  }
-
-  if (futResult.status === 'fulfilled') {
-    const data = futResult.value as {
-      symbols?: Array<{ symbol: string; baseAsset: string; quoteAsset: string; status: string; contractType: string }>
-    }
-    for (const s of data.symbols ?? []) {
-      if (s.status === 'TRADING' && s.quoteAsset === 'USDT' && s.contractType === 'PERPETUAL') {
-        if (!seen.has(s.symbol)) {
-          seen.set(s.symbol, { symbol: s.symbol, base: s.baseAsset, quote: 'USDT' })
-        }
-      }
-    }
-  }
-
-  if (seen.size > 0) {
-    _cache = { symbols: Array.from(seen.values()), loadedAt: Date.now() }
-  }
-}
-
-function ensureCache(): void {
-  if (_loading) return
-  if (_cache && Date.now() - _cache.loadedAt < CACHE_TTL_MS) return
-  _loading = buildCache()
-    .catch(() => { /* silently keep static fallback */ })
-    .finally(() => { _loading = null })
-}
+import { symbolRegistry } from '../../modules/binance/registry'
 
 /** Eagerly prime the symbol cache. Call once at app startup. */
 export function primeSymbolCache(): void {
-  ensureCache()
+  symbolRegistry.prime()
 }
 
-function staticList(): CachedSymbol[] {
+function staticList(): SymbolSuggestion[] {
   return COMMON_BASES.map(base => ({ symbol: `${base}USDT`, base, quote: 'USDT' }))
 }
 
@@ -252,8 +171,6 @@ export function searchSymbols(raw: string, max = 8): SymbolSuggestion[] {
   const trimmed = raw.trim()
   if (!trimmed) return []
 
-  ensureCache()
-
   const q     = trimmed.toUpperCase()
   const lower = trimmed.toLowerCase()
 
@@ -265,7 +182,8 @@ export function searchSymbols(raw: string, max = 8): SymbolSuggestion[] {
     }
   }
 
-  const list = _cache?.symbols ?? staticList()
+  const registryEntries = symbolRegistry.getAll()
+  const list: SymbolSuggestion[] = registryEntries.length > 0 ? registryEntries : staticList()
 
   // Coin name exact match → the mapped ticker first, then prefix matches
   const coinMatch = COIN_NAMES[lower]

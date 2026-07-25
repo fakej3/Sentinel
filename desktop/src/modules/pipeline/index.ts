@@ -390,6 +390,7 @@ export async function analyzeMarket(options: PipelineOptions): Promise<PipelineR
       executionTime: totalTime,
       version: PIPELINE_VERSION,
       timings,
+      ...(marketData.market && { market: marketData.market }),
     },
   }
 }

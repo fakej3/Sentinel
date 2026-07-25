@@ -15,12 +15,15 @@ async function request<T>(url: string): Promise<T> {
   const controller = new AbortController()
   const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS)
 
+  if (import.meta.env.DEV) console.debug('[Binance] →', url)
+
   try {
     const response = await fetch(url, { signal: controller.signal })
     clearTimeout(timer)
 
     if (!response.ok) {
       const body = await response.json().catch(() => ({})) as { msg?: string }
+      if (import.meta.env.DEV) console.debug('[Binance] ✗', response.status, url, body)
       throw new BinanceApiError(
         body.msg ?? `HTTP ${response.status}`,
         response.status,
@@ -28,13 +31,16 @@ async function request<T>(url: string): Promise<T> {
       )
     }
 
+    if (import.meta.env.DEV) console.debug('[Binance] ✓', response.status, url)
     return response.json() as Promise<T>
   } catch (err) {
     clearTimeout(timer)
     if (err instanceof BinanceApiError) throw err
     if (err instanceof DOMException && err.name === 'AbortError') {
+      if (import.meta.env.DEV) console.debug('[Binance] ✗ timeout', url)
       throw new BinanceApiError('Request timed out', undefined, url)
     }
+    if (import.meta.env.DEV) console.debug('[Binance] ✗ network', err, url)
     throw new BinanceApiError(
       err instanceof Error ? err.message : 'Network error',
       undefined,
