@@ -36,7 +36,7 @@ export const LineStyle = {
 } as const
 export type LineStyleValue = typeof LineStyle[keyof typeof LineStyle]
 
-// ── Series config types ───────────────────────────────────────────────────────
+// ── Raw-series config types (used by data-layer overlays) ─────────────────────
 
 export interface LineSeriesConfig {
   color?: string
@@ -45,7 +45,7 @@ export interface LineSeriesConfig {
   priceLineVisible?: boolean
   lastValueVisible?: boolean
   crosshairMarkerVisible?: boolean
-  /** Exclude this series from y-axis autoscale (invisible host series). */
+  /** Exclude this series from y-axis autoscale. */
   excludeFromAutoscale?: boolean
   visible?: boolean
 }
@@ -67,46 +67,12 @@ export interface HistogramSeriesConfig {
   priceLineVisible?: boolean
 }
 
-export interface BaselineSeriesConfig {
-  baseValue: number
-  topFillColor1?: string
-  topFillColor2?: string
-  topLineColor?: string
-  bottomFillColor1?: string
-  bottomFillColor2?: string
-  bottomLineColor?: string
-  lineWidth?: 1 | 2 | 3 | 4
-  priceLineVisible?: boolean
-  lastValueVisible?: boolean
-  crosshairMarkerVisible?: boolean
-  excludeFromAutoscale?: boolean
-  visible?: boolean
-}
-
-// ── Series options (for applyOptions / setVisible / highlight mutations) ──────
+// ── Series mutation options (data-layer overlays: visibility / highlight) ─────
 
 export interface SeriesOptions {
   visible?: boolean
   color?: string
   lineWidth?: 1 | 2 | 3 | 4
-  topFillColor1?: string
-  topFillColor2?: string
-  topLineColor?: string
-  bottomFillColor1?: string
-  bottomFillColor2?: string
-  bottomLineColor?: string
-  baseValue?: { type: 'price'; price: number }
-}
-
-// ── Price line ────────────────────────────────────────────────────────────────
-
-export interface PriceLineConfig {
-  price: number
-  color: string
-  lineWidth?: 1 | 2 | 3 | 4
-  lineStyle?: LineStyleValue
-  axisLabelVisible?: boolean
-  title?: string
 }
 
 // ── Markers ───────────────────────────────────────────────────────────────────
@@ -152,7 +118,52 @@ export interface PriceScaleConfig {
 // ── Opaque handle types ───────────────────────────────────────────────────────
 // DrawingEngine creates and owns these; overlays only receive and pass them back.
 
+/** Handle to a raw line / candlestick / histogram series (data-layer overlays). */
 export type SeriesHandle    = { readonly _id: number; readonly _kind: 'series' }
-export type PriceLineHandle = { readonly _id: number; readonly _kind: 'priceline' }
-export type MarkersHandle   = { readonly _id: number; readonly _kind: 'markers' }
+/** Handle to the trend-badge watermark text overlay. */
 export type WatermarkHandle = { readonly _id: number; readonly _kind: 'watermark' }
+
+// High-level primitive handles — analysis overlays use these instead of
+// managing host series and plugins manually.
+
+/** A single horizontal price line, fully managed by DrawingEngine. */
+export type HorizontalLineHandle = { readonly _id: number; readonly _kind: 'hline' }
+/** A shaded zone between two price levels, fully managed by DrawingEngine. */
+export type ZoneHandle           = { readonly _id: number; readonly _kind: 'zone' }
+/** A polyline (zigzag / trend line) series, fully managed by DrawingEngine. */
+export type PolylineHandle       = { readonly _id: number; readonly _kind: 'polyline' }
+/** A set of chart markers anchored to a hidden series, fully managed by DrawingEngine. */
+export type MarkerSetHandle      = { readonly _id: number; readonly _kind: 'markerset' }
+
+// ── High-level primitive configs ──────────────────────────────────────────────
+
+export interface HorizontalLineConfig {
+  price: number
+  color: string
+  lineWidth?: 1 | 2 | 3 | 4
+  lineStyle?: LineStyleValue
+  axisLabelVisible?: boolean
+  title?: string
+  /** Toggle visibility without removing the line. */
+  visible?: boolean
+}
+
+export interface ZoneConfig {
+  topPrice: number
+  bottomPrice: number
+  /** Primary fill color. */
+  fillColor1: string
+  /** Secondary fill color for a subtle gradient; defaults to fillColor1. */
+  fillColor2?: string
+  /** Top border line color; defaults to transparent. */
+  lineColor?: string
+  /** UTC-second timestamps defining the zone's horizontal extent. */
+  times: number[]
+  visible?: boolean
+}
+
+export interface PolylineConfig {
+  color: string
+  lineWidth?: 1 | 2 | 3 | 4
+  lineStyle?: LineStyleValue
+}

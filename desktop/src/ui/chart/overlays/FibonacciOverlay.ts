@@ -1,6 +1,6 @@
 import type { DrawingEngine } from '../drawing/DrawingEngine'
 import { LineStyle } from '../drawing/types'
-import type { LineStyleValue, SeriesHandle, PriceLineHandle } from '../drawing/types'
+import type { LineStyleValue, ZoneHandle, HorizontalLineHandle } from '../drawing/types'
 import type { PipelineResult } from '../../../modules/pipeline/types'
 import type { FibLevel } from '../../../modules/fibonacci/types'
 import type { IAnalysisOverlay } from '../types'
@@ -32,74 +32,52 @@ function lineStyleForLevel(level: FibLevel): LineStyleValue {
 // ── Typed level-line record ───────────────────────────────────────────────────
 
 interface LevelLine {
-  line: PriceLineHandle
+  line: HorizontalLineHandle
   level: FibLevel
 }
 
-// Golden-pocket baseline constants
+// Golden-pocket zone colors
 const GP_BASE = {
-  topLineColor:     'rgba(234, 179, 8, 0.4)',
-  topFillColor1:    'rgba(234, 179, 8, 0.12)',
-  topFillColor2:    'rgba(234, 179, 8, 0.06)',
-  bottomLineColor:  'transparent',
-  bottomFillColor1: 'transparent',
-  bottomFillColor2: 'transparent',
+  fillColor1: 'rgba(234, 179, 8, 0.12)',
+  fillColor2: 'rgba(234, 179, 8, 0.06)',
+  lineColor:  'rgba(234, 179, 8, 0.40)',
 } as const
 
 const GP_LIT = {
-  topLineColor:  'rgba(234, 179, 8, 0.9)',
-  topFillColor1: 'rgba(234, 179, 8, 0.30)',
-  topFillColor2: 'rgba(234, 179, 8, 0.18)',
+  fillColor1: 'rgba(234, 179, 8, 0.30)',
+  fillColor2: 'rgba(234, 179, 8, 0.18)',
+  lineColor:  'rgba(234, 179, 8, 0.90)',
 } as const
 
 // ── Overlay ───────────────────────────────────────────────────────────────────
 
 export class FibonacciOverlay implements IAnalysisOverlay {
   readonly id = 'fibonacci'
-  private engine: DrawingEngine | null = null
-  private gpFillH: SeriesHandle | null = null
-  private hostH: SeriesHandle | null = null
+  private engine:     DrawingEngine | null = null
+  private gpZoneH:    ZoneHandle | null = null
   private levelLines: LevelLine[] = []
   private gpLit = false
 
   mount(engine: DrawingEngine): void {
-    this.engine = engine
-
-    // Golden pocket fill: 0.618 → 0.650 band
-    this.gpFillH = engine.addBaselineSeries({
-      baseValue:              0,
+    this.engine  = engine
+    this.gpZoneH = engine.addZone({
+      topPrice:    0,
+      bottomPrice: 0,
       ...GP_BASE,
-      lineWidth:              1,
-      priceLineVisible:       false,
-      lastValueVisible:       false,
-      crosshairMarkerVisible: false,
-      excludeFromAutoscale:   true,
+      times: [],
     })
-    engine.setData(this.gpFillH, [])
-
-    // Invisible host series for price lines
-    this.hostH = engine.addLineSeries({
-      color:                  'rgba(0,0,0,0)',
-      priceLineVisible:       false,
-      lastValueVisible:       false,
-      crosshairMarkerVisible: false,
-      excludeFromAutoscale:   true,
-    })
-    engine.setData(this.hostH, [])
   }
 
   update(data: PipelineResult | null): void {
     this.clearLines()
     const fib = data?.fibonacci
 
-    if (!fib?.available || fib.levels.length === 0 || !this.engine || !this.gpFillH || !this.hostH) {
-      if (this.engine && this.gpFillH) this.engine.setData(this.gpFillH, [])
+    if (!fib?.available || fib.levels.length === 0 || !this.engine || !this.gpZoneH) {
+      if (this.engine && this.gpZoneH) this.engine.updateZone(this.gpZoneH, { times: [] })
       return
     }
 
-    const allTimes = data!.candles.map(c => Math.floor(c.openTime / 1000))
-    // Golden pocket fill only over the most recent 80 candles so it reads as a current zone
-    const recentTimes = allTimes.slice(-80)
+    const recentTimes = data!.candles.slice(-80).map(c => Math.floor(c.openTime / 1000))
 
     // Golden pocket fill between 0.618 and 0.650
     const gp618 = fib.levels.find(l => l.ratio === 0.618)
@@ -108,17 +86,15 @@ export class FibonacciOverlay implements IAnalysisOverlay {
     if (gp618 && gp650 && recentTimes.length > 0) {
       const gpTop = Math.max(gp618.price, gp650.price)
       const gpBot = Math.min(gp618.price, gp650.price)
-      this.engine.applySeriesOptions(this.gpFillH, { ...GP_BASE, baseValue: { type: 'price', price: gpBot } })
-      this.engine.setData(this.gpFillH, recentTimes.map(time => ({ time, value: gpTop })))
+      this.engine.updateZone(this.gpZoneH, { topPrice: gpTop, bottomPrice: gpBot, times: recentTimes })
     } else {
-      this.engine.setData(this.gpFillH, [])
+      this.engine.updateZone(this.gpZoneH, { times: [] })
     }
 
-    // Draw a price line per level — hide axis label on extension levels to reduce clutter
     for (const level of fib.levels) {
       const suffix = level.confluence ? ' ✦' : ''
       const title  = `${level.label}${suffix}`
-      const line = this.engine.addPriceLine(this.hostH, {
+      const line = this.engine.addHorizontalLine({
         price:            level.price,
         color:            colorForLevel(level),
         lineWidth:        lineWidthForLevel(level),
@@ -129,14 +105,11 @@ export class FibonacciOverlay implements IAnalysisOverlay {
       this.levelLines.push({ line, level })
     }
 
-    // Suppress labels for retrace levels within 14px of a higher-priority neighbour.
-    // This prevents 0.618/0.650 golden pocket labels from overlapping at compressed zoom.
     this.deCollideLabels()
   }
 
   private deCollideLabels(): void {
-    if (!this.engine || !this.hostH) return
-    // Lower index = higher priority
+    if (!this.engine) return
     const PRIORITY: Partial<Record<number, number>> = {
       0.618: 1, 0.650: 2, 0.500: 3, 0.382: 4, 1.000: 5, 0.786: 6, 0.236: 7,
     }
@@ -146,11 +119,11 @@ export class FibonacciOverlay implements IAnalysisOverlay {
 
     const usedCoords: number[] = []
     for (const { line, level } of retrace) {
-      const coord = this.engine.priceToCoordinate(this.hostH, level.price)
+      const coord = this.engine.priceToCoordinate(level.price)
       if (coord === null) continue
       const tooClose = usedCoords.some(c => Math.abs(c - coord) < 14)
       if (tooClose) {
-        this.engine.updatePriceLine(line, { axisLabelVisible: false })
+        this.engine.updateHorizontalLine(line, { axisLabelVisible: false })
       } else {
         usedCoords.push(coord)
       }
@@ -159,8 +132,8 @@ export class FibonacciOverlay implements IAnalysisOverlay {
 
   setVisible(visible: boolean): void {
     if (!this.engine) return
-    if (this.gpFillH) this.engine.applySeriesOptions(this.gpFillH, { visible })
-    if (this.hostH)   this.engine.applySeriesOptions(this.hostH, { visible })
+    if (this.gpZoneH) this.engine.updateZone(this.gpZoneH, { visible })
+    for (const { line } of this.levelLines) this.engine.updateHorizontalLine(line, { visible })
   }
 
   // ── Highlight ────────────────────────────────────────────────────────────────
@@ -180,35 +153,31 @@ export class FibonacciOverlay implements IAnalysisOverlay {
         (key === 'fib:golden-pocket' && (level.ratio === 0.618 || level.ratio === 0.650))
 
       const w = (lit ? Math.min(base + 2, 4) : base) as 1 | 2 | 3 | 4
-      this.engine.updatePriceLine(line, { lineWidth: w })
+      this.engine.updateHorizontalLine(line, { lineWidth: w })
     }
   }
 
   private applyGoldenPocketHighlight(key: string | null): void {
-    if (!this.engine || !this.gpFillH) return
+    if (!this.engine || !this.gpZoneH) return
     const lit = key === 'fib:golden-pocket' || key === 'fib:all'
     if (lit === this.gpLit) return
     this.gpLit = lit
-    this.engine.applySeriesOptions(this.gpFillH, lit ? GP_LIT : GP_BASE)
+    this.engine.updateZone(this.gpZoneH, lit ? GP_LIT : GP_BASE)
   }
 
   // ── Cleanup ───────────────────────────────────────────────────────────────────
 
   private clearLines(): void {
     if (!this.engine) return
-    for (const { line } of this.levelLines) this.engine.removePriceLine(line)
+    for (const { line } of this.levelLines) this.engine.removeHorizontalLine(line)
     this.levelLines = []
     this.gpLit = false
   }
 
   dispose(): void {
     this.clearLines()
-    if (this.engine) {
-      if (this.gpFillH) this.engine.removeSeries(this.gpFillH)
-      if (this.hostH)   this.engine.removeSeries(this.hostH)
-    }
-    this.gpFillH = null
-    this.hostH   = null
+    if (this.engine && this.gpZoneH) this.engine.removeZone(this.gpZoneH)
+    this.gpZoneH = null
     this.engine  = null
   }
 }

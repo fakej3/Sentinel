@@ -1,6 +1,6 @@
 import type { DrawingEngine } from '../drawing/DrawingEngine'
 import { LineStyle } from '../drawing/types'
-import type { SeriesHandle, PriceLineHandle } from '../drawing/types'
+import type { HorizontalLineHandle } from '../drawing/types'
 import type { PipelineResult } from '../../../modules/pipeline/types'
 import type { TradePlan } from '../../../modules/pipeline/types'
 import type { IAnalysisOverlay } from '../types'
@@ -14,37 +14,28 @@ function isBullish(plan: TradePlan): boolean {
 }
 
 interface TpLine {
-  line: PriceLineHandle
-  index: number  // 0-based
+  line: HorizontalLineHandle
+  index: number
 }
 
 export class TakeProfitOverlay implements IAnalysisOverlay {
   readonly id = 'take-profit'
   private engine: DrawingEngine | null = null
-  private hostH: SeriesHandle | null = null
   private tpLines: TpLine[] = []
 
   mount(engine: DrawingEngine): void {
     this.engine = engine
-    this.hostH = engine.addLineSeries({
-      color:                  'rgba(0,0,0,0)',
-      priceLineVisible:       false,
-      lastValueVisible:       false,
-      crosshairMarkerVisible: false,
-      excludeFromAutoscale:   true,
-    })
-    engine.setData(this.hostH, [])
   }
 
   update(data: PipelineResult | null): void {
     this.clearLines()
     const plan = data?.tradePlan
     if (!data || !plan?.actionable || !plan.entryZone || plan.invalidationLevel === null || plan.targetLevel === null) return
-    if (!this.engine || !this.hostH) return
+    if (!this.engine) return
 
-    const bullish = isBullish(plan)
+    const bullish  = isBullish(plan)
     const entryMid = (plan.entryZone.lower + plan.entryZone.upper) / 2
-    const risk = Math.abs(entryMid - plan.invalidationLevel)
+    const risk     = Math.abs(entryMid - plan.invalidationLevel)
 
     const targets: number[] = [plan.targetLevel]
 
@@ -62,11 +53,11 @@ export class TakeProfitOverlay implements IAnalysisOverlay {
 
     const usedCoords: number[] = []
     for (let i = 0; i < targets.length; i++) {
-      const price = targets[i]
-      const rr = risk > 0 ? (Math.abs(price - entryMid) / risk).toFixed(1) : '—'
-      const coord = this.engine.priceToCoordinate(this.hostH, price)
+      const price    = targets[i]
+      const rr       = risk > 0 ? (Math.abs(price - entryMid) / risk).toFixed(1) : '—'
+      const coord    = this.engine.priceToCoordinate(price)
       const tooClose = coord !== null && usedCoords.some(c => Math.abs(c - coord) < 14)
-      const line = this.engine.addPriceLine(this.hostH, {
+      const line     = this.engine.addHorizontalLine({
         price,
         color:            TP_COLORS[i],
         lineWidth:        1,
@@ -80,29 +71,26 @@ export class TakeProfitOverlay implements IAnalysisOverlay {
   }
 
   setVisible(visible: boolean): void {
-    if (this.engine && this.hostH) this.engine.applySeriesOptions(this.hostH, { visible })
+    if (!this.engine) return
+    for (const { line } of this.tpLines) this.engine.updateHorizontalLine(line, { visible })
   }
 
   highlight(key: string | null): void {
     if (!this.engine) return
     for (const { line, index } of this.tpLines) {
-      const lit =
-        key === 'trade:full' ||
-        key === `tp:${index + 1}`
-      this.engine.updatePriceLine(line, { lineWidth: lit ? 3 : 1 })
+      const lit = key === 'trade:full' || key === `tp:${index + 1}`
+      this.engine.updateHorizontalLine(line, { lineWidth: lit ? 3 : 1 })
     }
   }
 
   private clearLines(): void {
     if (!this.engine) return
-    for (const { line } of this.tpLines) this.engine.removePriceLine(line)
+    for (const { line } of this.tpLines) this.engine.removeHorizontalLine(line)
     this.tpLines = []
   }
 
   dispose(): void {
     this.clearLines()
-    if (this.engine && this.hostH) this.engine.removeSeries(this.hostH)
-    this.hostH  = null
     this.engine = null
   }
 }

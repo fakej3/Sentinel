@@ -1,6 +1,6 @@
 import type { DrawingEngine } from '../drawing/DrawingEngine'
 import { LineStyle } from '../drawing/types'
-import type { SeriesHandle, PriceLineHandle, MarkersHandle, WatermarkHandle, DrawingMarker } from '../drawing/types'
+import type { HorizontalLineHandle, PolylineHandle, MarkerSetHandle, WatermarkHandle, DrawingMarker } from '../drawing/types'
 import type { PipelineResult } from '../../../modules/pipeline/types'
 import type { TrendDirection, TrendStrength } from '../../../modules/market-structure/types'
 import type { StructureEvent } from '../../../modules/market-structure/types'
@@ -30,13 +30,13 @@ type SwingLabel = 'HH' | 'HL' | 'LH' | 'LL' | 'EH' | 'EL'
 function swingLabelColor(label: SwingLabel | null): string {
   if (label === 'HH' || label === 'HL') return '#22c55e'
   if (label === 'LH' || label === 'LL') return '#ef5350'
-  return '#64748b'   // EH / EL / unlabeled
+  return '#64748b'
 }
 
 // ── Typed event-line record ───────────────────────────────────────────────────
 
 interface EventLine {
-  line: PriceLineHandle
+  line: HorizontalLineHandle
   event: StructureEvent
 }
 
@@ -47,20 +47,12 @@ export class MarketStructureOverlay implements IAnalysisOverlay {
 
   private engine: DrawingEngine | null = null
 
-  // Invisible host for BOS/CHoCH price lines
-  private eventHostH: SeriesHandle | null = null
   private bosLines:   EventLine[] = []
   private chochLines: EventLine[] = []
 
-  // Invisible host whose series data anchors the markers plugin
-  private markerHostH: SeriesHandle | null = null
-  private markersH: MarkersHandle | null = null
-
-  // Zigzag structure line through recent swings
-  private swingLineH: SeriesHandle | null = null
-
-  // Trend direction badge (text watermark, top-left)
-  private trendBadgeH: WatermarkHandle | null = null
+  private markerSetH:     MarkerSetHandle | null = null
+  private swingPolylineH: PolylineHandle  | null = null
+  private trendBadgeH:    WatermarkHandle | null = null
 
   // Canonical (un-highlighted) marker set — kept for fast highlight mutation
   private lastMarkers: DrawingMarker[] = []
@@ -70,35 +62,13 @@ export class MarketStructureOverlay implements IAnalysisOverlay {
   mount(engine: DrawingEngine): void {
     this.engine = engine
 
-    this.eventHostH = engine.addLineSeries({
-      color:                  'rgba(0,0,0,0)',
-      priceLineVisible:       false,
-      lastValueVisible:       false,
-      crosshairMarkerVisible: false,
-      excludeFromAutoscale:   true,
-    })
-    engine.setData(this.eventHostH, [])
+    this.markerSetH = engine.addMarkerSet()
 
-    this.markerHostH = engine.addLineSeries({
-      color:                  'rgba(0,0,0,0)',
-      priceLineVisible:       false,
-      lastValueVisible:       false,
-      crosshairMarkerVisible: false,
-      excludeFromAutoscale:   true,
+    this.swingPolylineH = engine.addPolyline({
+      color:     'rgba(100, 116, 139, 0.45)',
+      lineWidth: 1,
+      lineStyle: LineStyle.Dashed,
     })
-    engine.setData(this.markerHostH, [])
-    this.markersH = engine.addMarkersPlugin(this.markerHostH)
-
-    this.swingLineH = engine.addLineSeries({
-      color:                  'rgba(100, 116, 139, 0.45)',
-      lineWidth:              1,
-      lineStyle:              LineStyle.Dashed,
-      priceLineVisible:       false,
-      lastValueVisible:       false,
-      crosshairMarkerVisible: false,
-      excludeFromAutoscale:   true,
-    })
-    engine.setData(this.swingLineH, [])
 
     this.trendBadgeH = engine.addWatermark({
       horzAlign: 'left',
@@ -111,9 +81,8 @@ export class MarketStructureOverlay implements IAnalysisOverlay {
     this.clearEventLines()
 
     if (!data || !this.engine) {
-      if (this.markersH)    this.engine?.setMarkers(this.markersH, [])
-      if (this.swingLineH)  this.engine?.setData(this.swingLineH, [])
-      if (this.markerHostH) this.engine?.setData(this.markerHostH, [])
+      if (this.markerSetH)     this.engine?.setMarkerSetData(this.markerSetH, [], [])
+      if (this.swingPolylineH) this.engine?.setPolylineData(this.swingPolylineH, [])
       this.lastMarkers = []
       if (this.trendBadgeH) this.engine?.updateWatermark(this.trendBadgeH, {
         horzAlign: 'left', vertAlign: 'top',
@@ -124,23 +93,21 @@ export class MarketStructureOverlay implements IAnalysisOverlay {
 
     const { marketStructure, candles } = data
 
-    // Anchor marker host to all candle timestamps; use actual prices so markers
-    // appear at the correct chart position (aboveBar/belowBar is relative to series value).
+    // Anchor the marker set to all candle positions (swing candles get their actual H/L)
     const candleByTime = new Map(candles.map(c => [Math.floor(c.openTime / 1000), c]))
     const swingByTime  = new Map(marketStructure.swings.map(s => [Math.floor(s.timestamp / 1000), s]))
-    const times = candles.map(c => Math.floor(c.openTime / 1000))
-    if (this.markerHostH) {
-      this.engine.setData(this.markerHostH, times.map(time => {
-        const swing  = swingByTime.get(time)
-        const candle = candleByTime.get(time)
-        if (swing && candle) {
-          return { time, value: swing.type === 'high' ? candle.high : candle.low }
-        }
-        return { time, value: candle?.close ?? 0 }
-      }))
-    }
+    const times        = candles.map(c => Math.floor(c.openTime / 1000))
 
-    // ── Swing markers — all labeled swings so HH/HL/LH/LL labels are correct ─
+    const anchor = times.map(time => {
+      const swing  = swingByTime.get(time)
+      const candle = candleByTime.get(time)
+      if (swing && candle) {
+        return { time, value: swing.type === 'high' ? candle.high : candle.low }
+      }
+      return { time, value: candle?.close ?? 0 }
+    })
+
+    // ── Swing markers ─────────────────────────────────────────────────────────
     const labeledSwings = marketStructure.swings.filter(s => s.label !== null)
     const markers: DrawingMarker[] = labeledSwings.map(s => ({
       time:     Math.floor(s.timestamp / 1000),
@@ -152,19 +119,16 @@ export class MarketStructureOverlay implements IAnalysisOverlay {
     }))
 
     this.lastMarkers = markers
-    if (this.markersH) this.engine.setMarkers(this.markersH, markers)
+    if (this.markerSetH) this.engine.setMarkerSetData(this.markerSetH, anchor, markers)
 
-    // ── Zigzag ───────────────────────────────────────────────────────────────
-    const zigzag = labeledSwings.map(s => ({
-      time:  Math.floor(s.timestamp / 1000),
-      value: s.price,
-    }))
-    if (this.swingLineH) this.engine.setData(this.swingLineH, zigzag)
+    // ── Zigzag through labeled swings ─────────────────────────────────────────
+    const zigzag = labeledSwings.map(s => ({ time: Math.floor(s.timestamp / 1000), value: s.price }))
+    if (this.swingPolylineH) this.engine.setPolylineData(this.swingPolylineH, zigzag)
 
     // ── BOS price lines ───────────────────────────────────────────────────────
     for (const e of marketStructure.bos.events.slice(-MAX_BOS_LINES)) {
       const isBull = e.direction === 'bullish'
-      const line = this.engine.addPriceLine(this.eventHostH!, {
+      const line   = this.engine.addHorizontalLine({
         price:            e.level,
         color:            isBull ? 'rgba(34, 197, 94, 0.55)' : 'rgba(239, 83, 80, 0.55)',
         lineWidth:        1,
@@ -177,7 +141,7 @@ export class MarketStructureOverlay implements IAnalysisOverlay {
 
     // ── CHoCH price lines ─────────────────────────────────────────────────────
     for (const e of marketStructure.choch.events.slice(-MAX_CHOCH_LINES)) {
-      const line = this.engine.addPriceLine(this.eventHostH!, {
+      const line = this.engine.addHorizontalLine({
         price:            e.level,
         color:            'rgba(168, 85, 247, 0.65)',
         lineWidth:        1,
@@ -205,16 +169,18 @@ export class MarketStructureOverlay implements IAnalysisOverlay {
 
   setVisible(visible: boolean): void {
     if (!this.engine) return
-    if (this.eventHostH)  this.engine.applySeriesOptions(this.eventHostH, { visible })
-    if (this.markerHostH) this.engine.applySeriesOptions(this.markerHostH, { visible })
-    if (this.swingLineH)  this.engine.applySeriesOptions(this.swingLineH, { visible })
+    for (const { line } of [...this.bosLines, ...this.chochLines]) {
+      this.engine.updateHorizontalLine(line, { visible })
+    }
+    if (this.swingPolylineH) this.engine.setPolylineVisible(this.swingPolylineH, visible)
+    if (this.markerSetH)     this.engine.setMarkerSetVisible(this.markerSetH, visible)
+    // Hide badge by blanking text; OverlayManager calls update(lastData) on re-show to restore it
     if (!visible && this.trendBadgeH) {
       this.engine.updateWatermark(this.trendBadgeH, {
         horzAlign: 'left', vertAlign: 'top',
         lines: [{ text: '', color: 'rgba(0,0,0,0)', fontSize: 11 }],
       })
     }
-    // On setVisible(true), OverlayManager immediately calls update(lastData) to restore
   }
 
   // ── Highlight ────────────────────────────────────────────────────────────────
@@ -228,16 +194,16 @@ export class MarketStructureOverlay implements IAnalysisOverlay {
     if (!this.engine) return
     for (const { line, event } of this.bosLines) {
       const lit = key === 'ms:all' || key === `ms:bos:${event.timestamp}`
-      this.engine.updatePriceLine(line, { lineWidth: lit ? 3 : 1 })
+      this.engine.updateHorizontalLine(line, { lineWidth: lit ? 3 : 1 })
     }
     for (const { line, event } of this.chochLines) {
       const lit = key === 'ms:all' || key === `ms:choch:${event.timestamp}`
-      this.engine.updatePriceLine(line, { lineWidth: lit ? 3 : 1 })
+      this.engine.updateHorizontalLine(line, { lineWidth: lit ? 3 : 1 })
     }
   }
 
   private applySwingHighlight(key: string | null): void {
-    if (!this.engine || !this.markersH || this.lastMarkers.length === 0) return
+    if (!this.engine || !this.markerSetH || this.lastMarkers.length === 0) return
 
     let litTs: number | null = null
     if (key?.startsWith('ms:swing:')) {
@@ -246,7 +212,7 @@ export class MarketStructureOverlay implements IAnalysisOverlay {
     const litAll = key === 'ms:all'
 
     const updated = this.lastMarkers.map(m => {
-      const tsMs = m.time * 1000
+      const tsMs     = m.time * 1000
       const shouldLit = litAll || (litTs !== null && tsMs === litTs)
       return shouldLit ? { ...m, size: 2.5 } : { ...m, size: 0.6 }
     })
@@ -256,7 +222,7 @@ export class MarketStructureOverlay implements IAnalysisOverlay {
     const prevLit = this.lastMarkers.some(m => m.size !== 0.6)
     if (!curLit && !prevLit) return
 
-    this.engine.setMarkers(this.markersH, updated)
+    this.engine.setMarkerSetMarkers(this.markerSetH, updated)
   }
 
   // ── Cleanup ─────────────────────────────────────────────────────────────────
@@ -264,7 +230,7 @@ export class MarketStructureOverlay implements IAnalysisOverlay {
   private clearEventLines(): void {
     if (!this.engine) return
     for (const { line } of [...this.bosLines, ...this.chochLines]) {
-      this.engine.removePriceLine(line)
+      this.engine.removeHorizontalLine(line)
     }
     this.bosLines   = []
     this.chochLines = []
@@ -273,18 +239,14 @@ export class MarketStructureOverlay implements IAnalysisOverlay {
   dispose(): void {
     this.clearEventLines()
     if (this.engine) {
-      if (this.markersH)    this.engine.detachMarkersPlugin(this.markersH)
-      if (this.trendBadgeH) this.engine.detachWatermark(this.trendBadgeH)
-      if (this.eventHostH)  this.engine.removeSeries(this.eventHostH)
-      if (this.markerHostH) this.engine.removeSeries(this.markerHostH)
-      if (this.swingLineH)  this.engine.removeSeries(this.swingLineH)
+      if (this.markerSetH)     this.engine.removeMarkerSet(this.markerSetH)
+      if (this.trendBadgeH)    this.engine.removeWatermark(this.trendBadgeH)
+      if (this.swingPolylineH) this.engine.removePolyline(this.swingPolylineH)
     }
-    this.markersH    = null
-    this.trendBadgeH = null
-    this.eventHostH  = null
-    this.markerHostH = null
-    this.swingLineH  = null
-    this.lastMarkers = []
-    this.engine      = null
+    this.markerSetH     = null
+    this.trendBadgeH    = null
+    this.swingPolylineH = null
+    this.lastMarkers    = []
+    this.engine         = null
   }
 }
