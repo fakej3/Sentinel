@@ -28,15 +28,25 @@ function findDominantPair(
   const lows  = labeled.filter(s => s.type === 'low')
   if (highs.length === 0 || lows.length === 0) return null
 
-  // Choose the pair that spans the maximum price range — the dominant move.
+  // For bullish/bearish trends, prefer pairs whose time ordering matches the trend:
+  //   Bullish → low precedes high (price moved up from low to high)
+  //   Bearish → high precedes low (price moved down from high to low)
+  // Among qualifying pairs, select the one with the largest price range.
+  // If no trend-ordered pair exists, fall back to the unconstrained max-range pair.
   let bestHigh: SwingPoint | null = null
   let bestLow: SwingPoint | null  = null
   let maxRange = 0
 
+  const orderedOk = (h: SwingPoint, l: SwingPoint) => {
+    if (trend === 'bullish') return l.index < h.index   // low came first
+    if (trend === 'bearish') return h.index < l.index   // high came first
+    return true
+  }
+
   for (const h of highs) {
     for (const l of lows) {
       const range = h.price - l.price
-      if (range > maxRange) {
+      if (range > maxRange && orderedOk(h, l)) {
         maxRange = range
         bestHigh = h
         bestLow  = l
@@ -44,23 +54,22 @@ function findDominantPair(
     }
   }
 
+  // Fallback: if no trend-ordered pair found, use the unconstrained max-range pair.
+  if (!bestHigh || !bestLow) {
+    maxRange = 0
+    for (const h of highs) {
+      for (const l of lows) {
+        const range = h.price - l.price
+        if (range > maxRange) {
+          maxRange = range
+          bestHigh = h
+          bestLow  = l
+        }
+      }
+    }
+  }
+
   if (!bestHigh || !bestLow || maxRange <= 0) return null
-
-  // Validate pair ordering relative to trend:
-  // Bullish → the swing low should precede the swing high (price moved up)
-  // Bearish → the swing high should precede the swing low (price moved down)
-  // Ranging → accept whichever ordering the dominant pair naturally has
-  if (trend === 'bullish' && bestHigh.index < bestLow.index) {
-    // swap so that high came after low
-    ;[bestHigh, bestLow] = [bestLow as unknown as SwingPoint, bestHigh as unknown as SwingPoint]
-    // if types got mixed up after swap, just return whatever dominant pair we have
-    if (bestHigh.type !== 'high' || bestLow.type !== 'low') return { high: bestHigh, low: bestLow }
-  }
-  if (trend === 'bearish' && bestLow.index < bestHigh.index) {
-    ;[bestHigh, bestLow] = [bestLow as unknown as SwingPoint, bestHigh as unknown as SwingPoint]
-    if (bestHigh.type !== 'high' || bestLow.type !== 'low') return { high: bestHigh, low: bestLow }
-  }
-
   return { high: bestHigh, low: bestLow }
 }
 
