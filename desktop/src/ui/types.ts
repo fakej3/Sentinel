@@ -129,6 +129,7 @@ export type AppPage =
   | 'settings'
   | 'replay'
   | 'scanner'
+  | 'diagnostics'
 
 export interface AnalyzeParams {
   symbol: string

@@ -12,7 +12,7 @@ primeSymbolCache()
 
 const WEB_PAGES = new Set<AppPage>([
   'dashboard', 'chart', 'analysis', 'watchlist', 'history',
-  'replay', 'scanner', 'settings',
+  'replay', 'scanner', 'settings', 'diagnostics',
 ])
 
 const DashboardPage   = lazy(() => import('@ui/pages/DashboardPage').then(m => ({ default: m.DashboardPage })))
@@ -23,6 +23,7 @@ const HistoryPage     = lazy(() => import('@ui/pages/HistoryPage').then(m => ({ 
 const ReplayPage      = lazy(() => import('@ui/pages/ReplayPage').then(m => ({ default: m.ReplayPage })))
 const ScannerPage     = lazy(() => import('./pages/ScannerPage').then(m => ({ default: m.ScannerPage })))
 const WebSettingsPage = lazy(() => import('./pages/WebSettingsPage').then(m => ({ default: m.WebSettingsPage })))
+const DiagnosticsPage = lazy(() => import('@ui/pages/DiagnosticsPage').then(m => ({ default: m.DiagnosticsPage })))
 
 const DEFAULT_SYMBOL = 'BTCUSDT'
 
@@ -173,6 +174,7 @@ export default function App() {
                 onClearAll={handleClearAll}
               />
             )}
+            {page === 'diagnostics' && <DiagnosticsPage />}
           </Suspense>
         </main>
       </div>

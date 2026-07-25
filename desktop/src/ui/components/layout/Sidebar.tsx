@@ -1,6 +1,6 @@
 import { memo } from 'react'
 import { clsx } from 'clsx'
-import { LayoutGrid, BarChart2, Activity, Star, Clock, Settings, Film, type LucideIcon } from 'lucide-react'
+import { LayoutGrid, BarChart2, Activity, Star, Clock, Settings, Film, Stethoscope, type LucideIcon } from 'lucide-react'
 import type { AppPage } from '../../types'
 
 interface NavItem {
@@ -10,13 +10,14 @@ interface NavItem {
 }
 
 const NAV_ITEMS: NavItem[] = [
-  { page: 'dashboard', label: 'Dashboard', icon: LayoutGrid },
-  { page: 'chart',     label: 'Chart',     icon: BarChart2 },
-  { page: 'analysis',  label: 'Analysis',  icon: Activity },
-  { page: 'replay',    label: 'Replay',    icon: Film },
-  { page: 'watchlist', label: 'Watchlist', icon: Star },
-  { page: 'history',   label: 'History',   icon: Clock },
-  { page: 'settings',  label: 'Settings',  icon: Settings },
+  { page: 'dashboard',   label: 'Dashboard',   icon: LayoutGrid },
+  { page: 'chart',       label: 'Chart',       icon: BarChart2 },
+  { page: 'analysis',    label: 'Analysis',    icon: Activity },
+  { page: 'replay',      label: 'Replay',      icon: Film },
+  { page: 'watchlist',   label: 'Watchlist',   icon: Star },
+  { page: 'history',     label: 'History',     icon: Clock },
+  { page: 'settings',    label: 'Settings',    icon: Settings },
+  { page: 'diagnostics', label: 'Diagnostics', icon: Stethoscope },
 ]
 
 interface SidebarProps {

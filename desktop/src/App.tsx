@@ -12,13 +12,14 @@ primeSymbolCache()
 
 const isDesktop = isTauriEnv()
 
-const DashboardPage = lazy(() => import('./ui/pages/DashboardPage').then(m => ({ default: m.DashboardPage })))
-const ChartPage     = lazy(() => import('./ui/pages/ChartPage').then(m => ({ default: m.ChartPage })))
-const AnalysisPage  = lazy(() => import('./ui/pages/AnalysisPage').then(m => ({ default: m.AnalysisPage })))
-const WatchlistPage = lazy(() => import('./ui/pages/WatchlistPage').then(m => ({ default: m.WatchlistPage })))
-const HistoryPage   = lazy(() => import('./ui/pages/HistoryPage').then(m => ({ default: m.HistoryPage })))
-const SettingsPage  = lazy(() => import('./ui/pages/SettingsPage').then(m => ({ default: m.SettingsPage })))
-const ReplayPage    = lazy(() => import('./ui/pages/ReplayPage').then(m => ({ default: m.ReplayPage })))
+const DashboardPage    = lazy(() => import('./ui/pages/DashboardPage').then(m => ({ default: m.DashboardPage })))
+const ChartPage        = lazy(() => import('./ui/pages/ChartPage').then(m => ({ default: m.ChartPage })))
+const AnalysisPage     = lazy(() => import('./ui/pages/AnalysisPage').then(m => ({ default: m.AnalysisPage })))
+const WatchlistPage    = lazy(() => import('./ui/pages/WatchlistPage').then(m => ({ default: m.WatchlistPage })))
+const HistoryPage      = lazy(() => import('./ui/pages/HistoryPage').then(m => ({ default: m.HistoryPage })))
+const SettingsPage     = lazy(() => import('./ui/pages/SettingsPage').then(m => ({ default: m.SettingsPage })))
+const ReplayPage       = lazy(() => import('./ui/pages/ReplayPage').then(m => ({ default: m.ReplayPage })))
+const DiagnosticsPage  = lazy(() => import('./ui/pages/DiagnosticsPage').then(m => ({ default: m.DiagnosticsPage })))
 
 const DEFAULT_SYMBOL = 'BTCUSDT'
 
@@ -180,6 +181,7 @@ export default function App() {
                 initialInterval={interval as Timeframe}
               />
             )}
+            {page === 'diagnostics' && <DiagnosticsPage />}
           </Suspense>
         </main>
       </div>

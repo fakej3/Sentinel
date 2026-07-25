@@ -33,12 +33,13 @@ export interface RegistryEntry {
 
 // ── Internal helpers ──────────────────────────────────────────────────────────
 
-interface RawSymbolInfo {
+export interface RawSymbolInfo {
   symbol:        string
   baseAsset:     string
   quoteAsset:    string
   status:        string
   contractType?: string
+  [key: string]: unknown
 }
 
 async function loadExchangeInfo(url: string): Promise<RawSymbolInfo[]> {
@@ -63,16 +64,21 @@ async function loadExchangeInfo(url: string): Promise<RawSymbolInfo[]> {
 
 // ── SymbolRegistry singleton ──────────────────────────────────────────────────
 
-const CACHE_TTL_MS      = 5 * 60 * 1_000  // 5 minutes
-const RETRY_DELAYS_MS   = [5_000, 15_000, 60_000] as const  // backoff: 5s, 15s, 60s
+const CACHE_TTL_MS    = 5 * 60 * 1_000  // 5 minutes
+const RETRY_DELAYS_MS = [5_000, 15_000, 60_000] as const  // backoff: 5s, 15s, 60s
 
 class SymbolRegistrySingleton {
-  private bySymbol:   Map<string, RegistryEntry> = new Map()
-  private allEntries: RegistryEntry[] = []
-  private loadedAt  = 0
-  private loading:    Promise<void> | null = null
+  private bySymbol:    Map<string, RegistryEntry> = new Map()
+  private allEntries:  RegistryEntry[] = []
+  private loadedAt   = 0
+  private loading:     Promise<void> | null = null
   private nextRetryAt = 0
   private retryCount  = 0
+
+  // Raw data retained for diagnostics — populated after each successful build().
+  private rawFuturesSymbols: Map<string, RawSymbolInfo> = new Map()
+  private rawFuturesCount = 0
+  private rawSpotCount    = 0
 
   private async build(): Promise<void> {
     const [spotRaw, futRaw] = await Promise.all([
@@ -91,8 +97,25 @@ class SymbolRegistrySingleton {
       }
     }
 
+    // Store every TRADING USDT futures symbol verbatim for diagnostics,
+    // regardless of contractType, so the UI can show what Binance actually returned.
+    const rawFut = new Map<string, RawSymbolInfo>()
     for (const s of futRaw) {
-      if (s.status === 'TRADING' && s.quoteAsset === 'USDT' && s.contractType === 'PERPETUAL') {
+      if (s.status === 'TRADING' && s.quoteAsset === 'USDT') {
+        rawFut.set(s.symbol, s)
+      }
+    }
+
+    for (const s of futRaw) {
+      // Accept any contractType whose name contains 'PERPETUAL' (case-insensitive).
+      // This covers both the standard 'PERPETUAL' value and any new product types
+      // Binance may introduce (e.g. TradFi perpetuals with a different contractType
+      // string). The exact value is determined at runtime from Binance's own response.
+      const isPerpetual =
+        typeof s.contractType === 'string' &&
+        s.contractType.toUpperCase().includes('PERPETUAL')
+
+      if (s.status === 'TRADING' && s.quoteAsset === 'USDT' && isPerpetual) {
         const existing = map.get(s.symbol)
         if (existing) {
           // Listed on both markets: prefer futures so all data (candles, ticker,
@@ -108,11 +131,14 @@ class SymbolRegistrySingleton {
     }
 
     if (map.size > 0) {
-      this.bySymbol   = map
-      this.allEntries = Array.from(map.values())
-      this.loadedAt   = Date.now()
-      this.retryCount = 0
-      this.nextRetryAt = 0
+      this.bySymbol          = map
+      this.allEntries        = Array.from(map.values())
+      this.rawFuturesSymbols = rawFut
+      this.rawFuturesCount   = futRaw.length
+      this.rawSpotCount      = spotRaw.length
+      this.loadedAt          = Date.now()
+      this.retryCount        = 0
+      this.nextRetryAt       = 0
       if (import.meta.env.DEV) {
         console.debug(`[Registry] loaded ${map.size} symbols (spot: ${spotRaw.length}, futures: ${futRaw.length})`)
       }
@@ -178,15 +204,37 @@ class SymbolRegistrySingleton {
     return this.loadedAt > 0
   }
 
-  /** Diagnostic snapshot for DEV tooling. */
-  getStatus(): { loaded: boolean; size: number; loadedAt: number; loading: boolean; retryCount: number } {
+  /** Diagnostic snapshot for DEV tooling and the Diagnostics page. */
+  getStatus(): { loaded: boolean; size: number; loadedAt: number; loading: boolean; retryCount: number; rawFuturesCount: number; rawSpotCount: number } {
     return {
-      loaded:     this.loadedAt > 0,
-      size:       this.bySymbol.size,
-      loadedAt:   this.loadedAt,
-      loading:    this.loading !== null,
-      retryCount: this.retryCount,
+      loaded:          this.loadedAt > 0,
+      size:            this.bySymbol.size,
+      loadedAt:        this.loadedAt,
+      loading:         this.loading !== null,
+      retryCount:      this.retryCount,
+      rawFuturesCount: this.rawFuturesCount,
+      rawSpotCount:    this.rawSpotCount,
     }
+  }
+
+  /**
+   * Returns the raw /fapi/v1/exchangeInfo entry for a given symbol exactly as
+   * Binance returned it, including the actual contractType string.
+   * Only available after the registry has loaded. Returns null if not found
+   * or if the symbol is not a TRADING USDT futures pair.
+   */
+  getRawFuturesSymbol(symbol: string): RawSymbolInfo | null {
+    return this.rawFuturesSymbols.get(symbol) ?? null
+  }
+
+  /**
+   * Returns the raw entries for multiple symbols, keyed by symbol.
+   * Convenience method for the diagnostics page.
+   */
+  getRawFuturesSymbols(symbols: string[]): Record<string, RawSymbolInfo | null> {
+    const result: Record<string, RawSymbolInfo | null> = {}
+    for (const s of symbols) result[s] = this.rawFuturesSymbols.get(s) ?? null
+    return result
   }
 }
 
