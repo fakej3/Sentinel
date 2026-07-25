@@ -6,6 +6,9 @@ import { SkeletonDashboard } from '@ui/components/shared/Skeleton'
 import { WebSidebar } from './components/WebSidebar'
 import { WebBottomNav } from './components/WebBottomNav'
 import { useAppState } from './hooks/useAppState'
+import { primeSymbolCache } from '@ui/utils/symbolSearch'
+
+primeSymbolCache()
 
 const WEB_PAGES = new Set<AppPage>([
   'dashboard', 'chart', 'analysis', 'watchlist', 'history',

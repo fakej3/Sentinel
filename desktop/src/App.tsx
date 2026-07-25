@@ -6,6 +6,9 @@ import { BottomNav } from './ui/components/layout/BottomNav'
 import { SkeletonDashboard } from './ui/components/shared/Skeleton'
 import { useAppState } from './ui/hooks/useAppState'
 import { isTauriEnv } from './ui/transport'
+import { primeSymbolCache } from './ui/utils/symbolSearch'
+
+primeSymbolCache()
 
 const isDesktop = isTauriEnv()
 

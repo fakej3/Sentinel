@@ -87,9 +87,15 @@ const COIN_NAMES: Record<string, string> = {
   imx:         'IMX',
   eigenlayer:  'EIGEN',
   eigen:       'EIGEN',
+  gold:        'XAU',
+  xau:         'XAU',
+  silver:      'XAG',
+  xag:         'XAG',
+  platinum:    'XPT',
+  xpt:         'XPT',
 }
 
-// Common base assets that pair with USDT on Binance spot
+// Static fallback list used while the dynamic cache is loading or if the API is unavailable.
 const COMMON_BASES = [
   'BTC', 'ETH', 'BNB', 'SOL', 'XRP', 'ADA', 'DOGE', 'AVAX', 'DOT', 'MATIC',
   'LINK', 'UNI', 'LTC', 'ATOM', 'ICP', 'FIL', 'APT', 'ARB', 'OP', 'SUI',
@@ -107,6 +113,7 @@ const COMMON_BASES = [
   'BAL', 'BAND', 'BAT', 'BCH', 'CELO', 'CLV', 'DASH', 'EOS', 'ETC', 'FLOW',
   'HFT', 'HOT', 'IMX', 'KAVA', 'KLIMA', 'MANA', 'MOVR', 'PERP', 'REEF',
   'SKL', 'SUPER', 'TLM', 'TOMO', 'UNFI', 'VOLT', 'XEM', 'XTZ', 'ZEN',
+  'XAU', 'XAG', 'XPT',
 ]
 
 const QUOTE_CURRENCIES = ['USDT', 'BUSD', 'BTC', 'ETH', 'BNB', 'USDC', 'FDUSD']
@@ -117,15 +124,102 @@ export interface SymbolSuggestion {
   quote: string
 }
 
+// ─── Dynamic symbol cache ─────────────────────────────────────────────────────
+
+interface CachedSymbol {
+  symbol: string
+  base: string
+  quote: string
+}
+
+interface SymbolCache {
+  symbols: CachedSymbol[]
+  loadedAt: number
+}
+
+const CACHE_TTL_MS   = 5 * 60 * 1000  // 5 minutes
+const FETCH_TIMEOUT  = 10_000
+
+const SPOT_INFO_URL    = 'https://api.binance.com/api/v3/exchangeInfo'
+const FUTURES_INFO_URL = 'https://fapi.binance.com/fapi/v1/exchangeInfo'
+
+let _cache:   SymbolCache | null = null
+let _loading: Promise<void> | null = null
+
+async function fetchJson(url: string): Promise<unknown> {
+  const ctrl  = new AbortController()
+  const timer = setTimeout(() => ctrl.abort(), FETCH_TIMEOUT)
+  try {
+    const res = await fetch(url, { signal: ctrl.signal })
+    clearTimeout(timer)
+    if (!res.ok) throw new Error(`HTTP ${res.status}`)
+    return res.json()
+  } catch (err) {
+    clearTimeout(timer)
+    throw err
+  }
+}
+
+async function buildCache(): Promise<void> {
+  if (typeof fetch === 'undefined') return
+
+  const [spotResult, futResult] = await Promise.allSettled([
+    fetchJson(SPOT_INFO_URL),
+    fetchJson(FUTURES_INFO_URL),
+  ])
+
+  const seen = new Map<string, CachedSymbol>()
+
+  if (spotResult.status === 'fulfilled') {
+    const data = spotResult.value as {
+      symbols?: Array<{ symbol: string; baseAsset: string; quoteAsset: string; status: string }>
+    }
+    for (const s of data.symbols ?? []) {
+      if (s.status === 'TRADING' && s.quoteAsset === 'USDT') {
+        seen.set(s.symbol, { symbol: s.symbol, base: s.baseAsset, quote: 'USDT' })
+      }
+    }
+  }
+
+  if (futResult.status === 'fulfilled') {
+    const data = futResult.value as {
+      symbols?: Array<{ symbol: string; baseAsset: string; quoteAsset: string; status: string; contractType: string }>
+    }
+    for (const s of data.symbols ?? []) {
+      if (s.status === 'TRADING' && s.quoteAsset === 'USDT' && s.contractType === 'PERPETUAL') {
+        if (!seen.has(s.symbol)) {
+          seen.set(s.symbol, { symbol: s.symbol, base: s.baseAsset, quote: 'USDT' })
+        }
+      }
+    }
+  }
+
+  if (seen.size > 0) {
+    _cache = { symbols: Array.from(seen.values()), loadedAt: Date.now() }
+  }
+}
+
+function ensureCache(): void {
+  if (_loading) return
+  if (_cache && Date.now() - _cache.loadedAt < CACHE_TTL_MS) return
+  _loading = buildCache()
+    .catch(() => { /* silently keep static fallback */ })
+    .finally(() => { _loading = null })
+}
+
+/** Eagerly prime the symbol cache. Call once at app startup. */
+export function primeSymbolCache(): void {
+  ensureCache()
+}
+
+function staticList(): CachedSymbol[] {
+  return COMMON_BASES.map(base => ({ symbol: `${base}USDT`, base, quote: 'USDT' }))
+}
+
+// ─── Public API ───────────────────────────────────────────────────────────────
+
 /**
- * Given raw user input, return the best normalized symbol (e.g. "eth" → "ETHUSDT")
- * and up to 5 suggestions for a dropdown.
- *
- * Rules:
- * 1. If the input already looks like a full symbol (contains a known quote suffix),
- *    return it as-is (uppercased).
- * 2. If the input matches a known base exactly, suggest base+USDT first.
- * 3. Otherwise do prefix + substring matching against known bases.
+ * Given raw user input, return the best normalized symbol (e.g. "eth" → "ETHUSDT").
  */
 export function resolveSymbol(raw: string): string {
   const trimmed = raw.trim()
@@ -142,17 +236,25 @@ export function resolveSymbol(raw: string): string {
     if (upper.endsWith(q) && upper.length > q.length) return upper
   }
 
-  // Exact base match
+  // Exact base match in static list
   if (COMMON_BASES.includes(upper)) return `${upper}USDT`
 
   // Best-guess: append USDT
   return `${upper}USDT`
 }
 
-export function searchSymbols(raw: string, max = 5): SymbolSuggestion[] {
+/**
+ * Search for symbol suggestions matching the raw input string.
+ * Returns up to `max` suggestions. Uses the dynamic Binance cache when
+ * available, falling back to the static list during initial load.
+ */
+export function searchSymbols(raw: string, max = 8): SymbolSuggestion[] {
   const trimmed = raw.trim()
   if (!trimmed) return []
-  const q = trimmed.toUpperCase()
+
+  ensureCache()
+
+  const q     = trimmed.toUpperCase()
   const lower = trimmed.toLowerCase()
 
   // If already a full pair, return it alone
@@ -163,46 +265,47 @@ export function searchSymbols(raw: string, max = 5): SymbolSuggestion[] {
     }
   }
 
-  // Check coin name dictionary — exact match yields the mapped ticker
+  const list = _cache?.symbols ?? staticList()
+
+  // Coin name exact match → the mapped ticker first, then prefix matches
   const coinMatch = COIN_NAMES[lower]
   if (coinMatch) {
     const results: SymbolSuggestion[] = [{ symbol: `${coinMatch}USDT`, base: coinMatch, quote: 'USDT' }]
-    // Also include any prefix matches from COMMON_BASES for the mapped ticker
-    for (const base of COMMON_BASES) {
-      if (base !== coinMatch && base.startsWith(coinMatch) && results.length < max) {
-        results.push({ symbol: `${base}USDT`, base, quote: 'USDT' })
+    for (const entry of list) {
+      if (entry.base !== coinMatch && entry.base.startsWith(coinMatch) && results.length < max) {
+        results.push({ symbol: entry.symbol, base: entry.base, quote: entry.quote })
       }
     }
     return results.slice(0, max)
   }
 
-  // Partial coin name match (e.g. "bit" → bitcoin → BTC)
-  const coinNameMatches: SymbolSuggestion[] = []
+  // Partial coin name prefix match (e.g. "bit" → bitcoin → BTC)
+  const nameMatches: SymbolSuggestion[] = []
   for (const [name, ticker] of Object.entries(COIN_NAMES)) {
     if (name.startsWith(lower) && name !== lower && !COIN_NAMES[lower]) {
       const sym = `${ticker}USDT`
-      if (!coinNameMatches.some(s => s.symbol === sym)) {
-        coinNameMatches.push({ symbol: sym, base: ticker, quote: 'USDT' })
+      if (!nameMatches.some(s => s.symbol === sym)) {
+        nameMatches.push({ symbol: sym, base: ticker, quote: 'USDT' })
       }
     }
   }
 
-  // Match bases by prefix first, then substring
+  // Match bases by prefix then substring; sort prefix by length (shorter = more relevant)
   const prefix: SymbolSuggestion[] = []
   const substr: SymbolSuggestion[] = []
 
-  for (const base of COMMON_BASES) {
-    if (base.startsWith(q)) {
-      prefix.push({ symbol: `${base}USDT`, base, quote: 'USDT' })
-    } else if (base.includes(q) && q.length >= 2) {
-      substr.push({ symbol: `${base}USDT`, base, quote: 'USDT' })
+  for (const entry of list) {
+    if (entry.base.startsWith(q)) {
+      prefix.push({ symbol: entry.symbol, base: entry.base, quote: entry.quote })
+    } else if (entry.base.includes(q) && q.length >= 2) {
+      substr.push({ symbol: entry.symbol, base: entry.base, quote: entry.quote })
     }
   }
 
-  // Merge: coin name prefix matches first, then ticker prefix, then substring
-  const merged = [...coinNameMatches, ...prefix, ...substr]
-  // Deduplicate by symbol
-  const seen = new Set<string>()
+  prefix.sort((a, b) => a.base.length - b.base.length)
+
+  const merged = [...nameMatches, ...prefix, ...substr]
+  const seen   = new Set<string>()
   const unique: SymbolSuggestion[] = []
   for (const s of merged) {
     if (!seen.has(s.symbol)) {
