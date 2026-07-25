@@ -82,10 +82,7 @@ export function Header({
     onSymbolChange(value)
     setActiveSuggestion(-1)
     const upper = value.trim().toUpperCase()
-    // Show suggestions for partial input; skip only when the input already looks like a full pair
-    // (e.g. "BTCUSDT" should not re-search, but "bitcoin" (7 chars) must be allowed through)
-    const looksComplete = upper.length > 4 && ['USDT','BUSD','USDC','FDUSD','BTC','ETH','BNB'].some(q => upper.endsWith(q) && upper.length > q.length)
-    if (upper.length >= 1 && !looksComplete) {
+    if (upper.length >= 1) {
       const found = searchSymbols(upper)
       setSuggestions(found)
       setShowSuggestions(found.length > 0)

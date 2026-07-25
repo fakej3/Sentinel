@@ -9,6 +9,7 @@
 import { BinanceApiError } from './client'
 import { fetchCandlesAuto, fetchTicker24hAuto, fetchFundingRate, fetchOpenInterest } from './endpoints'
 import { VALID_TIMEFRAMES, DEFAULT_CANDLE_LIMIT } from './constants'
+import { symbolRegistry } from './registry'
 import type { MarketData, Timeframe, FetchOptions } from './types'
 
 export { BinanceApiError } from './client'
@@ -42,14 +43,32 @@ export async function fetchMarketData(
     includeOpenInterest = false,
   } = options
 
+  // Resolve the market ONCE from the registry so every downstream request
+  // uses an identical source. 'unknown' means the registry hasn't loaded yet —
+  // fetchCandlesAuto / fetchTicker24hAuto handle the spot→futures fallback.
+  const preferredMarket = symbolRegistry.getPreferredMarket(upperSymbol)
+  const knownMarket = preferredMarket !== 'unknown' ? preferredMarket : undefined
+
+  if (import.meta.env.DEV) {
+    console.debug('[Pipeline] fetchMarketData', upperSymbol, '| registry:', preferredMarket)
+  }
+
   const [{ candles, market }, { ticker }] = await Promise.all([
-    fetchCandlesAuto(upperSymbol, timeframe, candleLimit),
-    fetchTicker24hAuto(upperSymbol),
+    fetchCandlesAuto(upperSymbol, timeframe, candleLimit, knownMarket),
+    fetchTicker24hAuto(upperSymbol, knownMarket),
   ])
 
+  // Funding rate and open interest are futures-only data; never mix them with
+  // spot candles / ticker. Only fetch when the resolved market is 'futures'.
+  const isFutures = market === 'futures'
+
+  if (import.meta.env.DEV) {
+    console.debug('[Pipeline] fetchMarketData', upperSymbol, '| resolved market:', market, '| funding eligible:', isFutures)
+  }
+
   const [fundingRate, openInterest] = await Promise.all([
-    includeFunding ? fetchFundingRate(upperSymbol) : Promise.resolve(null),
-    includeOpenInterest ? fetchOpenInterest(upperSymbol) : Promise.resolve(null),
+    includeFunding && isFutures ? fetchFundingRate(upperSymbol) : Promise.resolve(null),
+    includeOpenInterest && isFutures ? fetchOpenInterest(upperSymbol) : Promise.resolve(null),
   ])
 
   return {

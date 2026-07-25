@@ -18,16 +18,18 @@ vi.mock('../registry', () => ({
   symbolRegistry: {
     prime: vi.fn(),
     getMarket: vi.fn(() => 'unknown'),
+    getPreferredMarket: vi.fn(() => 'unknown'),
     getAll: vi.fn(() => []),
     isReady: vi.fn(() => false),
+    getStatus: vi.fn(() => ({ loaded: false, size: 0, loadedAt: 0, loading: false, retryCount: 0 })),
   },
 }))
 
 import { spotRequest, futuresRequest } from '../client'
-import { fetchCandles, fetchTicker24h, fetchFundingRate, fetchOpenInterest } from '../endpoints'
+import { fetchCandlesAuto, fetchTicker24hAuto, fetchFundingRate, fetchOpenInterest } from '../endpoints'
 import type { RawCandle, RawTicker24h, RawFundingRate, RawOpenInterest } from '../normalise'
 
-const mockSpot = vi.mocked(spotRequest)
+const mockSpot    = vi.mocked(spotRequest)
 const mockFutures = vi.mocked(futuresRequest)
 
 const RAW_CANDLE: RawCandle = [
@@ -61,10 +63,10 @@ beforeEach(() => {
   vi.clearAllMocks()
 })
 
-describe('fetchCandles', () => {
+describe('fetchCandlesAuto (registry unknown — spot fallback)', () => {
   it('calls spotRequest with the correct endpoint and params', async () => {
     mockSpot.mockResolvedValue([RAW_CANDLE])
-    await fetchCandles('BTCUSDT', '4h', 100)
+    await fetchCandlesAuto('BTCUSDT', '4h', 100)
     expect(mockSpot).toHaveBeenCalledOnce()
     expect(mockSpot).toHaveBeenCalledWith('/api/v3/klines', {
       symbol: 'BTCUSDT',
@@ -75,48 +77,79 @@ describe('fetchCandles', () => {
 
   it('clamps limit to MAX_CANDLE_LIMIT (1000)', async () => {
     mockSpot.mockResolvedValue([])
-    await fetchCandles('BTCUSDT', '1h', 9999)
+    await fetchCandlesAuto('BTCUSDT', '1h', 9999)
     expect(mockSpot).toHaveBeenCalledWith('/api/v3/klines', expect.objectContaining({ limit: 1000 }))
   })
 
   it('clamps limit to minimum of 1', async () => {
     mockSpot.mockResolvedValue([])
-    await fetchCandles('BTCUSDT', '1h', 0)
+    await fetchCandlesAuto('BTCUSDT', '1h', 0)
     expect(mockSpot).toHaveBeenCalledWith('/api/v3/klines', expect.objectContaining({ limit: 1 }))
   })
 
-  it('returns normalised Candle objects', async () => {
+  it('returns normalised Candle objects and market=spot', async () => {
     mockSpot.mockResolvedValue([RAW_CANDLE])
-    const candles = await fetchCandles('BTCUSDT', '4h')
+    const { candles, market } = await fetchCandlesAuto('BTCUSDT', '4h')
     expect(candles).toHaveLength(1)
     expect(candles[0].open).toBe(106800.00)
     expect(candles[0].close).toBe(107300.75)
+    expect(market).toBe('spot')
   })
 
   it('propagates errors from spotRequest', async () => {
     mockSpot.mockRejectedValue(new Error('Network error'))
-    await expect(fetchCandles('BTCUSDT', '4h')).rejects.toThrow('Network error')
+    await expect(fetchCandlesAuto('BTCUSDT', '4h')).rejects.toThrow('Network error')
   })
 })
 
-describe('fetchTicker24h', () => {
+describe('fetchCandlesAuto (explicit market override)', () => {
+  it('routes directly to futuresRequest when market="futures"', async () => {
+    mockFutures.mockResolvedValue([RAW_CANDLE])
+    const { market } = await fetchCandlesAuto('XAUUSDT', '1h', 100, 'futures')
+    expect(mockFutures).toHaveBeenCalledWith('/fapi/v1/klines', { symbol: 'XAUUSDT', interval: '1h', limit: 100 })
+    expect(mockSpot).not.toHaveBeenCalled()
+    expect(market).toBe('futures')
+  })
+
+  it('routes directly to spotRequest when market="spot"', async () => {
+    mockSpot.mockResolvedValue([RAW_CANDLE])
+    const { market } = await fetchCandlesAuto('BTCUSDT', '1h', 100, 'spot')
+    expect(mockSpot).toHaveBeenCalledWith('/api/v3/klines', { symbol: 'BTCUSDT', interval: '1h', limit: 100 })
+    expect(mockFutures).not.toHaveBeenCalled()
+    expect(market).toBe('spot')
+  })
+})
+
+describe('fetchTicker24hAuto (registry unknown — spot fallback)', () => {
   it('calls spotRequest with the correct endpoint and params', async () => {
     mockSpot.mockResolvedValue(RAW_TICKER)
-    await fetchTicker24h('BTCUSDT')
+    await fetchTicker24hAuto('BTCUSDT')
     expect(mockSpot).toHaveBeenCalledWith('/api/v3/ticker/24hr', { symbol: 'BTCUSDT' })
   })
 
-  it('returns a normalised Ticker24h object', async () => {
+  it('returns a normalised Ticker24h object and market=spot', async () => {
     mockSpot.mockResolvedValue(RAW_TICKER)
-    const ticker = await fetchTicker24h('BTCUSDT')
+    const { ticker, market } = await fetchTicker24hAuto('BTCUSDT')
     expect(ticker.symbol).toBe('BTCUSDT')
     expect(ticker.lastPrice).toBe(107300.75)
     expect(ticker.priceChangePercent).toBe(2.19)
+    expect(market).toBe('spot')
   })
 
   it('propagates errors from spotRequest', async () => {
     mockSpot.mockRejectedValue(new Error('Invalid symbol'))
-    await expect(fetchTicker24h('INVALID')).rejects.toThrow('Invalid symbol')
+    await expect(fetchTicker24hAuto('INVALID')).rejects.toThrow('Invalid symbol')
+  })
+})
+
+describe('fetchTicker24hAuto (explicit market override)', () => {
+  it('routes to futuresRequest when market="futures"', async () => {
+    const RAW_FUTURES_TICKER = { symbol: 'XAUUSDT', lastPrice: '2000.00', priceChange: '10.00', priceChangePercent: '0.5', weightedAvgPrice: '1995.00', openPrice: '1990.00', highPrice: '2010.00', lowPrice: '1985.00', volume: '5000.00', quoteVolume: '9975000.00', openTime: 0, closeTime: 0, count: 1000 }
+    mockFutures.mockResolvedValue(RAW_FUTURES_TICKER)
+    const { market } = await fetchTicker24hAuto('XAUUSDT', 'futures')
+    expect(mockFutures).toHaveBeenCalledWith('/fapi/v1/ticker/24hr', { symbol: 'XAUUSDT' })
+    expect(mockSpot).not.toHaveBeenCalled()
+    expect(market).toBe('futures')
   })
 })
 

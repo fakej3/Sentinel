@@ -7,7 +7,7 @@
  *
  * The registry is a lazy singleton:
  *  - prime() starts a background fetch (call once at app startup)
- *  - getMarket() triggers loading on first call if not already started
+ *  - getPreferredMarket() triggers loading on first call if not already started
  *  - Returns 'unknown' until the fetch resolves; callers fall back gracefully
  */
 
@@ -23,6 +23,12 @@ export interface RegistryEntry {
   quote:  string
   /** 'spot' = Binance Spot only; 'futures' = FAPI perpetual only; 'both' = listed on both */
   market: SymbolMarket
+  /**
+   * The market to use for ALL data fetches for this symbol.
+   * 'both' symbols route to 'futures' so candles, ticker, funding, and OI
+   * always come from a single source — no mixed-market data.
+   */
+  preferredMarket: 'spot' | 'futures'
 }
 
 // ── Internal helpers ──────────────────────────────────────────────────────────
@@ -42,24 +48,31 @@ async function loadExchangeInfo(url: string): Promise<RawSymbolInfo[]> {
   try {
     const res = await fetch(url, { signal: ctrl.signal })
     clearTimeout(timer)
-    if (!res.ok) return []
+    if (!res.ok) {
+      if (import.meta.env.DEV) console.warn('[Registry] exchangeInfo HTTP', res.status, url)
+      return []
+    }
     const data = (await res.json()) as { symbols?: RawSymbolInfo[] }
     return data.symbols ?? []
-  } catch {
+  } catch (err) {
     clearTimeout(timer)
+    if (import.meta.env.DEV) console.warn('[Registry] exchangeInfo fetch failed:', url, err)
     return []
   }
 }
 
 // ── SymbolRegistry singleton ──────────────────────────────────────────────────
 
-const CACHE_TTL_MS = 5 * 60 * 1_000  // 5 minutes
+const CACHE_TTL_MS      = 5 * 60 * 1_000  // 5 minutes
+const RETRY_DELAYS_MS   = [5_000, 15_000, 60_000] as const  // backoff: 5s, 15s, 60s
 
 class SymbolRegistrySingleton {
   private bySymbol:   Map<string, RegistryEntry> = new Map()
   private allEntries: RegistryEntry[] = []
   private loadedAt  = 0
   private loading:    Promise<void> | null = null
+  private nextRetryAt = 0
+  private retryCount  = 0
 
   private async build(): Promise<void> {
     const [spotRaw, futRaw] = await Promise.all([
@@ -71,7 +84,10 @@ class SymbolRegistrySingleton {
 
     for (const s of spotRaw) {
       if (s.status === 'TRADING' && s.quoteAsset === 'USDT') {
-        map.set(s.symbol, { symbol: s.symbol, base: s.baseAsset, quote: 'USDT', market: 'spot' })
+        map.set(s.symbol, {
+          symbol: s.symbol, base: s.baseAsset, quote: 'USDT',
+          market: 'spot', preferredMarket: 'spot',
+        })
       }
     }
 
@@ -79,9 +95,14 @@ class SymbolRegistrySingleton {
       if (s.status === 'TRADING' && s.quoteAsset === 'USDT' && s.contractType === 'PERPETUAL') {
         const existing = map.get(s.symbol)
         if (existing) {
-          map.set(s.symbol, { ...existing, market: 'both' })
+          // Listed on both markets: prefer futures so all data (candles, ticker,
+          // funding rate, open interest) comes from a single consistent source.
+          map.set(s.symbol, { ...existing, market: 'both', preferredMarket: 'futures' })
         } else {
-          map.set(s.symbol, { symbol: s.symbol, base: s.baseAsset, quote: 'USDT', market: 'futures' })
+          map.set(s.symbol, {
+            symbol: s.symbol, base: s.baseAsset, quote: 'USDT',
+            market: 'futures', preferredMarket: 'futures',
+          })
         }
       }
     }
@@ -90,14 +111,31 @@ class SymbolRegistrySingleton {
       this.bySymbol   = map
       this.allEntries = Array.from(map.values())
       this.loadedAt   = Date.now()
+      this.retryCount = 0
+      this.nextRetryAt = 0
+      if (import.meta.env.DEV) {
+        console.debug(`[Registry] loaded ${map.size} symbols (spot: ${spotRaw.length}, futures: ${futRaw.length})`)
+      }
+    } else {
+      // Both endpoints returned nothing — keep previous cache if available.
+      // Schedule next retry with exponential backoff.
+      const delay = RETRY_DELAYS_MS[Math.min(this.retryCount, RETRY_DELAYS_MS.length - 1)]
+      this.nextRetryAt = Date.now() + delay
+      this.retryCount++
+      if (import.meta.env.DEV) {
+        console.warn(`[Registry] exchangeInfo returned 0 symbols (attempt ${this.retryCount}); retrying in ${delay}ms`)
+      }
     }
   }
 
   private ensureLoading(): void {
     if (this.loading) return
     if (this.loadedAt > 0 && Date.now() - this.loadedAt < CACHE_TTL_MS) return
+    if (this.nextRetryAt > 0 && Date.now() < this.nextRetryAt) return
     this.loading = this.build()
-      .catch(() => { /* fail silently — callers use fallback */ })
+      .catch(err => {
+        if (import.meta.env.DEV) console.error('[Registry] build() threw unexpectedly:', err)
+      })
       .finally(() => { this.loading = null })
   }
 
@@ -107,9 +145,22 @@ class SymbolRegistrySingleton {
   }
 
   /**
-   * Returns the canonical market for a symbol.
-   * 'unknown' means the registry has not loaded yet or the symbol is not listed.
-   * Callers should fall back to spot→futures retry when 'unknown'.
+   * Returns the preferred market for routing all data fetches for this symbol.
+   *
+   * - 'spot'    — route to api.binance.com; no funding rate or OI
+   * - 'futures' — route to fapi.binance.com; funding rate and OI available
+   * - 'unknown' — registry not yet loaded; callers should use spot→futures retry
+   */
+  getPreferredMarket(symbol: string): 'spot' | 'futures' | 'unknown' {
+    this.ensureLoading()
+    const entry = this.bySymbol.get(symbol)
+    if (!entry) return 'unknown'
+    return entry.preferredMarket
+  }
+
+  /**
+   * Returns the canonical market listing for a symbol.
+   * Prefer getPreferredMarket() for routing decisions.
    */
   getMarket(symbol: string): SymbolMarket | 'unknown' {
     this.ensureLoading()
@@ -125,6 +176,17 @@ class SymbolRegistrySingleton {
   /** True once the first load has succeeded. */
   isReady(): boolean {
     return this.loadedAt > 0
+  }
+
+  /** Diagnostic snapshot for DEV tooling. */
+  getStatus(): { loaded: boolean; size: number; loadedAt: number; loading: boolean; retryCount: number } {
+    return {
+      loaded:     this.loadedAt > 0,
+      size:       this.bySymbol.size,
+      loadedAt:   this.loadedAt,
+      loading:    this.loading !== null,
+      retryCount: this.retryCount,
+    }
   }
 }
 

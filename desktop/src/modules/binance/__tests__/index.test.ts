@@ -11,8 +11,10 @@ vi.mock('../registry', () => ({
   symbolRegistry: {
     prime: vi.fn(),
     getMarket: vi.fn(() => 'unknown'),
+    getPreferredMarket: vi.fn(() => 'unknown'),
     getAll: vi.fn(() => []),
     isReady: vi.fn(() => false),
+    getStatus: vi.fn(() => ({ loaded: false, size: 0, loadedAt: 0, loading: false, retryCount: 0 })),
   },
 }))
 
@@ -73,8 +75,8 @@ describe('fetchMarketData', () => {
   it('uppercases the symbol', async () => {
     const data = await fetchMarketData('btcusdt', '1h')
     expect(data.symbol).toBe('BTCUSDT')
-    expect(mockFetchCandlesAuto).toHaveBeenCalledWith('BTCUSDT', '1h', expect.any(Number))
-    expect(mockFetchTickerAuto).toHaveBeenCalledWith('BTCUSDT')
+    expect(mockFetchCandlesAuto).toHaveBeenCalledWith('BTCUSDT', '1h', expect.any(Number), undefined)
+    expect(mockFetchTickerAuto).toHaveBeenCalledWith('BTCUSDT', undefined)
   })
 
   it('throws BinanceApiError for an invalid timeframe', async () => {
@@ -92,21 +94,35 @@ describe('fetchMarketData', () => {
     expect(mockFetchOI).not.toHaveBeenCalled()
   })
 
-  it('fetches funding rate when includeFunding is true', async () => {
+  it('fetches funding rate when includeFunding is true and market is futures', async () => {
+    mockFetchCandlesAuto.mockResolvedValue({ candles: [STUB_CANDLE], market: 'futures' as const })
+    mockFetchTickerAuto.mockResolvedValue({ ticker: STUB_TICKER, market: 'futures' as const })
     const data = await fetchMarketData('BTCUSDT', '4h', { includeFunding: true })
     expect(mockFetchFunding).toHaveBeenCalledWith('BTCUSDT')
     expect(data.fundingRate).toEqual(STUB_FUNDING)
   })
 
-  it('fetches open interest when includeOpenInterest is true', async () => {
+  it('does NOT fetch funding rate when market is spot', async () => {
+    await fetchMarketData('BTCUSDT', '4h', { includeFunding: true })
+    expect(mockFetchFunding).not.toHaveBeenCalled()
+  })
+
+  it('fetches open interest when includeOpenInterest is true and market is futures', async () => {
+    mockFetchCandlesAuto.mockResolvedValue({ candles: [STUB_CANDLE], market: 'futures' as const })
+    mockFetchTickerAuto.mockResolvedValue({ ticker: STUB_TICKER, market: 'futures' as const })
     const data = await fetchMarketData('BTCUSDT', '4h', { includeOpenInterest: true })
     expect(mockFetchOI).toHaveBeenCalledWith('BTCUSDT')
     expect(data.openInterest).toEqual(STUB_OI)
   })
 
+  it('does NOT fetch open interest when market is spot', async () => {
+    await fetchMarketData('BTCUSDT', '4h', { includeOpenInterest: true })
+    expect(mockFetchOI).not.toHaveBeenCalled()
+  })
+
   it('passes candleLimit option to fetchCandlesAuto', async () => {
     await fetchMarketData('BTCUSDT', '1d', { candleLimit: 50 })
-    expect(mockFetchCandlesAuto).toHaveBeenCalledWith('BTCUSDT', '1d', 50)
+    expect(mockFetchCandlesAuto).toHaveBeenCalledWith('BTCUSDT', '1d', 50, undefined)
   })
 
   it('fetches candles and ticker concurrently', async () => {

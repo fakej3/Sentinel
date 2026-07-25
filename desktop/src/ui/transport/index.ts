@@ -20,7 +20,9 @@ let _transport: AnalysisTransport | null = null
 // Vite emits TauriTransport (and the full analysis pipeline it imports) as a
 // separate chunk, so web builds never download or parse the pipeline code.
 if (isTauriEnv()) {
-  void import('./TauriTransport').then(m => { _transport = new m.TauriTransport() })
+  void import('./TauriTransport')
+    .then(m  => { _transport = new m.TauriTransport() })
+    .catch(() => { _transport = new HttpTransport(BASE_URL) })
 }
 
 /**

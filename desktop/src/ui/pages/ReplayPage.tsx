@@ -1,7 +1,8 @@
 import { useState, useRef, useCallback, useEffect } from 'react'
 import { clsx } from 'clsx'
 import { Film, BarChart2, ListOrdered, TrendingUp, FlaskConical, Save, X, Loader2, type LucideIcon } from 'lucide-react'
-import { fetchCandles } from '../../modules/binance/endpoints'
+import { fetchCandlesAuto } from '../../modules/binance/endpoints'
+import { BinanceApiError } from '../../modules/binance/client'
 import type { Timeframe } from '../../modules/market/types'
 import { TradingViewChart, type TradingViewChartHandle } from '../components/layout/TradingViewChart'
 import { AnalysisInspector } from '../components/inspector/AnalysisInspector'
@@ -43,14 +44,24 @@ export function ReplayPage({ initialSymbol = 'BTCUSDT', initialInterval = '1h' }
     setFetchError(null)
     setFetchingCandles(true)
     try {
-      const loaded = await fetchCandles(symbol.toUpperCase(), interval, 500)
+      const { candles: loaded } = await fetchCandlesAuto(symbol.toUpperCase(), interval, 500)
       if (loaded.length < REPLAY_MIN_CANDLES) {
         setFetchError(`Need at least ${REPLAY_MIN_CANDLES} candles, got ${loaded.length}`)
         return
       }
       replayActions.load(loaded, symbol.toUpperCase(), interval)
     } catch (e) {
-      setFetchError(e instanceof Error ? e.message : 'Failed to fetch candles')
+      let msg = 'Failed to fetch candles'
+      if (e instanceof BinanceApiError) {
+        const lower = e.message.toLowerCase()
+        if (lower.includes('invalid symbol')) msg = `Symbol not found on Binance: ${symbol.toUpperCase()}`
+        else if (lower.includes('timeout') || lower.includes('timed out')) msg = 'Request timed out — check your connection'
+        else if (lower.includes('network error') || lower.includes('failed to fetch')) msg = 'Network error — check your connection'
+        else msg = `Market data error: ${e.message}`
+      } else if (e instanceof Error) {
+        msg = e.message
+      }
+      setFetchError(msg)
     } finally {
       setFetchingCandles(false)
     }
