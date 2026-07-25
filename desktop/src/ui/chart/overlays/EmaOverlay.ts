@@ -1,9 +1,5 @@
-import {
-  LineSeries,
-  type IChartApi,
-  type ISeriesApi,
-  type UTCTimestamp,
-} from 'lightweight-charts'
+import type { DrawingEngine } from '../drawing/DrawingEngine'
+import type { SeriesHandle } from '../drawing/types'
 import type { Candle } from '../../../modules/market/types'
 import type { IOverlay } from '../types'
 import { computeEma } from '../utils/ema'
@@ -16,8 +12,8 @@ export interface EmaConfig {
 export class EmaOverlay implements IOverlay {
   readonly id: string
   private readonly config: EmaConfig
-  private chart: IChartApi | null = null
-  private series: ISeriesApi<'Line'> | null = null
+  private engine: DrawingEngine | null = null
+  private seriesH: SeriesHandle | null = null
   private lit = false
   private lastLength = 0
   private lastClose  = NaN
@@ -28,19 +24,19 @@ export class EmaOverlay implements IOverlay {
     this.id = `ema-${config.period}`
   }
 
-  mount(chart: IChartApi): void {
-    this.chart = chart
-    this.series = chart.addSeries(LineSeries, {
-      color: this.config.color,
-      lineWidth: 1,
-      priceLineVisible: false,
-      lastValueVisible: false,
+  mount(engine: DrawingEngine): void {
+    this.engine = engine
+    this.seriesH = engine.addLineSeries({
+      color:                  this.config.color,
+      lineWidth:              1,
+      priceLineVisible:       false,
+      lastValueVisible:       false,
       crosshairMarkerVisible: false,
     })
   }
 
   update(candles: Candle[]): void {
-    if (!this.series || candles.length === 0) return
+    if (!this.engine || !this.seriesH || candles.length === 0) return
     const last = candles[candles.length - 1]
     if (candles.length === this.lastLength && last.close === this.lastClose) return
     this.lastLength = candles.length
@@ -48,29 +44,29 @@ export class EmaOverlay implements IOverlay {
     const closes = candles.map(c => c.close)
     const emaValues = computeEma(closes, this.config.period)
     if (emaValues.length === 0) {
-      this.series.setData([])
+      this.engine.setData(this.seriesH, [])
       this.valueMap.clear()
       return
     }
     const offset = candles.length - emaValues.length
     const data = emaValues.map((value, i) => ({
-      time: Math.floor(candles[offset + i].openTime / 1000) as UTCTimestamp,
+      time:  Math.floor(candles[offset + i].openTime / 1000),
       value,
     }))
-    this.series.setData(data)
-    this.valueMap = new Map(data.map(d => [d.time as number, d.value]))
+    this.engine.setData(this.seriesH, data)
+    this.valueMap = new Map(data.map(d => [d.time, d.value]))
   }
 
   setVisible(visible: boolean): void {
-    this.series?.applyOptions({ visible })
+    if (this.engine && this.seriesH) this.engine.applySeriesOptions(this.seriesH, { visible })
   }
 
   highlight(key: string | null): void {
-    if (!this.series) return
+    if (!this.engine || !this.seriesH) return
     const mine = key === `ema:${this.config.period}` || key === 'ema:all'
     if (mine === this.lit) return
     this.lit = mine
-    this.series.applyOptions({ lineWidth: mine ? 3 : 1 })
+    this.engine.applySeriesOptions(this.seriesH, { lineWidth: mine ? 3 : 1 })
   }
 
   getValueAt(time: number): number | undefined {
@@ -78,11 +74,9 @@ export class EmaOverlay implements IOverlay {
   }
 
   dispose(): void {
-    if (this.series && this.chart) {
-      this.chart.removeSeries(this.series)
-    }
-    this.series     = null
-    this.chart      = null
+    if (this.engine && this.seriesH) this.engine.removeSeries(this.seriesH)
+    this.seriesH    = null
+    this.engine     = null
     this.lastLength = 0
     this.lastClose  = NaN
     this.valueMap.clear()

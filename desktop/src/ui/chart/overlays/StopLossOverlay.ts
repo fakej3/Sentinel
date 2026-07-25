@@ -1,71 +1,67 @@
-import {
-  LineSeries,
-  LineStyle,
-  type IChartApi,
-  type ISeriesApi,
-  type IPriceLine,
-} from 'lightweight-charts'
+import type { DrawingEngine } from '../drawing/DrawingEngine'
+import { LineStyle } from '../drawing/types'
+import type { SeriesHandle, PriceLineHandle } from '../drawing/types'
 import type { PipelineResult } from '../../../modules/pipeline/types'
 import type { IAnalysisOverlay } from '../types'
 
 export class StopLossOverlay implements IAnalysisOverlay {
   readonly id = 'stop-loss'
-  private chart: IChartApi | null = null
-  private host: ISeriesApi<'Line'> | null = null
-  private line: IPriceLine | null = null
+  private engine: DrawingEngine | null = null
+  private hostH: SeriesHandle | null = null
+  private lineH: PriceLineHandle | null = null
   private lit = false
 
-  mount(chart: IChartApi): void {
-    this.chart = chart
-    this.host = chart.addSeries(LineSeries, {
-      color: 'rgba(0,0,0,0)',
-      priceLineVisible: false,
-      lastValueVisible: false,
+  mount(engine: DrawingEngine): void {
+    this.engine = engine
+    this.hostH = engine.addLineSeries({
+      color:                  'rgba(0,0,0,0)',
+      priceLineVisible:       false,
+      lastValueVisible:       false,
       crosshairMarkerVisible: false,
-      autoscaleInfoProvider: () => null,
+      excludeFromAutoscale:   true,
     })
-    this.host.setData([])
+    engine.setData(this.hostH, [])
   }
 
   update(data: PipelineResult | null): void {
     this.clearLine()
     const plan = data?.tradePlan
-    if (!data || !plan?.actionable || plan.invalidationLevel === null) return
+    if (!data || !plan?.actionable || plan.invalidationLevel === null || !this.engine || !this.hostH) return
 
-    this.line = this.host!.createPriceLine({
-      price: plan.invalidationLevel,
-      color: '#ef5350',
-      lineWidth: 2,
-      lineStyle: LineStyle.Solid,
+    this.lineH = this.engine.addPriceLine(this.hostH, {
+      price:            plan.invalidationLevel,
+      color:            '#ef5350',
+      lineWidth:        2,
+      lineStyle:        LineStyle.Solid,
       axisLabelVisible: true,
-      title: 'SL',
+      title:            'SL',
     })
   }
 
   setVisible(visible: boolean): void {
-    this.host?.applyOptions({ visible })
+    if (this.engine && this.hostH) this.engine.applySeriesOptions(this.hostH, { visible })
   }
 
   highlight(key: string | null): void {
-    if (!this.line) return
+    if (!this.lineH || !this.engine) return
     const lit = key === 'stop:loss' || key === 'trade:full'
     if (lit === this.lit) return
     this.lit = lit
-    this.line.applyOptions({ lineWidth: lit ? 4 : 2 })
+    this.engine.updatePriceLine(this.lineH, { lineWidth: lit ? 4 : 2 })
   }
 
   private clearLine(): void {
-    if (this.line && this.host) {
-      this.host.removePriceLine(this.line)
-      this.line = null
+    if (this.lineH && this.engine) {
+      this.engine.removePriceLine(this.lineH)
+      this.lineH = null
     }
     this.lit = false
   }
 
   dispose(): void {
     this.clearLine()
-    if (this.host && this.chart) this.chart.removeSeries(this.host)
-    this.host = null
-    this.chart = null
+    if (this.engine && this.hostH) this.engine.removeSeries(this.hostH)
+    this.hostH  = null
+    this.engine = null
   }
 }

@@ -1,12 +1,6 @@
-import {
-  BaselineSeries,
-  LineSeries,
-  LineStyle,
-  type IChartApi,
-  type ISeriesApi,
-  type IPriceLine,
-  type UTCTimestamp,
-} from 'lightweight-charts'
+import type { DrawingEngine } from '../drawing/DrawingEngine'
+import { LineStyle } from '../drawing/types'
+import type { SeriesHandle, PriceLineHandle } from '../drawing/types'
 import type { PipelineResult } from '../../../modules/pipeline/types'
 import type { TradePlan } from '../../../modules/pipeline/types'
 import type { IAnalysisOverlay } from '../types'
@@ -17,50 +11,49 @@ function isBullish(plan: TradePlan): boolean {
     plan.invalidationLevel < plan.entryZone.lower
 }
 
-const FILL_BASE = {
-  lineWidth: 1 as const,
-  priceLineVisible: false,
-  lastValueVisible: false,
-  crosshairMarkerVisible: false,
-  topLineColor: 'transparent',
-  bottomFillColor1: 'transparent',
-  bottomFillColor2: 'transparent',
-  bottomLineColor: 'transparent',
-  baseValue: { type: 'price' as const, price: 0 },
-  autoscaleInfoProvider: () => null,
-}
+const RISK_DIM   = { topFillColor1: 'rgba(239, 83, 80, 0.08)',  topFillColor2: 'rgba(239, 83, 80, 0.08)'  } as const
+const RISK_LIT   = { topFillColor1: 'rgba(239, 83, 80, 0.22)',  topFillColor2: 'rgba(239, 83, 80, 0.22)'  } as const
+const REWARD_DIM = { topFillColor1: 'rgba(34, 197, 94, 0.08)',  topFillColor2: 'rgba(34, 197, 94, 0.08)'  } as const
+const REWARD_LIT = { topFillColor1: 'rgba(34, 197, 94, 0.22)',  topFillColor2: 'rgba(34, 197, 94, 0.22)'  } as const
 
-const RISK_DIM = { topFillColor1: 'rgba(239, 83, 80, 0.08)', topFillColor2: 'rgba(239, 83, 80, 0.08)' } as const
-const RISK_LIT = { topFillColor1: 'rgba(239, 83, 80, 0.22)', topFillColor2: 'rgba(239, 83, 80, 0.22)' } as const
-const REWARD_DIM = { topFillColor1: 'rgba(34, 197, 94, 0.08)', topFillColor2: 'rgba(34, 197, 94, 0.08)' } as const
-const REWARD_LIT = { topFillColor1: 'rgba(34, 197, 94, 0.22)', topFillColor2: 'rgba(34, 197, 94, 0.22)' } as const
+const FILL_BASE_CFG = {
+  topLineColor:         'transparent' as const,
+  bottomFillColor1:     'transparent' as const,
+  bottomFillColor2:     'transparent' as const,
+  bottomLineColor:      'transparent' as const,
+  lineWidth:            1 as const,
+  priceLineVisible:     false,
+  lastValueVisible:     false,
+  crosshairMarkerVisible: false,
+  excludeFromAutoscale: true,
+}
 
 export class RiskRewardOverlay implements IAnalysisOverlay {
   readonly id = 'risk-reward'
-  private chart: IChartApi | null = null
-  private riskFill: ISeriesApi<'Baseline'> | null = null
-  private rewardFill: ISeriesApi<'Baseline'> | null = null
-  private host: ISeriesApi<'Line'> | null = null
-  private lines: IPriceLine[] = []
+  private engine: DrawingEngine | null = null
+  private riskFillH: SeriesHandle | null = null
+  private rewardFillH: SeriesHandle | null = null
+  private hostH: SeriesHandle | null = null
+  private lines: PriceLineHandle[] = []
   private lit = false
 
-  mount(chart: IChartApi): void {
-    this.chart = chart
+  mount(engine: DrawingEngine): void {
+    this.engine = engine
 
-    this.riskFill = chart.addSeries(BaselineSeries, { ...FILL_BASE, ...RISK_DIM })
-    this.riskFill.setData([])
+    this.riskFillH = engine.addBaselineSeries({ baseValue: 0, ...FILL_BASE_CFG, ...RISK_DIM })
+    engine.setData(this.riskFillH, [])
 
-    this.rewardFill = chart.addSeries(BaselineSeries, { ...FILL_BASE, ...REWARD_DIM })
-    this.rewardFill.setData([])
+    this.rewardFillH = engine.addBaselineSeries({ baseValue: 0, ...FILL_BASE_CFG, ...REWARD_DIM })
+    engine.setData(this.rewardFillH, [])
 
-    this.host = chart.addSeries(LineSeries, {
-      color: 'rgba(0,0,0,0)',
-      priceLineVisible: false,
-      lastValueVisible: false,
+    this.hostH = engine.addLineSeries({
+      color:                  'rgba(0,0,0,0)',
+      priceLineVisible:       false,
+      lastValueVisible:       false,
       crosshairMarkerVisible: false,
-      autoscaleInfoProvider: () => null,
+      excludeFromAutoscale:   true,
     })
-    this.host.setData([])
+    engine.setData(this.hostH, [])
   }
 
   update(data: PipelineResult | null): void {
@@ -68,10 +61,13 @@ export class RiskRewardOverlay implements IAnalysisOverlay {
     const plan = data?.tradePlan
 
     if (!data || !plan?.actionable || !plan.entryZone || plan.invalidationLevel === null || plan.targetLevel === null) {
-      this.riskFill?.setData([])
-      this.rewardFill?.setData([])
+      if (this.engine) {
+        if (this.riskFillH)   this.engine.setData(this.riskFillH, [])
+        if (this.rewardFillH) this.engine.setData(this.rewardFillH, [])
+      }
       return
     }
+    if (!this.engine || !this.riskFillH || !this.rewardFillH || !this.hostH) return
 
     const bullish = isBullish(plan)
     const { lower: entryLow, upper: entryHigh } = plan.entryZone
@@ -84,63 +80,65 @@ export class RiskRewardOverlay implements IAnalysisOverlay {
 
     // Fills only over the most recent 80 candles so they don't colour all history
     const recentCandles = data.candles.slice(-80)
-    const times = recentCandles.map(c => Math.floor(c.openTime / 1000) as UTCTimestamp)
+    const times = recentCandles.map(c => Math.floor(c.openTime / 1000))
 
     if (bullish) {
-      this.riskFill!.applyOptions({ ...RISK_DIM, baseValue: { type: 'price', price: stop } })
-      this.riskFill!.setData(times.map(time => ({ time, value: entryLow })))
-      this.rewardFill!.applyOptions({ ...REWARD_DIM, baseValue: { type: 'price', price: entryHigh } })
-      this.rewardFill!.setData(times.map(time => ({ time, value: tp })))
+      this.engine.applySeriesOptions(this.riskFillH, { ...RISK_DIM, baseValue: { type: 'price', price: stop } })
+      this.engine.setData(this.riskFillH, times.map(time => ({ time, value: entryLow })))
+      this.engine.applySeriesOptions(this.rewardFillH, { ...REWARD_DIM, baseValue: { type: 'price', price: entryHigh } })
+      this.engine.setData(this.rewardFillH, times.map(time => ({ time, value: tp })))
     } else {
-      this.riskFill!.applyOptions({ ...RISK_DIM, baseValue: { type: 'price', price: entryHigh } })
-      this.riskFill!.setData(times.map(time => ({ time, value: stop })))
-      this.rewardFill!.applyOptions({ ...REWARD_DIM, baseValue: { type: 'price', price: tp } })
-      this.rewardFill!.setData(times.map(time => ({ time, value: entryLow })))
+      this.engine.applySeriesOptions(this.riskFillH, { ...RISK_DIM, baseValue: { type: 'price', price: entryHigh } })
+      this.engine.setData(this.riskFillH, times.map(time => ({ time, value: stop })))
+      this.engine.applySeriesOptions(this.rewardFillH, { ...REWARD_DIM, baseValue: { type: 'price', price: tp } })
+      this.engine.setData(this.rewardFillH, times.map(time => ({ time, value: entryLow })))
     }
 
     // Single RR label — no mid-zone dotted lines (clutter)
     const rewardMid = (tp + (bullish ? entryHigh : entryLow)) / 2
-    this.lines.push(this.host!.createPriceLine({
-      price: rewardMid,
-      color: 'rgba(0,0,0,0)',
-      lineWidth: 1,
-      lineStyle: LineStyle.Dotted,
+    this.lines.push(this.engine.addPriceLine(this.hostH, {
+      price:            rewardMid,
+      color:            'rgba(0,0,0,0)',
+      lineWidth:        1,
+      lineStyle:        LineStyle.Dotted,
       axisLabelVisible: false,
-      title: `RR ${rr}`,
+      title:            `RR ${rr}`,
     }))
   }
 
   setVisible(visible: boolean): void {
-    this.riskFill?.applyOptions({ visible })
-    this.rewardFill?.applyOptions({ visible })
-    this.host?.applyOptions({ visible })
+    if (!this.engine) return
+    if (this.riskFillH)   this.engine.applySeriesOptions(this.riskFillH, { visible })
+    if (this.rewardFillH) this.engine.applySeriesOptions(this.rewardFillH, { visible })
+    if (this.hostH)       this.engine.applySeriesOptions(this.hostH, { visible })
   }
 
   highlight(key: string | null): void {
+    if (!this.engine) return
     const lit = key === 'trade:full' || key === 'entry:zone' || key === 'stop:loss' || (key?.startsWith('tp:') ?? false)
     if (lit === this.lit) return
     this.lit = lit
-    this.riskFill?.applyOptions(lit ? RISK_LIT : RISK_DIM)
-    this.rewardFill?.applyOptions(lit ? REWARD_LIT : REWARD_DIM)
+    if (this.riskFillH)   this.engine.applySeriesOptions(this.riskFillH, lit ? RISK_LIT : RISK_DIM)
+    if (this.rewardFillH) this.engine.applySeriesOptions(this.rewardFillH, lit ? REWARD_LIT : REWARD_DIM)
   }
 
   private clearLines(): void {
-    if (!this.host) return
-    for (const line of this.lines) this.host.removePriceLine(line)
+    if (!this.engine) return
+    for (const lineH of this.lines) this.engine.removePriceLine(lineH)
     this.lines = []
     this.lit = false
   }
 
   dispose(): void {
     this.clearLines()
-    if (this.chart) {
-      if (this.riskFill)   this.chart.removeSeries(this.riskFill)
-      if (this.rewardFill) this.chart.removeSeries(this.rewardFill)
-      if (this.host)       this.chart.removeSeries(this.host)
+    if (this.engine) {
+      if (this.riskFillH)   this.engine.removeSeries(this.riskFillH)
+      if (this.rewardFillH) this.engine.removeSeries(this.rewardFillH)
+      if (this.hostH)       this.engine.removeSeries(this.hostH)
     }
-    this.riskFill   = null
-    this.rewardFill = null
-    this.host       = null
-    this.chart      = null
+    this.riskFillH   = null
+    this.rewardFillH = null
+    this.hostH       = null
+    this.engine      = null
   }
 }

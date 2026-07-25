@@ -1,17 +1,6 @@
-import {
-  LineSeries,
-  LineStyle,
-  createSeriesMarkers,
-  createTextWatermark,
-  type IChartApi,
-  type ISeriesApi,
-  type IPriceLine,
-  type UTCTimestamp,
-  type SeriesMarker,
-  type ISeriesMarkersPluginApi,
-  type ITextWatermarkPluginApi,
-  type Time,
-} from 'lightweight-charts'
+import type { DrawingEngine } from '../drawing/DrawingEngine'
+import { LineStyle } from '../drawing/types'
+import type { SeriesHandle, PriceLineHandle, MarkersHandle, WatermarkHandle, DrawingMarker } from '../drawing/types'
 import type { PipelineResult } from '../../../modules/pipeline/types'
 import type { TrendDirection, TrendStrength } from '../../../modules/market-structure/types'
 import type { StructureEvent } from '../../../modules/market-structure/types'
@@ -47,7 +36,7 @@ function swingLabelColor(label: SwingLabel | null): string {
 // ── Typed event-line record ───────────────────────────────────────────────────
 
 interface EventLine {
-  line: IPriceLine
+  line: PriceLineHandle
   event: StructureEvent
 }
 
@@ -56,63 +45,62 @@ interface EventLine {
 export class MarketStructureOverlay implements IAnalysisOverlay {
   readonly id = 'market-structure'
 
-  private chart: IChartApi | null = null
+  private engine: DrawingEngine | null = null
 
   // Invisible host for BOS/CHoCH price lines
-  private eventHost: ISeriesApi<'Line'> | null = null
+  private eventHostH: SeriesHandle | null = null
   private bosLines:   EventLine[] = []
   private chochLines: EventLine[] = []
 
   // Invisible host whose series data anchors the markers plugin
-  private markerHost: ISeriesApi<'Line'> | null = null
-  private markerPlugin: ISeriesMarkersPluginApi<UTCTimestamp> | null = null
+  private markerHostH: SeriesHandle | null = null
+  private markersH: MarkersHandle | null = null
 
   // Zigzag structure line through recent swings
-  private swingLine: ISeriesApi<'Line'> | null = null
+  private swingLineH: SeriesHandle | null = null
 
   // Trend direction badge (text watermark, top-left)
-  private trendBadge: ITextWatermarkPluginApi<Time> | null = null
+  private trendBadgeH: WatermarkHandle | null = null
 
   // Canonical (un-highlighted) marker set — kept for fast highlight mutation
-  private lastMarkers: SeriesMarker<UTCTimestamp>[] = []
+  private lastMarkers: DrawingMarker[] = []
 
   // ── Lifecycle ───────────────────────────────────────────────────────────────
 
-  mount(chart: IChartApi): void {
-    this.chart = chart
+  mount(engine: DrawingEngine): void {
+    this.engine = engine
 
-    this.eventHost = chart.addSeries(LineSeries, {
-      color: 'rgba(0,0,0,0)',
-      priceLineVisible: false,
-      lastValueVisible: false,
+    this.eventHostH = engine.addLineSeries({
+      color:                  'rgba(0,0,0,0)',
+      priceLineVisible:       false,
+      lastValueVisible:       false,
       crosshairMarkerVisible: false,
-      autoscaleInfoProvider: () => null,
+      excludeFromAutoscale:   true,
     })
-    this.eventHost.setData([])
+    engine.setData(this.eventHostH, [])
 
-    this.markerHost = chart.addSeries(LineSeries, {
-      color: 'rgba(0,0,0,0)',
-      priceLineVisible: false,
-      lastValueVisible: false,
+    this.markerHostH = engine.addLineSeries({
+      color:                  'rgba(0,0,0,0)',
+      priceLineVisible:       false,
+      lastValueVisible:       false,
       crosshairMarkerVisible: false,
-      autoscaleInfoProvider: () => null,
+      excludeFromAutoscale:   true,
     })
-    this.markerHost.setData([])
-    this.markerPlugin = createSeriesMarkers(this.markerHost) as ISeriesMarkersPluginApi<UTCTimestamp>
+    engine.setData(this.markerHostH, [])
+    this.markersH = engine.addMarkersPlugin(this.markerHostH)
 
-    this.swingLine = chart.addSeries(LineSeries, {
-      color: 'rgba(100, 116, 139, 0.45)',
-      lineWidth: 1,
-      priceLineVisible: false,
-      lastValueVisible: false,
+    this.swingLineH = engine.addLineSeries({
+      color:                  'rgba(100, 116, 139, 0.45)',
+      lineWidth:              1,
+      lineStyle:              LineStyle.Dashed,
+      priceLineVisible:       false,
+      lastValueVisible:       false,
       crosshairMarkerVisible: false,
-      lineStyle: LineStyle.Dashed,
-      autoscaleInfoProvider: () => null,
+      excludeFromAutoscale:   true,
     })
-    this.swingLine.setData([])
+    engine.setData(this.swingLineH, [])
 
-    const pane = chart.panes()[0]
-    this.trendBadge = createTextWatermark(pane, {
+    this.trendBadgeH = engine.addWatermark({
       horzAlign: 'left',
       vertAlign: 'top',
       lines: [{ text: '', color: 'rgba(0,0,0,0)', fontSize: 11, fontStyle: 'bold' }],
@@ -122,12 +110,13 @@ export class MarketStructureOverlay implements IAnalysisOverlay {
   update(data: PipelineResult | null): void {
     this.clearEventLines()
 
-    if (!data) {
-      this.markerPlugin?.setMarkers([])
-      this.swingLine?.setData([])
-      this.markerHost?.setData([])
+    if (!data || !this.engine) {
+      if (this.markersH)    this.engine?.setMarkers(this.markersH, [])
+      if (this.swingLineH)  this.engine?.setData(this.swingLineH, [])
+      if (this.markerHostH) this.engine?.setData(this.markerHostH, [])
       this.lastMarkers = []
-      this.trendBadge?.applyOptions({
+      if (this.trendBadgeH) this.engine?.updateWatermark(this.trendBadgeH, {
+        horzAlign: 'left', vertAlign: 'top',
         lines: [{ text: '', color: 'rgba(0,0,0,0)', fontSize: 11 }],
       })
       return
@@ -139,83 +128,89 @@ export class MarketStructureOverlay implements IAnalysisOverlay {
     // appear at the correct chart position (aboveBar/belowBar is relative to series value).
     const candleByTime = new Map(candles.map(c => [Math.floor(c.openTime / 1000), c]))
     const swingByTime  = new Map(marketStructure.swings.map(s => [Math.floor(s.timestamp / 1000), s]))
-    const times = candles.map(c => Math.floor(c.openTime / 1000) as UTCTimestamp)
-    this.markerHost?.setData(times.map(time => {
-      const swing  = swingByTime.get(time as number)
-      const candle = candleByTime.get(time as number)
-      if (swing && candle) {
-        return { time, value: swing.type === 'high' ? candle.high : candle.low }
-      }
-      return { time, value: candle?.close ?? 0 }
-    }))
+    const times = candles.map(c => Math.floor(c.openTime / 1000))
+    if (this.markerHostH) {
+      this.engine.setData(this.markerHostH, times.map(time => {
+        const swing  = swingByTime.get(time)
+        const candle = candleByTime.get(time)
+        if (swing && candle) {
+          return { time, value: swing.type === 'high' ? candle.high : candle.low }
+        }
+        return { time, value: candle?.close ?? 0 }
+      }))
+    }
 
     // ── Swing markers — all labeled swings so HH/HL/LH/LL labels are correct ─
     const labeledSwings = marketStructure.swings.filter(s => s.label !== null)
-    const markers: SeriesMarker<UTCTimestamp>[] = labeledSwings
-      .map(s => ({
-        time: Math.floor(s.timestamp / 1000) as UTCTimestamp,
-        position: s.type === 'high' ? 'aboveBar' : 'belowBar',
-        shape: 'circle',
-        color: swingLabelColor(s.label as SwingLabel),
-        text: s.label as string,
-        size: 0.6,
-      } satisfies SeriesMarker<UTCTimestamp>))
+    const markers: DrawingMarker[] = labeledSwings.map(s => ({
+      time:     Math.floor(s.timestamp / 1000),
+      position: s.type === 'high' ? 'aboveBar' as const : 'belowBar' as const,
+      shape:    'circle' as const,
+      color:    swingLabelColor(s.label as SwingLabel),
+      text:     s.label as string,
+      size:     0.6,
+    }))
 
     this.lastMarkers = markers
-    this.markerPlugin?.setMarkers(markers)
+    if (this.markersH) this.engine.setMarkers(this.markersH, markers)
 
     // ── Zigzag ───────────────────────────────────────────────────────────────
-    const zigzag = labeledSwings
-      .map(s => ({
-        time: Math.floor(s.timestamp / 1000) as UTCTimestamp,
-        value: s.price,
-      }))
-    this.swingLine?.setData(zigzag)
+    const zigzag = labeledSwings.map(s => ({
+      time:  Math.floor(s.timestamp / 1000),
+      value: s.price,
+    }))
+    if (this.swingLineH) this.engine.setData(this.swingLineH, zigzag)
 
     // ── BOS price lines ───────────────────────────────────────────────────────
     for (const e of marketStructure.bos.events.slice(-MAX_BOS_LINES)) {
       const isBull = e.direction === 'bullish'
-      const line = this.eventHost!.createPriceLine({
-        price: e.level,
-        color: isBull ? 'rgba(34, 197, 94, 0.55)' : 'rgba(239, 83, 80, 0.55)',
-        lineWidth: 1,
-        lineStyle: LineStyle.Solid,
+      const line = this.engine.addPriceLine(this.eventHostH!, {
+        price:            e.level,
+        color:            isBull ? 'rgba(34, 197, 94, 0.55)' : 'rgba(239, 83, 80, 0.55)',
+        lineWidth:        1,
+        lineStyle:        LineStyle.Solid,
         axisLabelVisible: true,
-        title: 'BOS',
+        title:            'BOS',
       })
       this.bosLines.push({ line, event: e })
     }
 
     // ── CHoCH price lines ─────────────────────────────────────────────────────
     for (const e of marketStructure.choch.events.slice(-MAX_CHOCH_LINES)) {
-      const line = this.eventHost!.createPriceLine({
-        price: e.level,
-        color: 'rgba(168, 85, 247, 0.65)',
-        lineWidth: 1,
-        lineStyle: LineStyle.Dashed,
+      const line = this.engine.addPriceLine(this.eventHostH!, {
+        price:            e.level,
+        color:            'rgba(168, 85, 247, 0.65)',
+        lineWidth:        1,
+        lineStyle:        LineStyle.Dashed,
         axisLabelVisible: true,
-        title: 'CHoCH',
+        title:            'CHoCH',
       })
       this.chochLines.push({ line, event: e })
     }
 
     // ── Trend badge ───────────────────────────────────────────────────────────
-    this.trendBadge?.applyOptions({
-      lines: [{
-        text: trendLabel(marketStructure.trend, marketStructure.strength),
-        color: trendColor(marketStructure.trend),
-        fontSize: 11,
-        fontStyle: 'bold',
-      }],
-    })
+    if (this.trendBadgeH) {
+      this.engine.updateWatermark(this.trendBadgeH, {
+        horzAlign: 'left',
+        vertAlign: 'top',
+        lines: [{
+          text:      trendLabel(marketStructure.trend, marketStructure.strength),
+          color:     trendColor(marketStructure.trend),
+          fontSize:  11,
+          fontStyle: 'bold',
+        }],
+      })
+    }
   }
 
   setVisible(visible: boolean): void {
-    this.eventHost?.applyOptions({ visible })
-    this.markerHost?.applyOptions({ visible })
-    this.swingLine?.applyOptions({ visible })
-    if (!visible) {
-      this.trendBadge?.applyOptions({
+    if (!this.engine) return
+    if (this.eventHostH)  this.engine.applySeriesOptions(this.eventHostH, { visible })
+    if (this.markerHostH) this.engine.applySeriesOptions(this.markerHostH, { visible })
+    if (this.swingLineH)  this.engine.applySeriesOptions(this.swingLineH, { visible })
+    if (!visible && this.trendBadgeH) {
+      this.engine.updateWatermark(this.trendBadgeH, {
+        horzAlign: 'left', vertAlign: 'top',
         lines: [{ text: '', color: 'rgba(0,0,0,0)', fontSize: 11 }],
       })
     }
@@ -230,19 +225,19 @@ export class MarketStructureOverlay implements IAnalysisOverlay {
   }
 
   private applyEventHighlight(key: string | null): void {
-    if (!this.eventHost) return
+    if (!this.engine) return
     for (const { line, event } of this.bosLines) {
       const lit = key === 'ms:all' || key === `ms:bos:${event.timestamp}`
-      line.applyOptions({ lineWidth: lit ? 3 : 1 })
+      this.engine.updatePriceLine(line, { lineWidth: lit ? 3 : 1 })
     }
     for (const { line, event } of this.chochLines) {
       const lit = key === 'ms:all' || key === `ms:choch:${event.timestamp}`
-      line.applyOptions({ lineWidth: lit ? 3 : 1 })
+      this.engine.updatePriceLine(line, { lineWidth: lit ? 3 : 1 })
     }
   }
 
   private applySwingHighlight(key: string | null): void {
-    if (!this.markerPlugin || this.lastMarkers.length === 0) return
+    if (!this.engine || !this.markersH || this.lastMarkers.length === 0) return
 
     let litTs: number | null = null
     if (key?.startsWith('ms:swing:')) {
@@ -251,25 +246,25 @@ export class MarketStructureOverlay implements IAnalysisOverlay {
     const litAll = key === 'ms:all'
 
     const updated = this.lastMarkers.map(m => {
-      const tsMs = (m.time as number) * 1000
+      const tsMs = m.time * 1000
       const shouldLit = litAll || (litTs !== null && tsMs === litTs)
       return shouldLit ? { ...m, size: 2.5 } : { ...m, size: 0.6 }
     })
 
     // Skip re-render if highlight state hasn't changed
-    const curLit = updated.some(m => m.size !== 0.6)
+    const curLit  = updated.some(m => m.size !== 0.6)
     const prevLit = this.lastMarkers.some(m => m.size !== 0.6)
     if (!curLit && !prevLit) return
 
-    this.markerPlugin.setMarkers(updated)
+    this.engine.setMarkers(this.markersH, updated)
   }
 
   // ── Cleanup ─────────────────────────────────────────────────────────────────
 
   private clearEventLines(): void {
-    if (!this.eventHost) return
+    if (!this.engine) return
     for (const { line } of [...this.bosLines, ...this.chochLines]) {
-      this.eventHost.removePriceLine(line)
+      this.engine.removePriceLine(line)
     }
     this.bosLines   = []
     this.chochLines = []
@@ -277,19 +272,19 @@ export class MarketStructureOverlay implements IAnalysisOverlay {
 
   dispose(): void {
     this.clearEventLines()
-    this.markerPlugin?.detach()
-    this.trendBadge?.detach()
-    if (this.chart) {
-      if (this.eventHost)  this.chart.removeSeries(this.eventHost)
-      if (this.markerHost) this.chart.removeSeries(this.markerHost)
-      if (this.swingLine)  this.chart.removeSeries(this.swingLine)
+    if (this.engine) {
+      if (this.markersH)    this.engine.detachMarkersPlugin(this.markersH)
+      if (this.trendBadgeH) this.engine.detachWatermark(this.trendBadgeH)
+      if (this.eventHostH)  this.engine.removeSeries(this.eventHostH)
+      if (this.markerHostH) this.engine.removeSeries(this.markerHostH)
+      if (this.swingLineH)  this.engine.removeSeries(this.swingLineH)
     }
-    this.markerPlugin = null
-    this.trendBadge   = null
-    this.eventHost    = null
-    this.markerHost   = null
-    this.swingLine    = null
-    this.lastMarkers  = []
-    this.chart        = null
+    this.markersH    = null
+    this.trendBadgeH = null
+    this.eventHostH  = null
+    this.markerHostH = null
+    this.swingLineH  = null
+    this.lastMarkers = []
+    this.engine      = null
   }
 }

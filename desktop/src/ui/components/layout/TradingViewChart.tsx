@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, useCallback, forwardRef, useImperativeHandle } from 'react'
-import { createChart, CrosshairMode, type IChartApi, type MouseEventParams, type Time } from 'lightweight-charts'
+import { DrawingEngine } from '../../chart/drawing/DrawingEngine'
+import type { CrosshairEvent } from '../../chart/drawing/types'
 import { fetchCandlesAuto } from '../../../modules/binance/endpoints'
 import { subscribeLiveCandles } from '../../../modules/binance/ws'
 import type { Candle, Timeframe } from '../../../modules/market/types'
@@ -42,7 +43,7 @@ const EMA_CONFIGS = [
 export const TradingViewChart = forwardRef<TradingViewChartHandle, TradingViewChartProps>(
 function TradingViewChart({ symbol, interval, data, candles: controlledCandles }, ref) {
   const containerRef  = useRef<HTMLDivElement>(null)
-  const chartRef      = useRef<IChartApi | null>(null)
+  const engineRef     = useRef<DrawingEngine | null>(null)
   const managerRef    = useRef<OverlayManager | null>(null)
   const candlesRef    = useRef<Candle[]>([])
   const candleMapRef  = useRef<Map<number, Candle>>(new Map())
@@ -73,56 +74,17 @@ function TradingViewChart({ symbol, interval, data, candles: controlledCandles }
       candlesRef.current = candles
       candleMapRef.current = new Map(candles.map(c => [c.openTime, c]))
       managerRef.current?.updateAll(candles)
-      chartRef.current?.timeScale().fitContent()
+      engineRef.current?.fitContent()
     },
   }), [])
 
-  // Create chart, overlay manager, and crosshair HUD — runs once.
+  // Create drawing engine, overlay manager, and crosshair HUD — runs once.
   useEffect(() => {
     const el = containerRef.current
     if (!el) return
 
-    const chart = createChart(el, {
-      autoSize: true,
-      layout: {
-        background: { color: '#0c0f18' },
-        textColor: '#94a3b8',
-        fontSize: 11,
-      },
-      grid: {
-        vertLines: { color: '#0f1621' },
-        horzLines: { color: '#141e2e' },
-      },
-      crosshair: {
-        mode: CrosshairMode.Magnet,
-        vertLine: {
-          color: 'rgba(148, 163, 184, 0.35)',
-          width: 1,
-          style: 0,
-          labelBackgroundColor: '#1e293b',
-        },
-        horzLine: {
-          color: 'rgba(148, 163, 184, 0.35)',
-          width: 1,
-          style: 0,
-          labelBackgroundColor: '#1e293b',
-        },
-      },
-      timeScale: {
-        borderColor: '#1a2535',
-        timeVisible: true,
-        secondsVisible: false,
-        rightOffset: 15,
-        barSpacing: 8,
-        minBarSpacing: 2,
-      },
-      rightPriceScale: {
-        borderColor: '#1a2535',
-        scaleMargins: { top: 0.15, bottom: 0.10 },
-      },
-    })
-
-    const manager = new OverlayManager(chart)
+    const engine  = new DrawingEngine(el)
+    const manager = new OverlayManager(engine)
 
     manager.add(new CandlestickOverlay())
     manager.add(new VolumeOverlay())
@@ -142,7 +104,7 @@ function TradingViewChart({ symbol, interval, data, candles: controlledCandles }
     manager.addAnalysis(new FibonacciOverlay())
     manager.addAnalysis(new MarketStructureOverlay())
 
-    chartRef.current  = chart
+    engineRef.current  = engine
     managerRef.current = manager
 
     // Apply stored visibility (persisted from previous session)
@@ -155,16 +117,16 @@ function TradingViewChart({ symbol, interval, data, candles: controlledCandles }
     }
 
     // Crosshair HUD — update DOM directly on every move, no React re-render
-    const onCrosshair = (param: MouseEventParams<Time>) => {
+    const onCrosshair = (event: CrosshairEvent) => {
       const hud = hudRef.current
       if (!hud) return
 
-      if (!param.time || !param.point) {
+      if (event.time === null || event.point === null) {
         hud.style.display = 'none'
         return
       }
 
-      const timeMs = (param.time as number) * 1000
+      const timeMs = event.time * 1000
       const candle = candleMapRef.current.get(timeMs)
       if (!candle) { hud.style.display = 'none'; return }
 
@@ -193,7 +155,7 @@ function TradingViewChart({ symbol, interval, data, candles: controlledCandles }
       if (volEl) volEl.textContent = formatVolume(candle.volume)
 
       // EMA values at this candle
-      const utcSec = param.time as number
+      const utcSec = event.time
       emaOverlaysRef.current.forEach((ema, i) => {
         const el = hudEmaRefs.current[i]
         if (!el) return
@@ -202,14 +164,14 @@ function TradingViewChart({ symbol, interval, data, candles: controlledCandles }
       })
     }
 
-    chart.subscribeCrosshairMove(onCrosshair)
+    const unsubCrosshair = engine.subscribeCrosshairMove(onCrosshair)
 
     return () => {
-      chart.unsubscribeCrosshairMove(onCrosshair)
+      unsubCrosshair()
       manager.dispose()
-      chart.remove()
-      chartRef.current     = null
-      managerRef.current   = null
+      engine.dispose()
+      engineRef.current      = null
+      managerRef.current     = null
       emaOverlaysRef.current = []
     }
   }, [])
@@ -232,7 +194,7 @@ function TradingViewChart({ symbol, interval, data, candles: controlledCandles }
         candlesRef.current   = initial
         candleMapRef.current = new Map(initial.map(c => [c.openTime, c]))
         manager.updateAll(initial)
-        chartRef.current?.timeScale().fitContent()
+        engineRef.current?.fitContent()
         setStatus('ready')
 
         unsubWs = subscribeLiveCandles(symbol, interval as Timeframe, live => {
@@ -280,7 +242,7 @@ function TradingViewChart({ symbol, interval, data, candles: controlledCandles }
     const manager = managerRef.current
     if (!manager) return
     manager.updateAll(controlledCandles)
-    chartRef.current?.timeScale().fitContent()
+    engineRef.current?.fitContent()
     setStatus('ready')
   }, [controlledCandles])
 

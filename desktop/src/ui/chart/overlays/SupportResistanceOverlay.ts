@@ -1,10 +1,6 @@
-import {
-  LineSeries,
-  LineStyle,
-  type IChartApi,
-  type ISeriesApi,
-  type IPriceLine,
-} from 'lightweight-charts'
+import type { DrawingEngine } from '../drawing/DrawingEngine'
+import { LineStyle } from '../drawing/types'
+import type { SeriesHandle, PriceLineHandle } from '../drawing/types'
 import type { PipelineResult } from '../../../modules/pipeline/types'
 import type { PriceZone } from '../../../modules/support-resistance/types'
 import type { IAnalysisOverlay } from '../types'
@@ -18,34 +14,34 @@ const SUPPORT_NEAR     = 'rgba(34, 211, 238, 0.90)'
 const RESISTANCE_NEAR  = 'rgba(248, 113, 113, 0.90)'
 
 interface ZoneLine {
-  line: IPriceLine
+  line: PriceLineHandle
   zone: PriceZone
   isNearest: boolean
 }
 
 export class SupportResistanceOverlay implements IAnalysisOverlay {
   readonly id = 'sr'
-  private chart: IChartApi | null = null
-  private host: ISeriesApi<'Line'> | null = null
+  private engine: DrawingEngine | null = null
+  private hostH: SeriesHandle | null = null
   private zoneLines: ZoneLine[] = []
   private nearestSupportId: string | null = null
   private nearestResistanceId: string | null = null
 
-  mount(chart: IChartApi): void {
-    this.chart = chart
-    this.host = chart.addSeries(LineSeries, {
-      color: 'rgba(0,0,0,0)',
-      priceLineVisible: false,
-      lastValueVisible: false,
+  mount(engine: DrawingEngine): void {
+    this.engine = engine
+    this.hostH = engine.addLineSeries({
+      color:                  'rgba(0,0,0,0)',
+      priceLineVisible:       false,
+      lastValueVisible:       false,
       crosshairMarkerVisible: false,
-      autoscaleInfoProvider: () => null,
+      excludeFromAutoscale:   true,
     })
-    this.host.setData([])
+    engine.setData(this.hostH, [])
   }
 
   update(data: PipelineResult | null): void {
     this.clearLines()
-    if (!data || !this.host) return
+    if (!data || !this.engine || !this.hostH) return
 
     this.nearestSupportId    = data.supportResistance.nearestSupport?.id ?? null
     this.nearestResistanceId = data.supportResistance.nearestResistance?.id ?? null
@@ -55,36 +51,37 @@ export class SupportResistanceOverlay implements IAnalysisOverlay {
 
     for (const zone of support) {
       const isNearest = zone.id === this.nearestSupportId
-      const line = this.host.createPriceLine({
-        price: zone.center,
-        color: isNearest ? SUPPORT_NEAR : SUPPORT_COLOR,
-        lineWidth: isNearest ? 2 : 1,
-        lineStyle: LineStyle.Solid,
+      const line = this.engine.addPriceLine(this.hostH, {
+        price:            zone.center,
+        color:            isNearest ? SUPPORT_NEAR : SUPPORT_COLOR,
+        lineWidth:        isNearest ? 2 : 1,
+        lineStyle:        LineStyle.Solid,
         axisLabelVisible: isNearest,
-        title: 'S',
+        title:            'S',
       })
       this.zoneLines.push({ line, zone, isNearest })
     }
 
     for (const zone of resistance) {
       const isNearest = zone.id === this.nearestResistanceId
-      const line = this.host.createPriceLine({
-        price: zone.center,
-        color: isNearest ? RESISTANCE_NEAR : RESISTANCE_COLOR,
-        lineWidth: isNearest ? 2 : 1,
-        lineStyle: LineStyle.Solid,
+      const line = this.engine.addPriceLine(this.hostH, {
+        price:            zone.center,
+        color:            isNearest ? RESISTANCE_NEAR : RESISTANCE_COLOR,
+        lineWidth:        isNearest ? 2 : 1,
+        lineStyle:        LineStyle.Solid,
         axisLabelVisible: isNearest,
-        title: 'R',
+        title:            'R',
       })
       this.zoneLines.push({ line, zone, isNearest })
     }
   }
 
   setVisible(visible: boolean): void {
-    this.host?.applyOptions({ visible })
+    if (this.engine && this.hostH) this.engine.applySeriesOptions(this.hostH, { visible })
   }
 
   highlight(key: string | null): void {
+    if (!this.engine) return
     for (const { line, zone, isNearest } of this.zoneLines) {
       const lit =
         key === 'sr:all' ||
@@ -93,14 +90,14 @@ export class SupportResistanceOverlay implements IAnalysisOverlay {
         (key === 'sr:nearest-resistance' && zone.id === this.nearestResistanceId)
 
       const baseWidth = isNearest ? 2 : 1
-      const w = lit ? Math.min(baseWidth + 2, 4) as 1 | 2 | 3 | 4 : baseWidth
-      line.applyOptions({ lineWidth: w })
+      const w = (lit ? Math.min(baseWidth + 2, 4) : baseWidth) as 1 | 2 | 3 | 4
+      this.engine.updatePriceLine(line, { lineWidth: w })
     }
   }
 
   private clearLines(): void {
-    if (!this.host) return
-    for (const { line } of this.zoneLines) this.host.removePriceLine(line)
+    if (!this.engine) return
+    for (const { line } of this.zoneLines) this.engine.removePriceLine(line)
     this.zoneLines = []
     this.nearestSupportId    = null
     this.nearestResistanceId = null
@@ -108,8 +105,8 @@ export class SupportResistanceOverlay implements IAnalysisOverlay {
 
   dispose(): void {
     this.clearLines()
-    if (this.host && this.chart) this.chart.removeSeries(this.host)
-    this.host = null
-    this.chart = null
+    if (this.engine && this.hostH) this.engine.removeSeries(this.hostH)
+    this.hostH  = null
+    this.engine = null
   }
 }

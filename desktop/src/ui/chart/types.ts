@@ -1,15 +1,15 @@
-import type { IChartApi } from 'lightweight-charts'
+import type { DrawingEngine } from './drawing/DrawingEngine'
 import type { Candle } from '../../modules/market/types'
 import type { PipelineResult } from '../../modules/pipeline/types'
 
 export interface IOverlay {
   readonly id: string
-  mount(chart: IChartApi): void
+  mount(engine: DrawingEngine): void
   update(candles: Candle[]): void
   setVisible(visible: boolean): void
   /**
    * Fast single-bar update for live WebSocket ticks.
-   * Implementations call `series.update()` instead of `series.setData()` so only
+   * Implementations call the engine's update method instead of setData so only
    * the affected data point is redrawn. Overlays that do not support incremental
    * updates (e.g. EMA) simply leave this unimplemented — they are refreshed via
    * `update()` on each candle close instead.
@@ -27,7 +27,7 @@ export interface IOverlay {
 /** Overlay driven by the full pipeline analysis result rather than raw candle data. */
 export interface IAnalysisOverlay {
   readonly id: string
-  mount(chart: IChartApi): void
+  mount(engine: DrawingEngine): void
   update(data: PipelineResult | null): void
   setVisible?(visible: boolean): void
   /** Same contract as IOverlay.highlight. */

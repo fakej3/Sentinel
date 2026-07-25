@@ -1,26 +1,26 @@
-import type { IChartApi } from 'lightweight-charts'
+import { DrawingEngine } from './drawing/DrawingEngine'
 import type { Candle } from '../../modules/market/types'
 import type { PipelineResult } from '../../modules/pipeline/types'
 import type { IOverlay, IAnalysisOverlay } from './types'
 
 export class OverlayManager {
-  private readonly chart: IChartApi
+  private readonly engine: DrawingEngine
   private readonly overlays = new Map<string, IOverlay>()
   private readonly analysisOverlays = new Map<string, IAnalysisOverlay>()
   private readonly hiddenAnalysis = new Set<string>()
   private lastAnalysisData: PipelineResult | null | undefined = undefined
 
-  constructor(chart: IChartApi) {
-    this.chart = chart
+  constructor(engine: DrawingEngine) {
+    this.engine = engine
   }
 
   add(overlay: IOverlay): void {
-    overlay.mount(this.chart)
+    overlay.mount(this.engine)
     this.overlays.set(overlay.id, overlay)
   }
 
   addAnalysis(overlay: IAnalysisOverlay): void {
-    overlay.mount(this.chart)
+    overlay.mount(this.engine)
     this.analysisOverlays.set(overlay.id, overlay)
   }
 
