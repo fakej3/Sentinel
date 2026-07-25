@@ -54,6 +54,8 @@ export interface CandlestickSeriesConfig {
   upColor?: string
   downColor?: string
   borderVisible?: boolean
+  borderUpColor?: string
+  borderDownColor?: string
   wickUpColor?: string
   wickDownColor?: string
   priceLineVisible?: boolean
@@ -141,8 +143,9 @@ export interface ZoneInstruction {
   fillColor1: string
   fillColor2?: string
   lineColor?: string
-  /** UTC-second timestamps defining the zone's horizontal extent. */
-  times: number[]
+  /** UTC-second timestamps defining the horizontal extent of the zone fill. */
+  fromTime: number
+  toTime: number
   visible?: boolean
 }
 

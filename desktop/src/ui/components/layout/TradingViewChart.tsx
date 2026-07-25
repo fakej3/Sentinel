@@ -34,10 +34,10 @@ interface TradingViewChartProps {
 
 // EMA config in declaration order — used both for overlay creation and HUD coloring
 const EMA_CONFIGS = [
-  { period: 20,  color: 'rgba(59, 130, 246, 0.50)',  hudColor: '#60a5fa' },
-  { period: 50,  color: 'rgba(234, 179, 8, 0.65)',   hudColor: '#fbbf24' },
-  { period: 100, color: 'rgba(16, 185, 129, 0.65)',  hudColor: '#34d399' },
-  { period: 200, color: 'rgba(139, 92, 246, 0.85)',  hudColor: '#a78bfa' },
+  { period: 20,  color: 'rgba(59, 130, 246, 0.75)',  hudColor: '#60a5fa' },
+  { period: 50,  color: 'rgba(234, 179, 8, 0.80)',   hudColor: '#fbbf24' },
+  { period: 100, color: 'rgba(16, 185, 129, 0.80)',  hudColor: '#34d399' },
+  { period: 200, color: 'rgba(139, 92, 246, 0.90)',  hudColor: '#a78bfa' },
 ] as const
 
 export const TradingViewChart = forwardRef<TradingViewChartHandle, TradingViewChartProps>(
@@ -175,6 +175,19 @@ function TradingViewChart({ symbol, interval, data, candles: controlledCandles }
       emaOverlaysRef.current = []
     }
   }, [])
+
+  // Symbol watermark — centered ghost text, updated whenever the symbol changes.
+  useEffect(() => {
+    const engine = engineRef.current
+    if (!engine) return
+    engine.render('__symbol__', [{
+      kind:      'watermark',
+      key:       'sym',
+      horzAlign: 'center',
+      vertAlign: 'center',
+      lines:     [{ text: symbol.toUpperCase(), color: 'rgba(148,163,184,0.04)', fontSize: 48, fontStyle: 'bold' }],
+    }])
+  }, [symbol])
 
   // Fetch historical candles then subscribe to live WS ticks (live mode only).
   useEffect(() => {

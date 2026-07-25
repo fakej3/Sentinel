@@ -24,7 +24,7 @@ export class VolumeOverlay implements IOverlay {
     this.engine.setHistogramData(this.seriesH, candles.map(c => ({
       time:  Math.floor(c.openTime / 1000),
       value: c.volume,
-      color: c.close >= c.open ? '#26a69a40' : '#ef535040',
+      color: c.close >= c.open ? '#26a69a55' : '#ef535055',
     })))
   }
 
@@ -33,7 +33,7 @@ export class VolumeOverlay implements IOverlay {
     this.engine.updateHistogram(this.seriesH, {
       time:  Math.floor(candle.openTime / 1000),
       value: candle.volume,
-      color: candle.close >= candle.open ? '#26a69a40' : '#ef535040',
+      color: candle.close >= candle.open ? '#26a69a55' : '#ef535055',
     })
   }
 

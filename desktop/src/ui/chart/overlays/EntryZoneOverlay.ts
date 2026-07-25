@@ -60,7 +60,9 @@ export class EntryZoneOverlay implements IAnalysisOverlay {
     const fill    = lit ? FILL_LIT : FILL_DIM
     const { lower, upper } = plan.entryZone
     const mid     = (lower + upper) / 2
-    const times   = this.lastData.candles.slice(-80).map(c => Math.floor(c.openTime / 1000))
+    const allCandles = this.lastData.candles
+    const fromTime   = Math.floor(allCandles[0].openTime / 1000)
+    const toTime     = Math.floor(allCandles[allCandles.length - 1].openTime / 1000)
     const lw: 1 | 2 = lit ? 2 : 1
 
     return [
@@ -70,7 +72,8 @@ export class EntryZoneOverlay implements IAnalysisOverlay {
         topPrice:    upper,
         bottomPrice: lower,
         ...fill,
-        times,
+        fromTime,
+        toTime,
         visible: this.visible,
       },
       {

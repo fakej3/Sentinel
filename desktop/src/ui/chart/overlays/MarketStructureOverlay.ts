@@ -7,8 +7,8 @@ import type { IAnalysisOverlay } from '../types'
 
 // ── Config ────────────────────────────────────────────────────────────────────
 
-const MAX_BOS_LINES   = 2
-const MAX_CHOCH_LINES = 1
+const MAX_BOS_LINES   = 4
+const MAX_CHOCH_LINES = 2
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -42,6 +42,10 @@ export class MarketStructureOverlay implements IAnalysisOverlay {
   private lastHighlightKey: string | null = null
   private visible = true
 
+  // Cached per-candle lookup — rebuilt only in update(), not on every highlight()
+  private candleByTime = new Map<number, { high: number; low: number; close: number }>()
+  private times: number[] = []
+
   // ── Lifecycle ───────────────────────────────────────────────────────────────
 
   mount(engine: DrawingEngine): void {
@@ -50,6 +54,15 @@ export class MarketStructureOverlay implements IAnalysisOverlay {
 
   update(data: PipelineResult | null): void {
     this.lastData = data
+    if (data) {
+      this.times        = data.candles.map(c => Math.floor(c.openTime / 1000))
+      this.candleByTime = new Map(
+        data.candles.map(c => [Math.floor(c.openTime / 1000), { high: c.high, low: c.low, close: c.close }])
+      )
+    } else {
+      this.times        = []
+      this.candleByTime = new Map()
+    }
     this.submit()
   }
 
@@ -81,23 +94,23 @@ export class MarketStructureOverlay implements IAnalysisOverlay {
       return [{
         kind:      'watermark',
         key:       'trend-badge',
-        horzAlign: 'left',
+        horzAlign: 'right',
         vertAlign: 'top',
         lines:     [{ text: '', color: 'rgba(0,0,0,0)', fontSize: 11 }],
       }]
     }
 
-    const { marketStructure, candles } = data
+    const { marketStructure } = data
     const instructions: DrawingInstruction[] = []
 
     // ── Swing markers ─────────────────────────────────────────────────────────
-    const candleByTime = new Map(candles.map(c => [Math.floor(c.openTime / 1000), c]))
-    const swingByTime  = new Map(marketStructure.swings.map(s => [Math.floor(s.timestamp / 1000), s]))
-    const times        = candles.map(c => Math.floor(c.openTime / 1000))
+    // Build swingByTime only when building instructions (cheap: swings << candles).
+    // candleByTime is cached in update() so it's not rebuilt per highlight event.
+    const swingByTime = new Map(marketStructure.swings.map(s => [Math.floor(s.timestamp / 1000), s]))
 
-    const anchor = times.map(time => {
+    const anchor = this.times.map(time => {
       const swing  = swingByTime.get(time)
-      const candle = candleByTime.get(time)
+      const candle = this.candleByTime.get(time)
       if (swing && candle) {
         return { time, value: swing.type === 'high' ? candle.high : candle.low }
       }
@@ -112,7 +125,7 @@ export class MarketStructureOverlay implements IAnalysisOverlay {
     const litAll = key === 'ms:all'
 
     const markers = labeledSwings.map(s => {
-      const tsMs    = s.timestamp
+      const tsMs      = s.timestamp
       const shouldLit = litAll || (litTs !== null && tsMs === litTs)
       return {
         time:     Math.floor(s.timestamp / 1000),
@@ -120,7 +133,7 @@ export class MarketStructureOverlay implements IAnalysisOverlay {
         shape:    'circle' as const,
         color:    swingLabelColor(s.label as SwingLabel),
         text:     s.label as string,
-        size:     shouldLit ? 2.5 : 0.6,
+        size:     shouldLit ? 2.5 : 1.2,
       }
     })
 
@@ -136,7 +149,7 @@ export class MarketStructureOverlay implements IAnalysisOverlay {
     instructions.push({
       kind:      'polyline',
       key:       'zigzag',
-      color:     'rgba(100, 116, 139, 0.45)',
+      color:     'rgba(100, 116, 139, 0.65)',
       lineWidth: 1,
       lineStyle: LineStyle.Dashed,
       data:      labeledSwings.map(s => ({ time: Math.floor(s.timestamp / 1000), value: s.price })),
@@ -176,11 +189,11 @@ export class MarketStructureOverlay implements IAnalysisOverlay {
       })
     }
 
-    // ── Trend badge ───────────────────────────────────────────────────────────
+    // ── Trend badge (top-right, away from OHLCV HUD) ─────────────────────────
     instructions.push({
       kind:      'watermark',
       key:       'trend-badge',
-      horzAlign: 'left',
+      horzAlign: 'right',
       vertAlign: 'top',
       lines: [{
         text:      trendLabel(marketStructure.trend, marketStructure.strength),

@@ -7,7 +7,7 @@
  *     setData / setHistogramData / setCandlestickData / updateLine / updateHistogram / updateCandlestick
  *     applySeriesOptions / configurePriceScale
  *
- *   Analysis overlays (all 7 analysis overlays):
+ *   Analysis overlays (all analysis overlays):
  *     render(layerId, instructions[])  — declarative: describe WHAT exists
  *     clearLayer(layerId)              — remove all objects for a layer
  *     priceToCoordinate(price)         — coordinate math for label collision
@@ -64,7 +64,7 @@ type AnySeries = ISeriesApi<any>
 
 function t(time: number): UTCTimestamp { return time as UTCTimestamp }
 
-function hiddenLineSeries(chart: IChartApi): AnySeries {
+function hiddenLineSeries(chart: IChartApi): ISeriesApi<'Line'> {
   return chart.addSeries(LineSeries, {
     color:                  'rgba(0,0,0,0)',
     priceLineVisible:       false,
@@ -86,24 +86,33 @@ function toSeriesMarkers(markers: DrawingMarker[]): SeriesMarker<UTCTimestamp>[]
 }
 
 // ── HorizontalLineRenderer ────────────────────────────────────────────────────
+// Uses a SINGLE shared LineSeries host for the entire renderer instance.
+// Each price line uses IPriceLine on that host (LW v5 supports many price lines
+// per series). Individual visibility is controlled via PriceLineOptions.lineVisible
+// rather than toggling the host series, reducing total series count significantly.
 
 interface HLineEntry {
-  host:            AnySeries
-  pline:           IPriceLine
-  price:           number
-  color:           string
-  lineWidth:       number
-  lineStyle:       number
+  pline:            IPriceLine
+  price:            number
+  color:            string
+  lineWidth:        number
+  lineStyle:        number
   axisLabelVisible: boolean
-  title:           string
-  visible:         boolean
+  title:            string
+  visible:          boolean
 }
 
 class HorizontalLineRenderer {
   private readonly chart: IChartApi
+  private host:           ISeriesApi<'Line'> | null = null
   private readonly pool = new Map<string, HLineEntry>()
 
   constructor(chart: IChartApi) { this.chart = chart }
+
+  private getHost(): ISeriesApi<'Line'> {
+    if (!this.host) this.host = hiddenLineSeries(this.chart)
+    return this.host
+  }
 
   render(instructions: HorizontalLineInstruction[]): void {
     const nextKeys = new Set<string>()
@@ -121,49 +130,64 @@ class HorizontalLineRenderer {
       const existing = this.pool.get(inst.key)
       if (existing) {
         const o: Record<string, unknown> = {}
-        if (price            !== existing.price)            o.price            = price
-        if (color            !== existing.color)            o.color            = color
-        if (lineWidth        !== existing.lineWidth)        o.lineWidth        = lineWidth
-        if (lineStyle        !== existing.lineStyle)        o.lineStyle        = lineStyle
-        if (axisLabelVisible !== existing.axisLabelVisible) o.axisLabelVisible = axisLabelVisible
-        if (title            !== existing.title)            o.title            = title
+        if (price     !== existing.price)     o.price     = price
+        if (color     !== existing.color)     o.color     = color
+        if (lineWidth !== existing.lineWidth) o.lineWidth = lineWidth
+        if (lineStyle !== existing.lineStyle) o.lineStyle = lineStyle
+        if (title     !== existing.title)     o.title     = title
+
+        // lineVisible controls whether the price line renders
+        if (visible !== existing.visible) o.lineVisible = visible
+
+        // axisLabelVisible is only meaningful when the line is visible
+        const effectiveLabel  = visible ? axisLabelVisible : false
+        const existingEffectiveLabel = existing.visible ? existing.axisLabelVisible : false
+        if (effectiveLabel !== existingEffectiveLabel) o.axisLabelVisible = effectiveLabel
+
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         if (Object.keys(o).length > 0) existing.pline.applyOptions(o as any)
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        if (visible !== existing.visible) (existing.host as any).applyOptions({ visible })
+
         existing.price = price; existing.color = color; existing.lineWidth = lineWidth
         existing.lineStyle = lineStyle; existing.axisLabelVisible = axisLabelVisible
         existing.title = title; existing.visible = visible
       } else {
-        const host = hiddenLineSeries(this.chart)
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        if (!visible) (host as any).applyOptions({ visible: false })
-        const pline = (host as ISeriesApi<'Line'>).createPriceLine({
-          price, color, lineWidth, lineStyle: lineStyle as number, axisLabelVisible, title,
+        const pline = this.getHost().createPriceLine({
+          price,
+          color,
+          lineWidth: lineWidth as 1 | 2 | 3 | 4,
+          lineStyle,
+          axisLabelVisible: visible ? axisLabelVisible : false,
+          title,
+          lineVisible: visible,
         })
-        this.pool.set(inst.key, { host, pline, price, color, lineWidth, lineStyle, axisLabelVisible, title, visible })
+        this.pool.set(inst.key, { pline, price, color, lineWidth, lineStyle, axisLabelVisible, title, visible })
       }
     }
 
     for (const [k, entry] of this.pool) {
       if (!nextKeys.has(k)) {
-        entry.host.removePriceLine(entry.pline)
-        this.chart.removeSeries(entry.host)
+        this.getHost().removePriceLine(entry.pline)
         this.pool.delete(k)
       }
     }
   }
 
   dispose(): void {
-    for (const entry of this.pool.values()) {
-      entry.host.removePriceLine(entry.pline)
-      this.chart.removeSeries(entry.host)
+    if (this.host) {
+      for (const entry of this.pool.values()) {
+        this.host.removePriceLine(entry.pline)
+      }
+      this.chart.removeSeries(this.host)
+      this.host = null
     }
     this.pool.clear()
   }
 }
 
 // ── ZoneRenderer ──────────────────────────────────────────────────────────────
+// Uses BaselineSeries with exactly TWO data points (fromTime, toTime).
+// Two points suffice to draw the fill across the full horizontal span without
+// polluting CrosshairMode with 80 competing data values at fixed price levels.
 
 interface ZoneEntry {
   series:      AnySeries
@@ -172,7 +196,8 @@ interface ZoneEntry {
   fillColor1:  string
   fillColor2:  string
   lineColor:   string
-  times:       number[]
+  fromTime:    number
+  toTime:      number
   visible:     boolean
 }
 
@@ -192,6 +217,8 @@ class ZoneRenderer {
       const fillColor1  = inst.fillColor1
       const fillColor2  = inst.fillColor2  ?? inst.fillColor1
       const lineColor   = inst.lineColor   ?? 'transparent'
+      const fromTime    = inst.fromTime
+      const toTime      = inst.toTime
       const visible     = inst.visible     ?? true
 
       const existing = this.pool.get(inst.key)
@@ -207,16 +234,20 @@ class ZoneRenderer {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         if (Object.keys(styleOpts).length > 0) (existing.series as any).applyOptions(styleOpts)
 
-        const timesChanged = inst.times !== existing.times &&
-          (inst.times.length !== existing.times.length || inst.times[0] !== existing.times[0])
-        if (topPrice !== existing.topPrice || bottomPrice !== existing.bottomPrice || timesChanged) {
+        if (topPrice !== existing.topPrice || bottomPrice !== existing.bottomPrice ||
+            fromTime !== existing.fromTime  || toTime     !== existing.toTime) {
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          ;(existing.series as any).setData(inst.times.map((ts: number) => ({ time: t(ts), value: topPrice })))
+          ;(existing.series as any).setData([
+            { time: t(fromTime), value: topPrice },
+            { time: t(toTime),   value: topPrice },
+          ])
         }
 
         existing.topPrice = topPrice; existing.bottomPrice = bottomPrice
         existing.fillColor1 = fillColor1; existing.fillColor2 = fillColor2
-        existing.lineColor = lineColor; existing.times = inst.times; existing.visible = visible
+        existing.lineColor = lineColor
+        existing.fromTime = fromTime; existing.toTime = toTime
+        existing.visible = visible
       } else {
         const s = this.chart.addSeries(BaselineSeries, {
           baseValue:              { type: 'price', price: bottomPrice },
@@ -234,8 +265,11 @@ class ZoneRenderer {
           ...(visible ? {} : { visible: false }),
         })
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        ;(s as any).setData(inst.times.map((ts: number) => ({ time: t(ts), value: topPrice })))
-        this.pool.set(inst.key, { series: s, topPrice, bottomPrice, fillColor1, fillColor2, lineColor, times: inst.times, visible })
+        ;(s as any).setData([
+          { time: t(fromTime), value: topPrice },
+          { time: t(toTime),   value: topPrice },
+        ])
+        this.pool.set(inst.key, { series: s, topPrice, bottomPrice, fillColor1, fillColor2, lineColor, fromTime, toTime, visible })
       }
     }
 
@@ -256,11 +290,11 @@ class ZoneRenderer {
 // ── PolylineRenderer ──────────────────────────────────────────────────────────
 
 interface PolylineEntry {
-  series:  AnySeries
-  color:   string
+  series:    AnySeries
+  color:     string
   lineWidth: number
   lineStyle: number
-  visible: boolean
+  visible:   boolean
 }
 
 class PolylineRenderer {
@@ -323,7 +357,7 @@ class PolylineRenderer {
 // ── MarkerSetRenderer ─────────────────────────────────────────────────────────
 
 interface MarkerSetEntry {
-  host:    AnySeries
+  host:    ISeriesApi<'Line'>
   plugin:  ISeriesMarkersPluginApi<UTCTimestamp>
   anchor:  TimeSeriesPoint[]
   markers: DrawingMarker[]
@@ -345,13 +379,11 @@ class MarkerSetRenderer {
 
       const existing = this.pool.get(inst.key)
       if (existing) {
-        // Update anchor only if it actually changed (avoids full data resend during highlight)
         if (!anchorEqual(inst.anchor, existing.anchor)) {
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           ;(existing.host as any).setData(inst.anchor.map((d: TimeSeriesPoint) => ({ time: t(d.time), value: d.value })))
           existing.anchor = inst.anchor
         }
-        // Update markers if changed
         if (!markersEqual(inst.markers, existing.markers)) {
           existing.plugin.setMarkers(toSeriesMarkers(inst.markers))
           existing.markers = inst.markers
@@ -410,8 +442,8 @@ class WatermarkRenderer {
 
     for (const inst of instructions) {
       nextKeys.add(inst.key)
-      const visible      = inst.visible ?? true
-      const effectLines  = visible ? inst.lines : BLANK_LINES
+      const visible     = inst.visible ?? true
+      const effectLines = visible ? inst.lines : BLANK_LINES
 
       const existing = this.pool.get(inst.key)
       if (existing) {
@@ -497,46 +529,44 @@ export class DrawingEngine {
   private readonly layers = new Map<string, Layer>()
 
   // Invisible series used only for priceToCoordinate lookups
-  private readonly ruler: AnySeries
+  private readonly ruler: ISeriesApi<'Line'>
 
   constructor(el: HTMLElement) {
     this.chart = createChart(el, {
       autoSize: true,
       layout: {
         background: { color: '#0c0f18' },
-        textColor: '#94a3b8',
-        fontSize: 11,
+        textColor:  '#94a3b8',
+        fontSize:   11,
       },
       grid: {
-        vertLines: { color: '#0f1621' },
-        horzLines: { color: '#141e2e' },
+        vertLines: { color: '#1a2234' },
+        horzLines: { color: '#1a2234' },
       },
       crosshair: {
-        mode: CrosshairMode.Magnet,
-        vertLine: { color: 'rgba(148,163,184,0.35)', width: 1, style: 0, labelBackgroundColor: '#1e293b' },
-        horzLine: { color: 'rgba(148,163,184,0.35)', width: 1, style: 0, labelBackgroundColor: '#1e293b' },
+        // Normal mode: crosshair follows cursor precisely without snapping to
+        // series values. This prevents zone series data from pulling the
+        // horizontal line away from the actual cursor position. The OHLCV HUD
+        // reads from candleMapRef by time (unaffected by crosshair mode).
+        mode: CrosshairMode.Normal,
+        vertLine: { color: 'rgba(148,163,184,0.40)', width: 1, style: 0, labelBackgroundColor: '#1e293b' },
+        horzLine: { color: 'rgba(148,163,184,0.40)', width: 1, style: 0, labelBackgroundColor: '#1e293b' },
       },
       timeScale: {
-        borderColor: '#1a2535',
-        timeVisible: true,
+        borderColor:    '#1e2d42',
+        timeVisible:    true,
         secondsVisible: false,
-        rightOffset: 15,
-        barSpacing: 8,
-        minBarSpacing: 2,
+        rightOffset:    15,
+        barSpacing:     8,
+        minBarSpacing:  1,
       },
       rightPriceScale: {
-        borderColor: '#1a2535',
-        scaleMargins: { top: 0.15, bottom: 0.10 },
+        borderColor:  '#1e2d42',
+        scaleMargins: { top: 0.12, bottom: 0.08 },
       },
     })
 
-    this.ruler = this.chart.addSeries(LineSeries, {
-      color:                  'rgba(0,0,0,0)',
-      priceLineVisible:       false,
-      lastValueVisible:       false,
-      crosshairMarkerVisible: false,
-      autoscaleInfoProvider:  () => null,
-    })
+    this.ruler = hiddenLineSeries(this.chart)
   }
 
   // ── Internal helpers ───────────────────────────────────────────────────────
@@ -592,7 +622,7 @@ export class DrawingEngine {
 
   /** Convert a price to a y-pixel coordinate on the chart's main price scale. */
   priceToCoordinate(price: number): number | null {
-    const coord = (this.ruler as ISeriesApi<'Line'>).priceToCoordinate(price)
+    const coord = this.ruler.priceToCoordinate(price)
     return coord !== undefined && coord !== null ? Number(coord) : null
   }
 
@@ -619,9 +649,11 @@ export class DrawingEngine {
     const s = this.chart.addSeries(CandlestickSeries, {
       upColor:          cfg.upColor          ?? '#26a69a',
       downColor:        cfg.downColor        ?? '#ef5350',
-      borderVisible:    cfg.borderVisible    ?? false,
-      wickUpColor:      cfg.wickUpColor      ?? '#26a69a',
-      wickDownColor:    cfg.wickDownColor    ?? '#ef5350',
+      borderVisible:    cfg.borderVisible    ?? true,
+      borderUpColor:    cfg.borderUpColor    ?? cfg.upColor   ?? '#26a69a',
+      borderDownColor:  cfg.borderDownColor  ?? cfg.downColor ?? '#ef5350',
+      wickUpColor:      cfg.wickUpColor      ?? cfg.upColor   ?? '#26a69a',
+      wickDownColor:    cfg.wickDownColor    ?? cfg.downColor ?? '#ef5350',
       priceLineVisible: cfg.priceLineVisible ?? false,
       lastValueVisible: cfg.lastValueVisible ?? false,
     })

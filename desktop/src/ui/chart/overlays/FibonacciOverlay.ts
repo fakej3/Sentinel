@@ -92,12 +92,14 @@ export class FibonacciOverlay implements IAnalysisOverlay {
     const key  = this.lastHighlightKey
     const gpLit = key === 'fib:golden-pocket' || key === 'fib:all'
 
-    const recentTimes = this.lastData!.candles.slice(-80).map(c => Math.floor(c.openTime / 1000))
+    const allCandles = this.lastData!.candles
+    const fromTime   = Math.floor(allCandles[0].openTime / 1000)
+    const toTime     = Math.floor(allCandles[allCandles.length - 1].openTime / 1000)
 
     // Golden pocket zone
     const gp618 = fib.levels.find(l => l.ratio === 0.618)
     const gp650 = fib.levels.find(l => l.ratio === 0.650)
-    if (gp618 && gp650 && recentTimes.length > 0) {
+    if (gp618 && gp650) {
       const gpTop = Math.max(gp618.price, gp650.price)
       const gpBot = Math.min(gp618.price, gp650.price)
       const gp    = gpLit ? GP_LIT : GP_BASE
@@ -107,7 +109,8 @@ export class FibonacciOverlay implements IAnalysisOverlay {
         topPrice:    gpTop,
         bottomPrice: gpBot,
         ...gp,
-        times:   recentTimes,
+        fromTime,
+        toTime,
         visible: this.visible,
       })
     }

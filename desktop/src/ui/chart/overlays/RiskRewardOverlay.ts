@@ -71,9 +71,11 @@ export class RiskRewardOverlay implements IAnalysisOverlay {
     const reward   = Math.abs(tp - entryMid)
     const rr       = risk > 0 ? (reward / risk).toFixed(2) : '—'
 
-    const times      = this.lastData.candles.slice(-80).map(c => Math.floor(c.openTime / 1000))
-    const rewardMid  = (tp + (bullish ? entryHigh : entryLow)) / 2
-    const riskColor  = lit ? RISK_LIT   : RISK_DIM
+    const allCandles  = this.lastData.candles
+    const fromTime    = Math.floor(allCandles[0].openTime / 1000)
+    const toTime      = Math.floor(allCandles[allCandles.length - 1].openTime / 1000)
+    const rewardMid   = (tp + (bullish ? entryHigh : entryLow)) / 2
+    const riskColor   = lit ? RISK_LIT   : RISK_DIM
     const rewardColor = lit ? REWARD_LIT : REWARD_DIM
 
     return [
@@ -83,7 +85,8 @@ export class RiskRewardOverlay implements IAnalysisOverlay {
         topPrice:    bullish ? entryLow : stop,
         bottomPrice: bullish ? stop     : entryHigh,
         fillColor1:  riskColor,
-        times,
+        fromTime,
+        toTime,
         visible: this.visible,
       },
       {
@@ -92,7 +95,8 @@ export class RiskRewardOverlay implements IAnalysisOverlay {
         topPrice:    bullish ? tp       : entryLow,
         bottomPrice: bullish ? entryHigh : tp,
         fillColor1:  rewardColor,
-        times,
+        fromTime,
+        toTime,
         visible: this.visible,
       },
       {
