@@ -1,6 +1,6 @@
 import type { DrawingEngine } from '../drawing/DrawingEngine'
 import { LineStyle } from '../drawing/types'
-import type { LineStyleValue, ZoneHandle, HorizontalLineHandle } from '../drawing/types'
+import type { DrawingInstruction, LineStyleValue } from '../drawing/types'
 import type { PipelineResult } from '../../../modules/pipeline/types'
 import type { FibLevel } from '../../../modules/fibonacci/types'
 import type { IAnalysisOverlay } from '../types'
@@ -29,13 +29,6 @@ function lineStyleForLevel(level: FibLevel): LineStyleValue {
   return level.isExtension ? LineStyle.Dashed : LineStyle.Dotted
 }
 
-// ── Typed level-line record ───────────────────────────────────────────────────
-
-interface LevelLine {
-  line: HorizontalLineHandle
-  level: FibLevel
-}
-
 // Golden-pocket zone colors
 const GP_BASE = {
   fillColor1: 'rgba(234, 179, 8, 0.12)',
@@ -49,135 +42,115 @@ const GP_LIT = {
   lineColor:  'rgba(234, 179, 8, 0.90)',
 } as const
 
+const PRIORITY: Partial<Record<number, number>> = {
+  0.618: 1, 0.650: 2, 0.500: 3, 0.382: 4, 1.000: 5, 0.786: 6, 0.236: 7,
+}
+
 // ── Overlay ───────────────────────────────────────────────────────────────────
 
 export class FibonacciOverlay implements IAnalysisOverlay {
   readonly id = 'fibonacci'
-  private engine:     DrawingEngine | null = null
-  private gpZoneH:    ZoneHandle | null = null
-  private levelLines: LevelLine[] = []
-  private gpLit = false
+
+  private engine:           DrawingEngine | null = null
+  private lastData:         PipelineResult | null = null
+  private lastHighlightKey: string | null = null
+  private visible = true
 
   mount(engine: DrawingEngine): void {
-    this.engine  = engine
-    this.gpZoneH = engine.addZone({
-      topPrice:    0,
-      bottomPrice: 0,
-      ...GP_BASE,
-      times: [],
-    })
+    this.engine = engine
   }
 
   update(data: PipelineResult | null): void {
-    this.clearLines()
-    const fib = data?.fibonacci
-
-    if (!fib?.available || fib.levels.length === 0 || !this.engine || !this.gpZoneH) {
-      if (this.engine && this.gpZoneH) this.engine.updateZone(this.gpZoneH, { times: [] })
-      return
-    }
-
-    const recentTimes = data!.candles.slice(-80).map(c => Math.floor(c.openTime / 1000))
-
-    // Golden pocket fill between 0.618 and 0.650
-    const gp618 = fib.levels.find(l => l.ratio === 0.618)
-    const gp650 = fib.levels.find(l => l.ratio === 0.650)
-
-    if (gp618 && gp650 && recentTimes.length > 0) {
-      const gpTop = Math.max(gp618.price, gp650.price)
-      const gpBot = Math.min(gp618.price, gp650.price)
-      this.engine.updateZone(this.gpZoneH, { topPrice: gpTop, bottomPrice: gpBot, times: recentTimes })
-    } else {
-      this.engine.updateZone(this.gpZoneH, { times: [] })
-    }
-
-    for (const level of fib.levels) {
-      const suffix = level.confluence ? ' ✦' : ''
-      const title  = `${level.label}${suffix}`
-      const line = this.engine.addHorizontalLine({
-        price:            level.price,
-        color:            colorForLevel(level),
-        lineWidth:        lineWidthForLevel(level),
-        lineStyle:        lineStyleForLevel(level),
-        axisLabelVisible: !level.isExtension,
-        title,
-      })
-      this.levelLines.push({ line, level })
-    }
-
-    this.deCollideLabels()
-  }
-
-  private deCollideLabels(): void {
-    if (!this.engine) return
-    const PRIORITY: Partial<Record<number, number>> = {
-      0.618: 1, 0.650: 2, 0.500: 3, 0.382: 4, 1.000: 5, 0.786: 6, 0.236: 7,
-    }
-    const retrace = this.levelLines
-      .filter(({ level }) => !level.isExtension)
-      .sort((a, b) => (PRIORITY[a.level.ratio] ?? 99) - (PRIORITY[b.level.ratio] ?? 99))
-
-    const usedCoords: number[] = []
-    for (const { line, level } of retrace) {
-      const coord = this.engine.priceToCoordinate(level.price)
-      if (coord === null) continue
-      const tooClose = usedCoords.some(c => Math.abs(c - coord) < 14)
-      if (tooClose) {
-        this.engine.updateHorizontalLine(line, { axisLabelVisible: false })
-      } else {
-        usedCoords.push(coord)
-      }
-    }
+    this.lastData = data
+    this.submit()
   }
 
   setVisible(visible: boolean): void {
-    if (!this.engine) return
-    if (this.gpZoneH) this.engine.updateZone(this.gpZoneH, { visible })
-    for (const { line } of this.levelLines) this.engine.updateHorizontalLine(line, { visible })
+    this.visible = visible
+    this.submit()
   }
-
-  // ── Highlight ────────────────────────────────────────────────────────────────
 
   highlight(key: string | null): void {
-    this.applyLevelHighlight(key)
-    this.applyGoldenPocketHighlight(key)
-  }
-
-  private applyLevelHighlight(key: string | null): void {
-    if (!this.engine) return
-    for (const { line, level } of this.levelLines) {
-      const base = lineWidthForLevel(level)
-      const lit =
-        key === 'fib:all' ||
-        key === `fib:ratio:${level.ratio}` ||
-        (key === 'fib:golden-pocket' && (level.ratio === 0.618 || level.ratio === 0.650))
-
-      const w = (lit ? Math.min(base + 2, 4) : base) as 1 | 2 | 3 | 4
-      this.engine.updateHorizontalLine(line, { lineWidth: w })
-    }
-  }
-
-  private applyGoldenPocketHighlight(key: string | null): void {
-    if (!this.engine || !this.gpZoneH) return
-    const lit = key === 'fib:golden-pocket' || key === 'fib:all'
-    if (lit === this.gpLit) return
-    this.gpLit = lit
-    this.engine.updateZone(this.gpZoneH, lit ? GP_LIT : GP_BASE)
-  }
-
-  // ── Cleanup ───────────────────────────────────────────────────────────────────
-
-  private clearLines(): void {
-    if (!this.engine) return
-    for (const { line } of this.levelLines) this.engine.removeHorizontalLine(line)
-    this.levelLines = []
-    this.gpLit = false
+    this.lastHighlightKey = key
+    this.submit()
   }
 
   dispose(): void {
-    this.clearLines()
-    if (this.engine && this.gpZoneH) this.engine.removeZone(this.gpZoneH)
-    this.gpZoneH = null
-    this.engine  = null
+    this.engine?.clearLayer(this.id)
+    this.engine = null
+  }
+
+  private submit(): void {
+    this.engine?.render(this.id, this.buildInstructions())
+  }
+
+  private buildInstructions(): DrawingInstruction[] {
+    const fib = this.lastData?.fibonacci
+    if (!fib?.available || fib.levels.length === 0) return []
+
+    const instructions: DrawingInstruction[] = []
+    const key  = this.lastHighlightKey
+    const gpLit = key === 'fib:golden-pocket' || key === 'fib:all'
+
+    const recentTimes = this.lastData!.candles.slice(-80).map(c => Math.floor(c.openTime / 1000))
+
+    // Golden pocket zone
+    const gp618 = fib.levels.find(l => l.ratio === 0.618)
+    const gp650 = fib.levels.find(l => l.ratio === 0.650)
+    if (gp618 && gp650 && recentTimes.length > 0) {
+      const gpTop = Math.max(gp618.price, gp650.price)
+      const gpBot = Math.min(gp618.price, gp650.price)
+      const gp    = gpLit ? GP_LIT : GP_BASE
+      instructions.push({
+        kind: 'zone',
+        key:  'gp',
+        topPrice:    gpTop,
+        bottomPrice: gpBot,
+        ...gp,
+        times:   recentTimes,
+        visible: this.visible,
+      })
+    }
+
+    // Determine which retrace labels are visible (priority order, collision-aware)
+    const retraceByPriority = fib.levels
+      .filter(l => !l.isExtension)
+      .sort((a, b) => (PRIORITY[a.ratio] ?? 99) - (PRIORITY[b.ratio] ?? 99))
+    const usedCoords: number[] = []
+    const hiddenLabels = new Set<FibLevel>()
+    for (const level of retraceByPriority) {
+      const coord = this.engine?.priceToCoordinate(level.price) ?? null
+      if (coord !== null && usedCoords.some(c => Math.abs(c - coord) < 14)) {
+        hiddenLabels.add(level)
+      } else if (coord !== null) {
+        usedCoords.push(coord)
+      }
+    }
+
+    for (const level of fib.levels) {
+      const suffix    = level.confluence ? ' ✦' : ''
+      const title     = `${level.label}${suffix}`
+      const base      = lineWidthForLevel(level)
+      const lit       =
+        key === 'fib:all' ||
+        key === `fib:ratio:${level.ratio}` ||
+        (key === 'fib:golden-pocket' && (level.ratio === 0.618 || level.ratio === 0.650))
+      const lineWidth         = (lit ? Math.min(base + 2, 4) : base) as 1 | 2 | 3 | 4
+      const axisLabelVisible  = !level.isExtension && !hiddenLabels.has(level)
+
+      instructions.push({
+        kind:             'hline',
+        key:              `fib_${level.ratio}_${level.isExtension ? 'ext' : 'ret'}`,
+        price:            level.price,
+        color:            colorForLevel(level),
+        lineWidth,
+        lineStyle:        lineStyleForLevel(level),
+        axisLabelVisible,
+        title,
+        visible:          this.visible,
+      })
+    }
+
+    return instructions
   }
 }

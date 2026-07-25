@@ -86,19 +86,13 @@ export interface DrawingMarker {
   size?: number
 }
 
-// ── Watermark ─────────────────────────────────────────────────────────────────
+// ── Watermark text line ───────────────────────────────────────────────────────
 
 export interface WatermarkLine {
   text: string
   color: string
   fontSize: number
   fontStyle?: string
-}
-
-export interface WatermarkConfig {
-  horzAlign: 'left' | 'center' | 'right'
-  vertAlign: 'top' | 'center' | 'bottom'
-  lines: WatermarkLine[]
 }
 
 // ── Crosshair event ───────────────────────────────────────────────────────────
@@ -115,55 +109,75 @@ export interface PriceScaleConfig {
   scaleMargins?: { top: number; bottom: number }
 }
 
-// ── Opaque handle types ───────────────────────────────────────────────────────
-// DrawingEngine creates and owns these; overlays only receive and pass them back.
+// ── Opaque handle type (data-layer overlays only) ─────────────────────────────
 
 /** Handle to a raw line / candlestick / histogram series (data-layer overlays). */
-export type SeriesHandle    = { readonly _id: number; readonly _kind: 'series' }
-/** Handle to the trend-badge watermark text overlay. */
-export type WatermarkHandle = { readonly _id: number; readonly _kind: 'watermark' }
+export type SeriesHandle = { readonly _id: number; readonly _kind: 'series' }
 
-// High-level primitive handles — analysis overlays use these instead of
-// managing host series and plugins manually.
+// ── Drawing instructions ──────────────────────────────────────────────────────
+// Declarative descriptions produced by analysis overlays.
+// DrawingEngine.render() translates these into LW Charts objects.
+// Each instruction carries a stable `key` so the renderer can reuse existing
+// LW Charts objects between calls instead of tearing them down and recreating.
 
-/** A single horizontal price line, fully managed by DrawingEngine. */
-export type HorizontalLineHandle = { readonly _id: number; readonly _kind: 'hline' }
-/** A shaded zone between two price levels, fully managed by DrawingEngine. */
-export type ZoneHandle           = { readonly _id: number; readonly _kind: 'zone' }
-/** A polyline (zigzag / trend line) series, fully managed by DrawingEngine. */
-export type PolylineHandle       = { readonly _id: number; readonly _kind: 'polyline' }
-/** A set of chart markers anchored to a hidden series, fully managed by DrawingEngine. */
-export type MarkerSetHandle      = { readonly _id: number; readonly _kind: 'markerset' }
-
-// ── High-level primitive configs ──────────────────────────────────────────────
-
-export interface HorizontalLineConfig {
+export interface HorizontalLineInstruction {
+  kind: 'hline'
+  /** Stable key — renderer reuses the same LW Charts object when key matches. */
+  key: string
   price: number
   color: string
   lineWidth?: 1 | 2 | 3 | 4
   lineStyle?: LineStyleValue
   axisLabelVisible?: boolean
   title?: string
-  /** Toggle visibility without removing the line. */
   visible?: boolean
 }
 
-export interface ZoneConfig {
+export interface ZoneInstruction {
+  kind: 'zone'
+  key: string
   topPrice: number
   bottomPrice: number
-  /** Primary fill color. */
   fillColor1: string
-  /** Secondary fill color for a subtle gradient; defaults to fillColor1. */
   fillColor2?: string
-  /** Top border line color; defaults to transparent. */
   lineColor?: string
   /** UTC-second timestamps defining the zone's horizontal extent. */
   times: number[]
   visible?: boolean
 }
 
-export interface PolylineConfig {
+export interface PolylineInstruction {
+  kind: 'polyline'
+  key: string
   color: string
   lineWidth?: 1 | 2 | 3 | 4
   lineStyle?: LineStyleValue
+  data: TimeSeriesPoint[]
+  visible?: boolean
 }
+
+export interface MarkerSetInstruction {
+  kind: 'markerset'
+  key: string
+  /** Anchor values — every candle position with swing highs/lows at their H/L. */
+  anchor: TimeSeriesPoint[]
+  markers: DrawingMarker[]
+  visible?: boolean
+}
+
+export interface WatermarkInstruction {
+  kind: 'watermark'
+  key: string
+  horzAlign: 'left' | 'center' | 'right'
+  vertAlign: 'top' | 'center' | 'bottom'
+  lines: WatermarkLine[]
+  /** When false the watermark is rendered with blank / transparent text. */
+  visible?: boolean
+}
+
+export type DrawingInstruction =
+  | HorizontalLineInstruction
+  | ZoneInstruction
+  | PolylineInstruction
+  | MarkerSetInstruction
+  | WatermarkInstruction

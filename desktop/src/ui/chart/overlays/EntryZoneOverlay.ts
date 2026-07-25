@@ -1,6 +1,6 @@
 import type { DrawingEngine } from '../drawing/DrawingEngine'
 import { LineStyle } from '../drawing/types'
-import type { ZoneHandle, HorizontalLineHandle } from '../drawing/types'
+import type { DrawingInstruction } from '../drawing/types'
 import type { PipelineResult } from '../../../modules/pipeline/types'
 import type { IAnalysisOverlay } from '../types'
 
@@ -18,90 +18,92 @@ const FILL_LIT = {
 
 export class EntryZoneOverlay implements IAnalysisOverlay {
   readonly id = 'entry-zone'
-  private engine: DrawingEngine | null = null
-  private fillH:  ZoneHandle | null = null
-  private lines:  HorizontalLineHandle[] = []
-  private lit = false
+
+  private engine:           DrawingEngine | null = null
+  private lastData:         PipelineResult | null = null
+  private lastHighlightKey: string | null = null
+  private visible = true
 
   mount(engine: DrawingEngine): void {
     this.engine = engine
-    this.fillH  = engine.addZone({
-      topPrice:    0,
-      bottomPrice: 0,
-      ...FILL_DIM,
-      times: [],
-    })
   }
 
   update(data: PipelineResult | null): void {
-    this.clearLines()
-    const plan = data?.tradePlan
-
-    if (!data || !plan?.actionable || !plan.entryZone || !this.engine || !this.fillH) {
-      if (this.engine && this.fillH) this.engine.updateZone(this.fillH, { times: [] })
-      return
-    }
-
-    const { lower, upper } = plan.entryZone
-    const mid = (lower + upper) / 2
-
-    const recentCandles = data.candles.slice(-80)
-    this.engine.updateZone(this.fillH, {
-      topPrice:    upper,
-      bottomPrice: lower,
-      times:       recentCandles.map(c => Math.floor(c.openTime / 1000)),
-    })
-
-    this.lines.push(this.engine.addHorizontalLine({
-      price:            lower,
-      color:            'rgba(59, 130, 246, 0.5)',
-      lineWidth:        1,
-      lineStyle:        LineStyle.Dashed,
-      axisLabelVisible: false,
-    }))
-    this.lines.push(this.engine.addHorizontalLine({
-      price:            upper,
-      color:            'rgba(59, 130, 246, 0.5)',
-      lineWidth:        1,
-      lineStyle:        LineStyle.Dashed,
-      axisLabelVisible: false,
-    }))
-    this.lines.push(this.engine.addHorizontalLine({
-      price:            mid,
-      color:            'rgba(0,0,0,0)',
-      lineWidth:        1,
-      lineStyle:        LineStyle.Solid,
-      axisLabelVisible: true,
-      title:            'Entry',
-    }))
+    this.lastData = data
+    this.submit()
   }
 
   setVisible(visible: boolean): void {
-    if (!this.engine) return
-    if (this.fillH) this.engine.updateZone(this.fillH, { visible })
-    for (const lineH of this.lines) this.engine.updateHorizontalLine(lineH, { visible })
+    this.visible = visible
+    this.submit()
   }
 
   highlight(key: string | null): void {
-    if (!this.engine) return
-    const lit = key === 'entry:zone' || key === 'trade:full'
-    if (lit === this.lit) return
-    this.lit = lit
-    if (this.fillH) this.engine.updateZone(this.fillH, lit ? FILL_LIT : FILL_DIM)
-    const w: 1 | 2 = lit ? 2 : 1
-    for (const lineH of this.lines) this.engine.updateHorizontalLine(lineH, { lineWidth: w })
-  }
-
-  private clearLines(): void {
-    if (!this.engine) return
-    for (const lineH of this.lines) this.engine.removeHorizontalLine(lineH)
-    this.lines = []
+    this.lastHighlightKey = key
+    this.submit()
   }
 
   dispose(): void {
-    this.clearLines()
-    if (this.engine && this.fillH) this.engine.removeZone(this.fillH)
-    this.fillH  = null
+    this.engine?.clearLayer(this.id)
     this.engine = null
+  }
+
+  private submit(): void {
+    this.engine?.render(this.id, this.buildInstructions())
+  }
+
+  private buildInstructions(): DrawingInstruction[] {
+    const plan = this.lastData?.tradePlan
+    if (!this.lastData || !plan?.actionable || !plan.entryZone) return []
+
+    const lit     = this.lastHighlightKey === 'entry:zone' || this.lastHighlightKey === 'trade:full'
+    const fill    = lit ? FILL_LIT : FILL_DIM
+    const { lower, upper } = plan.entryZone
+    const mid     = (lower + upper) / 2
+    const times   = this.lastData.candles.slice(-80).map(c => Math.floor(c.openTime / 1000))
+    const lw: 1 | 2 = lit ? 2 : 1
+
+    return [
+      {
+        kind: 'zone',
+        key:  'fill',
+        topPrice:    upper,
+        bottomPrice: lower,
+        ...fill,
+        times,
+        visible: this.visible,
+      },
+      {
+        kind:             'hline',
+        key:              'lower',
+        price:            lower,
+        color:            'rgba(59, 130, 246, 0.5)',
+        lineWidth:        lw,
+        lineStyle:        LineStyle.Dashed,
+        axisLabelVisible: false,
+        visible:          this.visible,
+      },
+      {
+        kind:             'hline',
+        key:              'upper',
+        price:            upper,
+        color:            'rgba(59, 130, 246, 0.5)',
+        lineWidth:        lw,
+        lineStyle:        LineStyle.Dashed,
+        axisLabelVisible: false,
+        visible:          this.visible,
+      },
+      {
+        kind:             'hline',
+        key:              'mid',
+        price:            mid,
+        color:            'rgba(0,0,0,0)',
+        lineWidth:        1,
+        lineStyle:        LineStyle.Solid,
+        axisLabelVisible: true,
+        title:            'Entry',
+        visible:          this.visible,
+      },
+    ]
   }
 }

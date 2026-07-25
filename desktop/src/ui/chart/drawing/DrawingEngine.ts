@@ -1,15 +1,19 @@
 /**
  * DrawingEngine — THE ONLY FILE allowed to import from 'lightweight-charts'.
  *
- * All chart series, plugins, and primitive creation goes through this class.
- * Overlays receive a DrawingEngine reference and call its methods; they never
- * touch Lightweight Charts objects directly.
+ * Public API:
+ *   Data-layer overlays (Candlestick, Volume, EMA):
+ *     addLineSeries / addCandlestickSeries / addHistogramSeries / removeSeries
+ *     setData / setHistogramData / setCandlestickData / updateLine / updateHistogram / updateCandlestick
+ *     applySeriesOptions / configurePriceScale
  *
- * Responsibility boundary:
- *   DrawingEngine  →  HOW things are rendered (LW Charts primitives, series types,
- *                      plugin lifecycle, coordinate maths)
- *   Overlays       →  WHAT needs to be drawn (price levels, colors, marker positions,
- *                      zone bounds, polyline points)
+ *   Analysis overlays (all 7 analysis overlays):
+ *     render(layerId, instructions[])  — declarative: describe WHAT exists
+ *     clearLayer(layerId)              — remove all objects for a layer
+ *     priceToCoordinate(price)         — coordinate math for label collision
+ *
+ *   Chart-level:
+ *     subscribeCrosshairMove / fitContent / dispose
  */
 
 import {
@@ -41,38 +45,456 @@ import type {
   HistogramSeriesConfig,
   SeriesOptions,
   DrawingMarker,
-  WatermarkConfig,
+  WatermarkLine,
   CrosshairEvent,
   PriceScaleConfig,
   SeriesHandle,
-  WatermarkHandle,
-  HorizontalLineHandle,
-  HorizontalLineConfig,
-  ZoneHandle,
-  ZoneConfig,
-  PolylineHandle,
-  PolylineConfig,
-  MarkerSetHandle,
+  DrawingInstruction,
+  HorizontalLineInstruction,
+  ZoneInstruction,
+  PolylineInstruction,
+  MarkerSetInstruction,
+  WatermarkInstruction,
 } from './types'
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type AnySeries = ISeriesApi<any>
 
+// ── Utility ───────────────────────────────────────────────────────────────────
+
+function t(time: number): UTCTimestamp { return time as UTCTimestamp }
+
+function hiddenLineSeries(chart: IChartApi): AnySeries {
+  return chart.addSeries(LineSeries, {
+    color:                  'rgba(0,0,0,0)',
+    priceLineVisible:       false,
+    lastValueVisible:       false,
+    crosshairMarkerVisible: false,
+    autoscaleInfoProvider:  () => null,
+  })
+}
+
+function toSeriesMarkers(markers: DrawingMarker[]): SeriesMarker<UTCTimestamp>[] {
+  return markers.map(m => ({
+    time:     t(m.time),
+    position: m.position,
+    shape:    m.shape,
+    color:    m.color,
+    text:     m.text,
+    size:     m.size,
+  }))
+}
+
+// ── HorizontalLineRenderer ────────────────────────────────────────────────────
+
+interface HLineEntry {
+  host:            AnySeries
+  pline:           IPriceLine
+  price:           number
+  color:           string
+  lineWidth:       number
+  lineStyle:       number
+  axisLabelVisible: boolean
+  title:           string
+  visible:         boolean
+}
+
+class HorizontalLineRenderer {
+  private readonly chart: IChartApi
+  private readonly pool = new Map<string, HLineEntry>()
+
+  constructor(chart: IChartApi) { this.chart = chart }
+
+  render(instructions: HorizontalLineInstruction[]): void {
+    const nextKeys = new Set<string>()
+
+    for (const inst of instructions) {
+      nextKeys.add(inst.key)
+      const price            = inst.price
+      const color            = inst.color
+      const lineWidth        = inst.lineWidth        ?? 1
+      const lineStyle        = inst.lineStyle        ?? 0
+      const axisLabelVisible = inst.axisLabelVisible ?? false
+      const title            = inst.title            ?? ''
+      const visible          = inst.visible          ?? true
+
+      const existing = this.pool.get(inst.key)
+      if (existing) {
+        const o: Record<string, unknown> = {}
+        if (price            !== existing.price)            o.price            = price
+        if (color            !== existing.color)            o.color            = color
+        if (lineWidth        !== existing.lineWidth)        o.lineWidth        = lineWidth
+        if (lineStyle        !== existing.lineStyle)        o.lineStyle        = lineStyle
+        if (axisLabelVisible !== existing.axisLabelVisible) o.axisLabelVisible = axisLabelVisible
+        if (title            !== existing.title)            o.title            = title
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        if (Object.keys(o).length > 0) existing.pline.applyOptions(o as any)
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        if (visible !== existing.visible) (existing.host as any).applyOptions({ visible })
+        existing.price = price; existing.color = color; existing.lineWidth = lineWidth
+        existing.lineStyle = lineStyle; existing.axisLabelVisible = axisLabelVisible
+        existing.title = title; existing.visible = visible
+      } else {
+        const host = hiddenLineSeries(this.chart)
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        if (!visible) (host as any).applyOptions({ visible: false })
+        const pline = (host as ISeriesApi<'Line'>).createPriceLine({
+          price, color, lineWidth, lineStyle: lineStyle as number, axisLabelVisible, title,
+        })
+        this.pool.set(inst.key, { host, pline, price, color, lineWidth, lineStyle, axisLabelVisible, title, visible })
+      }
+    }
+
+    for (const [k, entry] of this.pool) {
+      if (!nextKeys.has(k)) {
+        entry.host.removePriceLine(entry.pline)
+        this.chart.removeSeries(entry.host)
+        this.pool.delete(k)
+      }
+    }
+  }
+
+  dispose(): void {
+    for (const entry of this.pool.values()) {
+      entry.host.removePriceLine(entry.pline)
+      this.chart.removeSeries(entry.host)
+    }
+    this.pool.clear()
+  }
+}
+
+// ── ZoneRenderer ──────────────────────────────────────────────────────────────
+
+interface ZoneEntry {
+  series:      AnySeries
+  topPrice:    number
+  bottomPrice: number
+  fillColor1:  string
+  fillColor2:  string
+  lineColor:   string
+  times:       number[]
+  visible:     boolean
+}
+
+class ZoneRenderer {
+  private readonly chart: IChartApi
+  private readonly pool = new Map<string, ZoneEntry>()
+
+  constructor(chart: IChartApi) { this.chart = chart }
+
+  render(instructions: ZoneInstruction[]): void {
+    const nextKeys = new Set<string>()
+
+    for (const inst of instructions) {
+      nextKeys.add(inst.key)
+      const topPrice    = inst.topPrice
+      const bottomPrice = inst.bottomPrice
+      const fillColor1  = inst.fillColor1
+      const fillColor2  = inst.fillColor2  ?? inst.fillColor1
+      const lineColor   = inst.lineColor   ?? 'transparent'
+      const visible     = inst.visible     ?? true
+
+      const existing = this.pool.get(inst.key)
+      if (existing) {
+        const styleOpts: Record<string, unknown> = {}
+        if (fillColor1  !== existing.fillColor1)  styleOpts.topFillColor1 = fillColor1
+        if (fillColor2  !== existing.fillColor2)  styleOpts.topFillColor2 = fillColor2
+        if (lineColor   !== existing.lineColor)   styleOpts.topLineColor  = lineColor
+        if (visible     !== existing.visible)     styleOpts.visible        = visible
+        if (bottomPrice !== existing.bottomPrice) {
+          styleOpts.baseValue = { type: 'price' as const, price: bottomPrice }
+        }
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        if (Object.keys(styleOpts).length > 0) (existing.series as any).applyOptions(styleOpts)
+
+        const timesChanged = inst.times !== existing.times &&
+          (inst.times.length !== existing.times.length || inst.times[0] !== existing.times[0])
+        if (topPrice !== existing.topPrice || bottomPrice !== existing.bottomPrice || timesChanged) {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          ;(existing.series as any).setData(inst.times.map((ts: number) => ({ time: t(ts), value: topPrice })))
+        }
+
+        existing.topPrice = topPrice; existing.bottomPrice = bottomPrice
+        existing.fillColor1 = fillColor1; existing.fillColor2 = fillColor2
+        existing.lineColor = lineColor; existing.times = inst.times; existing.visible = visible
+      } else {
+        const s = this.chart.addSeries(BaselineSeries, {
+          baseValue:              { type: 'price', price: bottomPrice },
+          topFillColor1:          fillColor1,
+          topFillColor2:          fillColor2,
+          topLineColor:           lineColor,
+          bottomFillColor1:       'transparent',
+          bottomFillColor2:       'transparent',
+          bottomLineColor:        'transparent',
+          lineWidth:              1,
+          priceLineVisible:       false,
+          lastValueVisible:       false,
+          crosshairMarkerVisible: false,
+          autoscaleInfoProvider:  () => null,
+          ...(visible ? {} : { visible: false }),
+        })
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        ;(s as any).setData(inst.times.map((ts: number) => ({ time: t(ts), value: topPrice })))
+        this.pool.set(inst.key, { series: s, topPrice, bottomPrice, fillColor1, fillColor2, lineColor, times: inst.times, visible })
+      }
+    }
+
+    for (const [k, entry] of this.pool) {
+      if (!nextKeys.has(k)) {
+        this.chart.removeSeries(entry.series)
+        this.pool.delete(k)
+      }
+    }
+  }
+
+  dispose(): void {
+    for (const entry of this.pool.values()) this.chart.removeSeries(entry.series)
+    this.pool.clear()
+  }
+}
+
+// ── PolylineRenderer ──────────────────────────────────────────────────────────
+
+interface PolylineEntry {
+  series:  AnySeries
+  color:   string
+  lineWidth: number
+  lineStyle: number
+  visible: boolean
+}
+
+class PolylineRenderer {
+  private readonly chart: IChartApi
+  private readonly pool = new Map<string, PolylineEntry>()
+
+  constructor(chart: IChartApi) { this.chart = chart }
+
+  render(instructions: PolylineInstruction[]): void {
+    const nextKeys = new Set<string>()
+
+    for (const inst of instructions) {
+      nextKeys.add(inst.key)
+      const color     = inst.color
+      const lineWidth = inst.lineWidth ?? 1
+      const lineStyle = inst.lineStyle ?? 0
+      const visible   = inst.visible   ?? true
+
+      const existing = this.pool.get(inst.key)
+      if (existing) {
+        const o: Record<string, unknown> = {}
+        if (color     !== existing.color)     o.color     = color
+        if (lineWidth !== existing.lineWidth) o.lineWidth = lineWidth
+        if (lineStyle !== existing.lineStyle) o.lineStyle = lineStyle
+        if (visible   !== existing.visible)   o.visible   = visible
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        if (Object.keys(o).length > 0) (existing.series as any).applyOptions(o)
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        ;(existing.series as any).setData(inst.data.map((d: TimeSeriesPoint) => ({ time: t(d.time), value: d.value })))
+        existing.color = color; existing.lineWidth = lineWidth; existing.lineStyle = lineStyle; existing.visible = visible
+      } else {
+        const s = this.chart.addSeries(LineSeries, {
+          color, lineWidth, lineStyle,
+          priceLineVisible:       false,
+          lastValueVisible:       false,
+          crosshairMarkerVisible: false,
+          autoscaleInfoProvider:  () => null,
+          ...(visible ? {} : { visible: false }),
+        })
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        ;(s as any).setData(inst.data.map((d: TimeSeriesPoint) => ({ time: t(d.time), value: d.value })))
+        this.pool.set(inst.key, { series: s, color, lineWidth, lineStyle, visible })
+      }
+    }
+
+    for (const [k, entry] of this.pool) {
+      if (!nextKeys.has(k)) {
+        this.chart.removeSeries(entry.series)
+        this.pool.delete(k)
+      }
+    }
+  }
+
+  dispose(): void {
+    for (const entry of this.pool.values()) this.chart.removeSeries(entry.series)
+    this.pool.clear()
+  }
+}
+
+// ── MarkerSetRenderer ─────────────────────────────────────────────────────────
+
+interface MarkerSetEntry {
+  host:    AnySeries
+  plugin:  ISeriesMarkersPluginApi<UTCTimestamp>
+  anchor:  TimeSeriesPoint[]
+  markers: DrawingMarker[]
+  visible: boolean
+}
+
+class MarkerSetRenderer {
+  private readonly chart: IChartApi
+  private readonly pool = new Map<string, MarkerSetEntry>()
+
+  constructor(chart: IChartApi) { this.chart = chart }
+
+  render(instructions: MarkerSetInstruction[]): void {
+    const nextKeys = new Set<string>()
+
+    for (const inst of instructions) {
+      nextKeys.add(inst.key)
+      const visible = inst.visible ?? true
+
+      const existing = this.pool.get(inst.key)
+      if (existing) {
+        // Update anchor only if it actually changed (avoids full data resend during highlight)
+        if (!anchorEqual(inst.anchor, existing.anchor)) {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          ;(existing.host as any).setData(inst.anchor.map((d: TimeSeriesPoint) => ({ time: t(d.time), value: d.value })))
+          existing.anchor = inst.anchor
+        }
+        // Update markers if changed
+        if (!markersEqual(inst.markers, existing.markers)) {
+          existing.plugin.setMarkers(toSeriesMarkers(inst.markers))
+          existing.markers = inst.markers
+        }
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        if (visible !== existing.visible) (existing.host as any).applyOptions({ visible })
+        existing.visible = visible
+      } else {
+        const host   = hiddenLineSeries(this.chart)
+        const plugin = createSeriesMarkers(host) as ISeriesMarkersPluginApi<UTCTimestamp>
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        ;(host as any).setData(inst.anchor.map((d: TimeSeriesPoint) => ({ time: t(d.time), value: d.value })))
+        plugin.setMarkers(toSeriesMarkers(inst.markers))
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        if (!visible) (host as any).applyOptions({ visible: false })
+        this.pool.set(inst.key, { host, plugin, anchor: inst.anchor, markers: inst.markers, visible })
+      }
+    }
+
+    for (const [k, entry] of this.pool) {
+      if (!nextKeys.has(k)) {
+        entry.plugin.detach()
+        this.chart.removeSeries(entry.host)
+        this.pool.delete(k)
+      }
+    }
+  }
+
+  dispose(): void {
+    for (const entry of this.pool.values()) {
+      entry.plugin.detach()
+      this.chart.removeSeries(entry.host)
+    }
+    this.pool.clear()
+  }
+}
+
+// ── WatermarkRenderer ─────────────────────────────────────────────────────────
+
+interface WatermarkEntry {
+  plugin:  ITextWatermarkPluginApi<Time>
+  lines:   WatermarkLine[]
+  visible: boolean
+}
+
+const BLANK_LINES: WatermarkLine[] = [{ text: '', color: 'rgba(0,0,0,0)', fontSize: 11 }]
+
+class WatermarkRenderer {
+  private readonly chart: IChartApi
+  private readonly pool = new Map<string, WatermarkEntry>()
+
+  constructor(chart: IChartApi) { this.chart = chart }
+
+  render(instructions: WatermarkInstruction[]): void {
+    const nextKeys = new Set<string>()
+
+    for (const inst of instructions) {
+      nextKeys.add(inst.key)
+      const visible      = inst.visible ?? true
+      const effectLines  = visible ? inst.lines : BLANK_LINES
+
+      const existing = this.pool.get(inst.key)
+      if (existing) {
+        const shouldUpdate = visible !== existing.visible || !watermarkLinesEqual(inst.lines, existing.lines)
+        if (shouldUpdate) {
+          existing.plugin.applyOptions({ lines: effectLines.map(l => ({ text: l.text, color: l.color, fontSize: l.fontSize, fontStyle: l.fontStyle })) })
+          existing.lines   = inst.lines
+          existing.visible = visible
+        }
+      } else {
+        const pane   = this.chart.panes()[0]
+        const plugin = createTextWatermark(pane, {
+          horzAlign: inst.horzAlign,
+          vertAlign: inst.vertAlign,
+          lines:     effectLines.map(l => ({ text: l.text, color: l.color, fontSize: l.fontSize, fontStyle: l.fontStyle })),
+        }) as ITextWatermarkPluginApi<Time>
+        this.pool.set(inst.key, { plugin, lines: inst.lines, visible })
+      }
+    }
+
+    for (const [k, entry] of this.pool) {
+      if (!nextKeys.has(k)) {
+        entry.plugin.detach()
+        this.pool.delete(k)
+      }
+    }
+  }
+
+  dispose(): void {
+    for (const entry of this.pool.values()) entry.plugin.detach()
+    this.pool.clear()
+  }
+}
+
+// ── Diffing helpers ───────────────────────────────────────────────────────────
+
+function anchorEqual(a: TimeSeriesPoint[], b: TimeSeriesPoint[]): boolean {
+  if (a === b) return true
+  if (a.length !== b.length) return false
+  if (a.length === 0) return true
+  const last = a.length - 1
+  return a[0].time === b[0].time && a[last].time === b[last].time && a[last].value === b[last].value
+}
+
+function markersEqual(a: DrawingMarker[], b: DrawingMarker[]): boolean {
+  if (a === b) return true
+  if (a.length !== b.length) return false
+  for (let i = 0; i < a.length; i++) {
+    if (a[i].time !== b[i].time || a[i].size !== b[i].size || a[i].color !== b[i].color) return false
+  }
+  return true
+}
+
+function watermarkLinesEqual(a: WatermarkLine[], b: WatermarkLine[]): boolean {
+  if (a === b) return true
+  if (a.length !== b.length) return false
+  for (let i = 0; i < a.length; i++) {
+    if (a[i].text !== b[i].text || a[i].color !== b[i].color) return false
+  }
+  return true
+}
+
+// ── Layer ─────────────────────────────────────────────────────────────────────
+
+interface Layer {
+  hlines:     HorizontalLineRenderer
+  zones:      ZoneRenderer
+  polylines:  PolylineRenderer
+  markerSets: MarkerSetRenderer
+  watermarks: WatermarkRenderer
+}
+
+// ── DrawingEngine ─────────────────────────────────────────────────────────────
+
 export class DrawingEngine {
   private readonly chart: IChartApi
   private nextId = 0
 
-  // ── Internal registries ───────────────────────────────────────────────────────
-
   // Data-layer overlays: raw series (candlestick, histogram, EMA line)
-  private readonly seriesReg    = new Map<number, AnySeries>()
+  private readonly seriesReg = new Map<number, AnySeries>()
 
-  // High-level primitives managed entirely inside DrawingEngine
-  private readonly hlineReg     = new Map<number, { host: AnySeries; pline: IPriceLine }>()
-  private readonly zoneReg      = new Map<number, { series: AnySeries; topPrice: number; bottomPrice: number; times: number[] }>()
-  private readonly polylineReg  = new Map<number, AnySeries>()
-  private readonly markerSetReg = new Map<number, { host: AnySeries; plugin: ISeriesMarkersPluginApi<UTCTimestamp> }>()
-  private readonly watermarkReg = new Map<number, ITextWatermarkPluginApi<Time>>()
+  // Analysis overlays: one layer per overlay id
+  private readonly layers = new Map<string, Layer>()
 
   // Invisible series used only for priceToCoordinate lookups
   private readonly ruler: AnySeries
@@ -117,28 +539,67 @@ export class DrawingEngine {
     })
   }
 
-  // ── Internal helpers ─────────────────────────────────────────────────────────
+  // ── Internal helpers ───────────────────────────────────────────────────────
 
-  private mk<K extends 'series' | 'watermark' | 'hline' | 'zone' | 'polyline' | 'markerset'>(kind: K) {
-    return { _id: this.nextId++, _kind: kind } as { _id: number; _kind: K }
+  private mk() {
+    return { _id: this.nextId++, _kind: 'series' as const }
   }
 
-  private t(time: number): UTCTimestamp { return time as UTCTimestamp }
-
-  private hiddenLineSeries(): AnySeries {
-    return this.chart.addSeries(LineSeries, {
-      color:                  'rgba(0,0,0,0)',
-      priceLineVisible:       false,
-      lastValueVisible:       false,
-      crosshairMarkerVisible: false,
-      autoscaleInfoProvider:  () => null,
-    })
+  private getOrCreateLayer(layerId: string): Layer {
+    let layer = this.layers.get(layerId)
+    if (!layer) {
+      layer = {
+        hlines:     new HorizontalLineRenderer(this.chart),
+        zones:      new ZoneRenderer(this.chart),
+        polylines:  new PolylineRenderer(this.chart),
+        markerSets: new MarkerSetRenderer(this.chart),
+        watermarks: new WatermarkRenderer(this.chart),
+      }
+      this.layers.set(layerId, layer)
+    }
+    return layer
   }
 
-  // ── Data-layer series (used by CandlestickOverlay, VolumeOverlay, EmaOverlay) ─
+  // ── Declarative render API (analysis overlays) ─────────────────────────────
+
+  /**
+   * Render a set of drawing instructions for one overlay layer.
+   * The engine diffs the new instructions against the previous render and
+   * updates, creates, or removes LW Charts objects as needed.
+   */
+  render(layerId: string, instructions: DrawingInstruction[]): void {
+    const layer = this.getOrCreateLayer(layerId)
+    layer.hlines.render(    instructions.filter((i): i is HorizontalLineInstruction => i.kind === 'hline'))
+    layer.zones.render(     instructions.filter((i): i is ZoneInstruction           => i.kind === 'zone'))
+    layer.polylines.render( instructions.filter((i): i is PolylineInstruction       => i.kind === 'polyline'))
+    layer.markerSets.render(instructions.filter((i): i is MarkerSetInstruction      => i.kind === 'markerset'))
+    layer.watermarks.render(instructions.filter((i): i is WatermarkInstruction      => i.kind === 'watermark'))
+  }
+
+  /** Remove all LW Charts objects belonging to this layer. */
+  clearLayer(layerId: string): void {
+    const layer = this.layers.get(layerId)
+    if (!layer) return
+    layer.hlines.dispose()
+    layer.zones.dispose()
+    layer.polylines.dispose()
+    layer.markerSets.dispose()
+    layer.watermarks.dispose()
+    this.layers.delete(layerId)
+  }
+
+  // ── Coordinate conversion ──────────────────────────────────────────────────
+
+  /** Convert a price to a y-pixel coordinate on the chart's main price scale. */
+  priceToCoordinate(price: number): number | null {
+    const coord = (this.ruler as ISeriesApi<'Line'>).priceToCoordinate(price)
+    return coord !== undefined && coord !== null ? Number(coord) : null
+  }
+
+  // ── Data-layer series (CandlestickOverlay, VolumeOverlay, EmaOverlay) ─────
 
   addLineSeries(cfg: LineSeriesConfig = {}): SeriesHandle {
-    const h = this.mk('series')
+    const h = this.mk()
     const s = this.chart.addSeries(LineSeries, {
       color:                  cfg.color                 ?? 'rgba(0,0,0,0)',
       lineWidth:              cfg.lineWidth              ?? 1,
@@ -154,7 +615,7 @@ export class DrawingEngine {
   }
 
   addCandlestickSeries(cfg: CandlestickSeriesConfig = {}): SeriesHandle {
-    const h = this.mk('series')
+    const h = this.mk()
     const s = this.chart.addSeries(CandlestickSeries, {
       upColor:          cfg.upColor          ?? '#26a69a',
       downColor:        cfg.downColor        ?? '#ef5350',
@@ -169,7 +630,7 @@ export class DrawingEngine {
   }
 
   addHistogramSeries(cfg: HistogramSeriesConfig = {}): SeriesHandle {
-    const h = this.mk('series')
+    const h = this.mk()
     const s = this.chart.addSeries(HistogramSeries, {
       ...(cfg.priceFormat === 'volume' ? { priceFormat: { type: 'volume' as const } } : {}),
       ...(cfg.priceScaleId             ? { priceScaleId: cfg.priceScaleId }           : {}),
@@ -191,14 +652,14 @@ export class DrawingEngine {
   setData(handle: SeriesHandle, data: TimeSeriesPoint[]): void {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const s = this.seriesReg.get(handle._id) as any
-    s?.setData(data.map(d => ({ time: this.t(d.time), value: d.value })))
+    s?.setData(data.map((d: TimeSeriesPoint) => ({ time: t(d.time), value: d.value })))
   }
 
   setHistogramData(handle: SeriesHandle, data: HistogramPoint[]): void {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const s = this.seriesReg.get(handle._id) as any
-    s?.setData(data.map(d => ({
-      time:  this.t(d.time),
+    s?.setData(data.map((d: HistogramPoint) => ({
+      time:  t(d.time),
       value: d.value,
       ...(d.color ? { color: d.color } : {}),
     })))
@@ -206,26 +667,26 @@ export class DrawingEngine {
 
   setCandlestickData(handle: SeriesHandle, data: DrawingCandle[]): void {
     const s = this.seriesReg.get(handle._id) as ISeriesApi<'Candlestick'> | undefined
-    s?.setData(data.map(d => ({
-      time: this.t(d.time), open: d.open, high: d.high, low: d.low, close: d.close,
+    s?.setData(data.map((d: DrawingCandle) => ({
+      time: t(d.time), open: d.open, high: d.high, low: d.low, close: d.close,
     })))
   }
 
   updateLine(handle: SeriesHandle, point: TimeSeriesPoint): void {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const s = this.seriesReg.get(handle._id) as any
-    s?.update({ time: this.t(point.time), value: point.value })
+    s?.update({ time: t(point.time), value: point.value })
   }
 
   updateHistogram(handle: SeriesHandle, point: HistogramPoint): void {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const s = this.seriesReg.get(handle._id) as any
-    s?.update({ time: this.t(point.time), value: point.value, ...(point.color ? { color: point.color } : {}) })
+    s?.update({ time: t(point.time), value: point.value, ...(point.color ? { color: point.color } : {}) })
   }
 
   updateCandlestick(handle: SeriesHandle, bar: DrawingCandle): void {
     const s = this.seriesReg.get(handle._id) as ISeriesApi<'Candlestick'> | undefined
-    s?.update({ time: this.t(bar.time), open: bar.open, high: bar.high, low: bar.low, close: bar.close })
+    s?.update({ time: t(bar.time), open: bar.open, high: bar.high, low: bar.low, close: bar.close })
   }
 
   applySeriesOptions(handle: SeriesHandle, opts: Partial<SeriesOptions>): void {
@@ -239,15 +700,7 @@ export class DrawingEngine {
     ;(s as any).applyOptions(o)
   }
 
-  // ── Coordinate conversion ─────────────────────────────────────────────────────
-
-  /** Convert a price to a y-pixel coordinate on the chart's main price scale. */
-  priceToCoordinate(price: number): number | null {
-    const coord = (this.ruler as ISeriesApi<'Line'>).priceToCoordinate(price)
-    return coord !== undefined && coord !== null ? Number(coord) : null
-  }
-
-  // ── Price scale ───────────────────────────────────────────────────────────────
+  // ── Price scale ────────────────────────────────────────────────────────────
 
   configurePriceScale(id: string, cfg: PriceScaleConfig): void {
     if (cfg.scaleMargins) {
@@ -255,232 +708,7 @@ export class DrawingEngine {
     }
   }
 
-  // ── Horizontal line primitive ─────────────────────────────────────────────────
-  // Creates an invisible host series + price line internally.
-  // Overlays never see or manage the host series.
-
-  addHorizontalLine(cfg: HorizontalLineConfig): HorizontalLineHandle {
-    const host = this.hiddenLineSeries()
-    if (cfg.visible === false) (host as any).applyOptions({ visible: false })  // eslint-disable-line @typescript-eslint/no-explicit-any
-    const pline = (host as ISeriesApi<'Line'>).createPriceLine({
-      price:            cfg.price,
-      color:            cfg.color,
-      lineWidth:        cfg.lineWidth        ?? 1,
-      lineStyle:        (cfg.lineStyle       ?? 0) as number,
-      axisLabelVisible: cfg.axisLabelVisible ?? false,
-      title:            cfg.title            ?? '',
-    })
-    const h = this.mk('hline')
-    this.hlineReg.set(h._id, { host, pline })
-    return h
-  }
-
-  updateHorizontalLine(handle: HorizontalLineHandle, cfg: Partial<HorizontalLineConfig>): void {
-    const entry = this.hlineReg.get(handle._id)
-    if (!entry) return
-    const o: Record<string, unknown> = {}
-    if (cfg.price            !== undefined) o.price            = cfg.price
-    if (cfg.color            !== undefined) o.color            = cfg.color
-    if (cfg.lineWidth        !== undefined) o.lineWidth        = cfg.lineWidth
-    if (cfg.lineStyle        !== undefined) o.lineStyle        = cfg.lineStyle
-    if (cfg.axisLabelVisible !== undefined) o.axisLabelVisible = cfg.axisLabelVisible
-    if (cfg.title            !== undefined) o.title            = cfg.title
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    if (Object.keys(o).length > 0) entry.pline.applyOptions(o as any)
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    if (cfg.visible !== undefined) (entry.host as any).applyOptions({ visible: cfg.visible })
-  }
-
-  removeHorizontalLine(handle: HorizontalLineHandle): void {
-    const entry = this.hlineReg.get(handle._id)
-    if (!entry) return
-    entry.host.removePriceLine(entry.pline)
-    this.chart.removeSeries(entry.host)
-    this.hlineReg.delete(handle._id)
-  }
-
-  // ── Zone primitive ────────────────────────────────────────────────────────────
-  // A shaded band between topPrice and bottomPrice rendered as a baseline series.
-  // The "top fill" (between baseValue and the data values) is the visible zone.
-  // The "bottom fill" is transparent so only the band appears.
-
-  addZone(cfg: ZoneConfig): ZoneHandle {
-    const s = this.chart.addSeries(BaselineSeries, {
-      baseValue:              { type: 'price', price: cfg.bottomPrice },
-      topFillColor1:          cfg.fillColor1,
-      topFillColor2:          cfg.fillColor2 ?? cfg.fillColor1,
-      topLineColor:           cfg.lineColor  ?? 'transparent',
-      bottomFillColor1:       'transparent',
-      bottomFillColor2:       'transparent',
-      bottomLineColor:        'transparent',
-      lineWidth:              1,
-      priceLineVisible:       false,
-      lastValueVisible:       false,
-      crosshairMarkerVisible: false,
-      autoscaleInfoProvider:  () => null,
-      ...(cfg.visible === false ? { visible: false } : {}),
-    })
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    ;(s as any).setData(cfg.times.map((t: number) => ({ time: this.t(t), value: cfg.topPrice })))
-    const h = this.mk('zone')
-    this.zoneReg.set(h._id, {
-      series:      s,
-      topPrice:    cfg.topPrice,
-      bottomPrice: cfg.bottomPrice,
-      times:       cfg.times,
-    })
-    return h
-  }
-
-  updateZone(handle: ZoneHandle, opts: Partial<ZoneConfig>): void {
-    const entry = this.zoneReg.get(handle._id)
-    if (!entry) return
-    const s = entry.series
-
-    const styleOpts: Record<string, unknown> = {}
-    if (opts.fillColor1  !== undefined) styleOpts.topFillColor1 = opts.fillColor1
-    if (opts.fillColor2  !== undefined) styleOpts.topFillColor2 = opts.fillColor2
-    if (opts.lineColor   !== undefined) styleOpts.topLineColor  = opts.lineColor
-    if (opts.visible     !== undefined) styleOpts.visible        = opts.visible
-    if (opts.bottomPrice !== undefined) {
-      styleOpts.baseValue = { type: 'price' as const, price: opts.bottomPrice }
-      entry.bottomPrice = opts.bottomPrice
-    }
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    if (Object.keys(styleOpts).length > 0) (s as any).applyOptions(styleOpts)
-
-    const topPrice = opts.topPrice ?? entry.topPrice
-    const times    = opts.times    ?? entry.times
-    if (opts.topPrice !== undefined || opts.times !== undefined) {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      ;(s as any).setData(times.map((t: number) => ({ time: this.t(t), value: topPrice })))
-      entry.topPrice = topPrice
-      entry.times    = times
-    }
-  }
-
-  removeZone(handle: ZoneHandle): void {
-    const entry = this.zoneReg.get(handle._id)
-    if (!entry) return
-    this.chart.removeSeries(entry.series)
-    this.zoneReg.delete(handle._id)
-  }
-
-  // ── Polyline primitive ────────────────────────────────────────────────────────
-  // A named line series used for zigzag / trend lines.
-
-  addPolyline(cfg: PolylineConfig): PolylineHandle {
-    const s = this.chart.addSeries(LineSeries, {
-      color:                  cfg.color,
-      lineWidth:              cfg.lineWidth ?? 1,
-      lineStyle:              cfg.lineStyle ?? 0,
-      priceLineVisible:       false,
-      lastValueVisible:       false,
-      crosshairMarkerVisible: false,
-      autoscaleInfoProvider:  () => null,
-    })
-    const h = this.mk('polyline')
-    this.polylineReg.set(h._id, s)
-    return h
-  }
-
-  setPolylineData(handle: PolylineHandle, data: TimeSeriesPoint[]): void {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const s = this.polylineReg.get(handle._id) as any
-    s?.setData(data.map((d: TimeSeriesPoint) => ({ time: this.t(d.time), value: d.value })))
-  }
-
-  setPolylineVisible(handle: PolylineHandle, visible: boolean): void {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const s = this.polylineReg.get(handle._id) as any
-    s?.applyOptions({ visible })
-  }
-
-  removePolyline(handle: PolylineHandle): void {
-    const s = this.polylineReg.get(handle._id)
-    if (s) {
-      this.chart.removeSeries(s)
-      this.polylineReg.delete(handle._id)
-    }
-  }
-
-  // ── Marker set primitive ──────────────────────────────────────────────────────
-  // A markers plugin attached to a hidden anchor series.
-  // setMarkerSetData  → sets both anchor positions and marker visuals in one call.
-  // setMarkerSetMarkers → updates only markers (e.g. for highlight size changes).
-
-  addMarkerSet(): MarkerSetHandle {
-    const host   = this.hiddenLineSeries()
-    const plugin = createSeriesMarkers(host) as ISeriesMarkersPluginApi<UTCTimestamp>
-    const h = this.mk('markerset')
-    this.markerSetReg.set(h._id, { host, plugin })
-    return h
-  }
-
-  setMarkerSetData(handle: MarkerSetHandle, anchor: TimeSeriesPoint[], markers: DrawingMarker[]): void {
-    const entry = this.markerSetReg.get(handle._id)
-    if (!entry) return
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    ;(entry.host as any).setData(anchor.map((d: TimeSeriesPoint) => ({ time: this.t(d.time), value: d.value })))
-    entry.plugin.setMarkers(this.toSeriesMarkers(markers))
-  }
-
-  setMarkerSetMarkers(handle: MarkerSetHandle, markers: DrawingMarker[]): void {
-    const entry = this.markerSetReg.get(handle._id)
-    if (entry) entry.plugin.setMarkers(this.toSeriesMarkers(markers))
-  }
-
-  setMarkerSetVisible(handle: MarkerSetHandle, visible: boolean): void {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const entry = this.markerSetReg.get(handle._id)
-    if (entry) (entry.host as any).applyOptions({ visible })
-  }
-
-  removeMarkerSet(handle: MarkerSetHandle): void {
-    const entry = this.markerSetReg.get(handle._id)
-    if (!entry) return
-    entry.plugin.detach()
-    this.chart.removeSeries(entry.host)
-    this.markerSetReg.delete(handle._id)
-  }
-
-  private toSeriesMarkers(markers: DrawingMarker[]): SeriesMarker<UTCTimestamp>[] {
-    return markers.map(m => ({
-      time:     this.t(m.time),
-      position: m.position,
-      shape:    m.shape,
-      color:    m.color,
-      text:     m.text,
-      size:     m.size,
-    }))
-  }
-
-  // ── Watermark ─────────────────────────────────────────────────────────────────
-
-  addWatermark(cfg: WatermarkConfig): WatermarkHandle {
-    const pane   = this.chart.panes()[0]
-    const plugin = createTextWatermark(pane, {
-      horzAlign: cfg.horzAlign,
-      vertAlign: cfg.vertAlign,
-      lines:     cfg.lines.map(l => ({ text: l.text, color: l.color, fontSize: l.fontSize, fontStyle: l.fontStyle })),
-    }) as ITextWatermarkPluginApi<Time>
-    const h = this.mk('watermark')
-    this.watermarkReg.set(h._id, plugin)
-    return h
-  }
-
-  updateWatermark(handle: WatermarkHandle, cfg: WatermarkConfig): void {
-    this.watermarkReg.get(handle._id)?.applyOptions({
-      lines: cfg.lines.map(l => ({ text: l.text, color: l.color, fontSize: l.fontSize, fontStyle: l.fontStyle })),
-    })
-  }
-
-  removeWatermark(handle: WatermarkHandle): void {
-    this.watermarkReg.get(handle._id)?.detach()
-    this.watermarkReg.delete(handle._id)
-  }
-
-  // ── Crosshair ─────────────────────────────────────────────────────────────────
+  // ── Crosshair ──────────────────────────────────────────────────────────────
 
   subscribeCrosshairMove(cb: (event: CrosshairEvent) => void): () => void {
     const handler = (param: MouseEventParams<Time>) => {
@@ -493,20 +721,21 @@ export class DrawingEngine {
     return () => this.chart.unsubscribeCrosshairMove(handler)
   }
 
-  // ── Chart-level ───────────────────────────────────────────────────────────────
+  // ── Chart-level ────────────────────────────────────────────────────────────
 
   fitContent(): void {
     this.chart.timeScale().fitContent()
   }
 
   dispose(): void {
-    for (const { plugin } of this.markerSetReg.values()) plugin.detach()
-    for (const p of this.watermarkReg.values()) p.detach()
-    this.markerSetReg.clear()
-    this.watermarkReg.clear()
-    this.hlineReg.clear()
-    this.zoneReg.clear()
-    this.polylineReg.clear()
+    for (const layer of this.layers.values()) {
+      layer.hlines.dispose()
+      layer.zones.dispose()
+      layer.polylines.dispose()
+      layer.markerSets.dispose()
+      layer.watermarks.dispose()
+    }
+    this.layers.clear()
     this.seriesReg.clear()
     this.chart.remove()
   }
