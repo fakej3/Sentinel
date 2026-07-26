@@ -556,7 +556,7 @@ export class DrawingEngine {
         borderColor:    '#1e2d42',
         timeVisible:    true,
         secondsVisible: false,
-        rightOffset:    15,
+        rightOffset:    10,
         barSpacing:     8,
         minBarSpacing:  1,
       },
