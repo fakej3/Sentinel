@@ -363,6 +363,18 @@ export interface PipelineMetadata {
   version: string
   timings: PipelineTimings
   market?: 'spot' | 'futures'
+  /**
+   * Exact candle window this analysis was computed over.
+   * Consumers verify a response against the current chart context and discard
+   * it when symbol/interval/window no longer match — no stale analysis renders.
+   * Optional because persisted history entries predate this field.
+   */
+  window?: {
+    /** openTime of the first analyzed candle (ms). */
+    firstOpenTime: number
+    /** openTime of the last analyzed candle (ms). */
+    lastOpenTime: number
+  }
 }
 
 export interface PipelineResult {

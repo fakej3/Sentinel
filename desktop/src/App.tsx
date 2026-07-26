@@ -7,6 +7,7 @@ import { SkeletonDashboard } from './ui/components/shared/Skeleton'
 import { useAppState } from './ui/hooks/useAppState'
 import { isTauriEnv } from './ui/transport'
 import { primeSymbolCache } from './ui/utils/symbolSearch'
+import { candleStore } from './ui/market-data/CandleStore'
 
 primeSymbolCache()
 
@@ -73,6 +74,17 @@ export default function App() {
     window.addEventListener('keydown', onKeyDown)
     return () => window.removeEventListener('keydown', onKeyDown)
   }, []) // empty deps — install once, use refs for current values
+
+  // Warm the market-data cache for recently analyzed series (once, on startup)
+  // so reopening them serves instantly from memory instead of a cold REST load.
+  const prefetchedRef = useRef(false)
+  useEffect(() => {
+    if (prefetchedRef.current || recentAnalyses.length === 0) return
+    prefetchedRef.current = true
+    for (const recent of recentAnalyses.slice(0, 3)) {
+      candleStore.prefetch(recent.symbol, recent.interval as Timeframe)
+    }
+  }, [recentAnalyses])
 
   // Window title — update to reflect current symbol in Tauri
   useEffect(() => {

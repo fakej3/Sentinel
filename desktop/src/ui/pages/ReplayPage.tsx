@@ -1,7 +1,7 @@
 import { useState, useRef, useCallback, useEffect } from 'react'
 import { clsx } from 'clsx'
 import { Film, BarChart2, ListOrdered, TrendingUp, FlaskConical, Save, X, Loader2, type LucideIcon } from 'lucide-react'
-import { fetchCandlesAuto } from '../../modules/binance/endpoints'
+import { candleStore } from '../market-data/CandleStore'
 import { BinanceApiError } from '../../modules/binance/client'
 import type { Timeframe } from '../../modules/market/types'
 import { TradingViewChart, type TradingViewChartHandle } from '../components/layout/TradingViewChart'
@@ -44,7 +44,7 @@ export function ReplayPage({ initialSymbol = 'BTCUSDT', initialInterval = '1h' }
     setFetchError(null)
     setFetchingCandles(true)
     try {
-      const { candles: loaded } = await fetchCandlesAuto(symbol.toUpperCase(), interval, 500)
+      const { candles: loaded } = await candleStore.fetchSnapshot(symbol.toUpperCase(), interval, 500)
       if (loaded.length < REPLAY_MIN_CANDLES) {
         setFetchError(`Need at least ${REPLAY_MIN_CANDLES} candles, got ${loaded.length}`)
         return

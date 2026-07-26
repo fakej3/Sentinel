@@ -5,6 +5,12 @@ import type { PipelineResult } from '../types'
 import type { Timeframe } from '../../modules/market/types'
 import * as historyStore from './TauriHistoryStore'
 import { STORAGE_KEYS } from '../constants/storageKeys'
+import { candleStore } from '../market-data/CandleStore'
+import { createStoreFetchFn } from '../market-data/pipelineFetch'
+
+// Pipeline candles come from the CandleStore — the same buffer the chart
+// renders — so desktop analysis can never diverge from the visible chart.
+const storeFetchFn = createStoreFetchFn(candleStore)
 
 // ── Error mapping ─────────────────────────────────────────────────────────────
 
@@ -59,6 +65,7 @@ export class TauriTransport implements AnalysisTransport {
         symbol:      symbol.trim().toUpperCase(),
         interval:    interval as Timeframe,
         candleLimit: options?.candleLimit,
+        fetchImpl:   storeFetchFn,
         ...(geminiKey && {
           config: { ai: { provider: 'gemini' as const, apiKey: geminiKey } },
         }),

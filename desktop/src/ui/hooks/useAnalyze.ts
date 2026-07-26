@@ -75,6 +75,21 @@ export function useAnalyze() {
 
       if (controller.signal.aborted) return null
 
+      // Contract check: the response must describe exactly what was requested.
+      // The abort above handles user-driven context switches; this guards
+      // against any transport/server returning a mismatched result — a stale
+      // analysis must never render.
+      const requestedSymbol = params.symbol.trim().toUpperCase()
+      if (data.metadata.symbol !== requestedSymbol || data.metadata.interval !== params.interval) {
+        clearTimers()
+        setState({
+          data: null, loading: false, stage: null,
+          error: 'Analysis response did not match the request and was discarded.',
+          errorDetail: `requested ${requestedSymbol}/${params.interval}, received ${data.metadata.symbol}/${data.metadata.interval}`,
+        })
+        return null
+      }
+
       clearTimers()
       setState({ data, loading: false, stage: null, error: null, errorDetail: undefined })
       return data

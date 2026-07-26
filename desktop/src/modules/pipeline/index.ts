@@ -391,6 +391,10 @@ export async function analyzeMarket(options: PipelineOptions): Promise<PipelineR
       version: PIPELINE_VERSION,
       timings,
       ...(marketData.market && { market: marketData.market }),
+      window: {
+        firstOpenTime: marketData.candles[0].openTime,
+        lastOpenTime:  marketData.candles[marketData.candles.length - 1].openTime,
+      },
     },
   }
 }
