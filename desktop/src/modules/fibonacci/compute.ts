@@ -10,6 +10,15 @@ const ALL_RATIOS = [...RETRACEMENT_RATIOS, ...EXTENSION_RATIOS]
 const GOLDEN_POCKET = new Set([0.618, 0.650])
 const CONFLUENCE_TOLERANCE = 0.005   // 0.5%
 const SWING_LOOKBACK = 20
+/**
+ * Minimum impulse size as a multiple of ATR.
+ * Rationale: ATR is the market's own unit of one-bar noise. An "impulse" leg
+ * smaller than one ATR is indistinguishable from ordinary bar-to-bar movement,
+ * so retracement levels inside it subdivide noise, not structure. 1.0 is the
+ * smallest multiple with a defensible meaning ("the leg exceeded typical
+ * single-bar range") — it is deliberately the least aggressive valid filter.
+ */
+const MIN_IMPULSE_ATR_MULT = 1.0
 
 function labelFor(ratio: number): string {
   if (ratio > 1.0) return `${ratio.toFixed(3)} ext`
@@ -73,6 +82,9 @@ function hasConfluence(
   sr: SupportResistanceResult,
 ): { confluence: boolean; confluenceType?: 'support' | 'resistance' } {
   for (const zone of sr.zones) {
+    // A broken zone is no longer a level the market respects — confluence
+    // with a dead level is not confluence.
+    if (zone.broken) continue
     const ref   = zone.center
     const delta = Math.abs(price - ref) / ref
     if (delta <= CONFLUENCE_TOLERANCE) {
@@ -82,25 +94,46 @@ function hasConfluence(
   return { confluence: false }
 }
 
+/**
+ * @param atr Current ATR in price units (Wilder-14, from the indicator engine).
+ *            Used to reject impulses smaller than MIN_IMPULSE_ATR_MULT × ATR.
+ *            Pass null only when ATR is genuinely unavailable (< 15 candles) —
+ *            the size filter is then skipped, since there is no volatility
+ *            unit to measure against.
+ */
 export function computeFibonacci(
   swings: SwingPoint[],
   trend: TrendDirection,
   sr: SupportResistanceResult,
+  atr: number | null,
 ): FibResult {
-  const unavailable: FibResult = {
+  const unavailable = (reason: string): FibResult => ({
     swingHigh: { price: 0, timestamp: 0 },
     swingLow:  { price: 0, timestamp: 0 },
     direction: 'bullish',
     levels: [],
     available: false,
+    unavailableReason: reason,
+  })
+
+  if (trend === 'ranging') {
+    return unavailable('ranging market — no directional impulse to measure')
   }
 
   const pair = findDominantPair(swings, trend)
-  if (!pair) return unavailable
+  if (!pair) {
+    return unavailable(`no confirmed ${trend === 'bullish' ? 'HH+HL' : 'LL+LH'} impulse leg in recent swings`)
+  }
 
   const { high, low } = pair
   const range     = high.price - low.price
-  if (range <= 0) return unavailable
+  if (range <= 0) return unavailable('degenerate impulse (non-positive range)')
+
+  if (atr !== null && range < MIN_IMPULSE_ATR_MULT * atr) {
+    return unavailable(
+      `impulse of ${range.toFixed(2)} is below ${MIN_IMPULSE_ATR_MULT}× ATR (${atr.toFixed(2)}) — leg is within noise range`,
+    )
+  }
 
   const direction = inferDirection(high, low)
 

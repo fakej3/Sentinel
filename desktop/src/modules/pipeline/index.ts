@@ -207,15 +207,6 @@ export async function analyzeMarket(options: PipelineOptions): Promise<PipelineR
   }
   const supportResistanceTime = Date.now() - t3
 
-  // ── Stage 4b: Fibonacci ─────────────────────────────────────────────────────
-  let fibonacci: FibResult | undefined
-  try {
-    fibonacci = computeFibonacci(marketStructure.swings, marketStructure.trend, supportResistance)
-  } catch {
-    // Fibonacci is optional — a failure here must never block the rest of the pipeline
-    fibonacci = undefined
-  }
-
   // ── Stage 5: Volume Analysis ────────────────────────────────────────────────
   const t4 = Date.now()
   let volumeAnalysis!: VolumeAnalysisResult
@@ -248,6 +239,27 @@ export async function analyzeMarket(options: PipelineOptions): Promise<PipelineR
     throw new PipelineError('internal_module_failure', 'analysis', String(err), err)
   }
   const analysisTime = Date.now() - t5
+
+  // ── Stage 6b: Fibonacci ─────────────────────────────────────────────────────
+  // Computed AFTER analysis so its direction comes from the same trend
+  // authority as the trade plan (fullTrend, the 5-condition composite) —
+  // never from the structural swing-count trend alone. Before this, the two
+  // could disagree at trend transitions and the chart would show a bearish
+  // Fibonacci beside a long trade plan.
+  let fibonacci: FibResult | undefined
+  try {
+    const fullTrendLabel = analysis.fullTrend.trend
+    const fibDirection =
+      fullTrendLabel.includes('bullish') ? 'bullish' as const :
+      fullTrendLabel.includes('bearish') ? 'bearish' as const :
+      'ranging' as const
+    fibonacci = computeFibonacci(
+      marketStructure.swings, fibDirection, supportResistance, indicators.atr,
+    )
+  } catch {
+    // Fibonacci is optional — a failure here must never block the rest of the pipeline
+    fibonacci = undefined
+  }
 
   // ── Stage 7: Validation ─────────────────────────────────────────────────────
   const t6 = Date.now()

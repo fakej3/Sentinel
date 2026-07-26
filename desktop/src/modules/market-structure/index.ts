@@ -98,15 +98,18 @@ export function computeMarketStructure(
   }
 
   // Pipeline
+  // Event detection runs BEFORE labeling: detectBosChoch needs only the
+  // dominant (unlabeled) swings, and its CHoCH events define the regime
+  // boundaries at which labelSwings resets its comparison baseline.
   const rawSwings = detectRawSwings(candles, cfg)
   const dominantSwings = filterDominantSwings(rawSwings)
-  const labeledSwings = labelSwings(dominantSwings, cfg)
-  const structure = countStructure(labeledSwings)
-  const recentStructure = countRecentStructure(labeledSwings, cfg)
-  const { direction: trend, strength } = determineTrend(labeledSwings, cfg)
   const allEvents = detectBosChoch(candles, dominantSwings, cfg)
   const bosEvents = allEvents.filter(e => e.type === 'BOS')
   const chochEvents = allEvents.filter(e => e.type === 'CHOCH')
+  const labeledSwings = labelSwings(dominantSwings, cfg, chochEvents.map(e => e.index))
+  const structure = countStructure(labeledSwings)
+  const recentStructure = countRecentStructure(labeledSwings, cfg)
+  const { direction: trend, strength } = determineTrend(labeledSwings, cfg)
   const consolidation = detectConsolidation(labeledSwings, cfg)
   const breakout = detectBreakout(candles, consolidation, cfg)
   const pullback = detectPullback(candles, labeledSwings, bosEvents)

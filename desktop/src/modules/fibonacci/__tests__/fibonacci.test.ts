@@ -43,14 +43,14 @@ function makeZone(center: number, type: 'support' | 'resistance'): import('../..
 
 describe('computeFibonacci', () => {
   it('returns unavailable when there are no swings', () => {
-    const result = computeFibonacci([], 'bullish', emptySR)
+    const result = computeFibonacci([], 'bullish', emptySR, null)
     expect(result.available).toBe(false)
     expect(result.levels).toHaveLength(0)
   })
 
   it('returns unavailable when only one swing type exists', () => {
     const swings = [swing(0, 100, 'high', 'HH'), swing(5, 110, 'high', 'HH')]
-    const result = computeFibonacci(swings, 'bullish', emptySR)
+    const result = computeFibonacci(swings, 'bullish', emptySR, null)
     expect(result.available).toBe(false)
   })
 
@@ -59,7 +59,7 @@ describe('computeFibonacci', () => {
       swing(0, 100,  'low',  'HL'),
       swing(10, 200, 'high', 'HH'),
     ]
-    const result = computeFibonacci(swings, 'bullish', emptySR)
+    const result = computeFibonacci(swings, 'bullish', emptySR, null)
     expect(result.available).toBe(true)
     expect(result.levels).toHaveLength(10)
   })
@@ -71,7 +71,7 @@ describe('computeFibonacci', () => {
       swing(0,  100, 'low',  'HL'),
       swing(10, 200, 'high', 'HH'),
     ]
-    const result = computeFibonacci(swings, 'bullish', emptySR)
+    const result = computeFibonacci(swings, 'bullish', emptySR, null)
     const level618 = result.levels.find(l => l.ratio === 0.618)
     expect(level618).toBeDefined()
     expect(level618!.price).toBeCloseTo(138.2, 4)
@@ -84,7 +84,7 @@ describe('computeFibonacci', () => {
       swing(0,  200, 'high', 'LH'),
       swing(10, 100, 'low',  'LL'),
     ]
-    const result = computeFibonacci(swings, 'bearish', emptySR)
+    const result = computeFibonacci(swings, 'bearish', emptySR, null)
     const level618 = result.levels.find(l => l.ratio === 0.618)
     expect(level618).toBeDefined()
     expect(level618!.price).toBeCloseTo(161.8, 4)
@@ -92,14 +92,14 @@ describe('computeFibonacci', () => {
 
   it('marks 0.618 and 0.650 as golden pocket levels', () => {
     const swings = [swing(0, 100, 'low', 'HL'), swing(10, 200, 'high', 'HH')]
-    const result = computeFibonacci(swings, 'bullish', emptySR)
+    const result = computeFibonacci(swings, 'bullish', emptySR, null)
     const gp = result.levels.filter(l => l.isGoldenPocket)
     expect(gp.map(l => l.ratio).sort()).toEqual([0.618, 0.650])
   })
 
   it('marks extension levels correctly', () => {
     const swings = [swing(0, 100, 'low', 'HL'), swing(10, 200, 'high', 'HH')]
-    const result = computeFibonacci(swings, 'bullish', emptySR)
+    const result = computeFibonacci(swings, 'bullish', emptySR, null)
     const exts = result.levels.filter(l => l.isExtension)
     expect(exts.map(l => l.ratio)).toEqual([1.272, 1.618, 2.000])
   })
@@ -111,7 +111,7 @@ describe('computeFibonacci', () => {
       ...emptySR,
       zones: [makeZone(138.5, 'support')],
     }
-    const result = computeFibonacci(swings, 'bullish', srWithConfluence)
+    const result = computeFibonacci(swings, 'bullish', srWithConfluence, null)
     const level618 = result.levels.find(l => l.ratio === 0.618)
     expect(level618?.confluence).toBe(true)
     expect(level618?.confluenceType).toBe('support')
@@ -124,7 +124,7 @@ describe('computeFibonacci', () => {
       ...emptySR,
       zones: [makeZone(145, 'resistance')],
     }
-    const result = computeFibonacci(swings, 'bullish', srFar)
+    const result = computeFibonacci(swings, 'bullish', srFar, null)
     const level618 = result.levels.find(l => l.ratio === 0.618)
     expect(level618?.confluence).toBe(false)
   })
@@ -138,7 +138,7 @@ describe('computeFibonacci', () => {
       swing(5,  80,  'low',  'LL'),
       swing(10, 200, 'high', 'HH'),
     ]
-    const result = computeFibonacci(swings, 'bullish', emptySR)
+    const result = computeFibonacci(swings, 'bullish', emptySR, null)
     expect(result.available).toBe(false)
   })
 
@@ -150,9 +150,81 @@ describe('computeFibonacci', () => {
       swing(7,  90,  'low',  'HL'),
       swing(10, 200, 'high', 'HH'),
     ]
-    const result = computeFibonacci(swings, 'bullish', emptySR)
+    const result = computeFibonacci(swings, 'bullish', emptySR, null)
     expect(result.available).toBe(true)
     expect(result.swingHigh.price).toBe(200)
     expect(result.swingLow.price).toBe(90)
+  })
+})
+
+describe('computeFibonacci — ATR impulse floor', () => {
+  const impulse = (lowPrice: number, highPrice: number) => [
+    swing(0,  lowPrice,  'low',  'HL'),
+    swing(10, highPrice, 'high', 'HH'),
+  ]
+
+  it('rejects an impulse smaller than 1× ATR as noise', () => {
+    // Impulse range = 5, ATR = 20 → leg is well inside single-bar noise
+    const result = computeFibonacci(impulse(100, 105), 'bullish', emptySR, 20)
+    expect(result.available).toBe(false)
+    expect(result.unavailableReason).toMatch(/ATR/)
+  })
+
+  it('accepts an impulse of at least 1× ATR', () => {
+    // Impulse range = 100, ATR = 20 → 5× ATR, clearly structural
+    const result = computeFibonacci(impulse(100, 200), 'bullish', emptySR, 20)
+    expect(result.available).toBe(true)
+  })
+
+  it('accepts an impulse exactly at the 1× ATR boundary', () => {
+    // range = 20, ATR = 20 → range < 1.0×ATR is false at equality → accepted
+    const result = computeFibonacci(impulse(100, 120), 'bullish', emptySR, 20)
+    expect(result.available).toBe(true)
+  })
+
+  it('skips the size filter when ATR is unavailable (null)', () => {
+    const result = computeFibonacci(impulse(100, 105), 'bullish', emptySR, null)
+    expect(result.available).toBe(true)  // no volatility unit to measure against
+  })
+})
+
+describe('computeFibonacci — availability reasons and direction authority', () => {
+  it('ranging trend is unavailable with an explicit reason', () => {
+    const swings = [swing(0, 100, 'low', 'HL'), swing(10, 200, 'high', 'HH')]
+    const result = computeFibonacci(swings, 'ranging', emptySR, null)
+    expect(result.available).toBe(false)
+    expect(result.unavailableReason).toMatch(/ranging/)
+  })
+
+  it('missing impulse leg reports which pattern was required', () => {
+    const swings = [swing(0, 100, 'low', 'LL'), swing(10, 200, 'high', 'LH')]
+    const bullish = computeFibonacci(swings, 'bullish', emptySR, null)
+    expect(bullish.unavailableReason).toMatch(/HH\+HL/)
+    const bearish = computeFibonacci(swings, 'bearish', emptySR, null)
+    expect(bearish.unavailableReason).toMatch(/LL\+LH/)
+  })
+})
+
+describe('computeFibonacci — confluence excludes broken zones', () => {
+  it('a broken zone at a fib level does NOT mark confluence', () => {
+    const swings = [swing(0, 100, 'low', 'HL'), swing(10, 200, 'high', 'HH')]
+    // 0.618 level = 138.2 — a zone sits right there but has been broken
+    const srBroken: SupportResistanceResult = {
+      ...emptySR,
+      zones: [{ ...makeZone(138.5, 'support'), broken: true, state: 'broken' }],
+    }
+    const result = computeFibonacci(swings, 'bullish', srBroken, null)
+    const level618 = result.levels.find(l => l.ratio === 0.618)
+    expect(level618?.confluence).toBe(false)
+  })
+
+  it('an intact zone at the same price still marks confluence (control)', () => {
+    const swings = [swing(0, 100, 'low', 'HL'), swing(10, 200, 'high', 'HH')]
+    const srIntact: SupportResistanceResult = {
+      ...emptySR,
+      zones: [makeZone(138.5, 'support')],
+    }
+    const result = computeFibonacci(swings, 'bullish', srIntact, null)
+    expect(result.levels.find(l => l.ratio === 0.618)?.confluence).toBe(true)
   })
 })
