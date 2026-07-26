@@ -11,10 +11,14 @@ function isBullish(plan: TradePlan): boolean {
     plan.invalidationLevel < plan.entryZone.lower
 }
 
-const RISK_DIM   = 'rgba(239, 83, 80, 0.08)'
-const RISK_LIT   = 'rgba(239, 83, 80, 0.22)'
-const REWARD_DIM = 'rgba(34, 197, 94, 0.08)'
-const REWARD_LIT = 'rgba(34, 197, 94, 0.22)'
+const RISK_DIM        = 'rgba(239, 83, 80, 0.12)'
+const RISK_LIT        = 'rgba(239, 83, 80, 0.25)'
+const RISK_EDGE_DIM   = 'rgba(239, 83, 80, 0.30)'
+const RISK_EDGE_LIT   = 'rgba(239, 83, 80, 0.65)'
+const REWARD_DIM      = 'rgba(34, 197, 94, 0.12)'
+const REWARD_LIT      = 'rgba(34, 197, 94, 0.25)'
+const REWARD_EDGE_DIM = 'rgba(34, 197, 94, 0.30)'
+const REWARD_EDGE_LIT = 'rgba(34, 197, 94, 0.65)'
 
 export class RiskRewardOverlay implements IAnalysisOverlay {
   readonly id = 'risk-reward'
@@ -71,12 +75,14 @@ export class RiskRewardOverlay implements IAnalysisOverlay {
     const reward   = Math.abs(tp - entryMid)
     const rr       = risk > 0 ? (reward / risk).toFixed(2) : '—'
 
-    const allCandles  = this.lastData.candles
-    const fromTime    = Math.floor(allCandles[0].openTime / 1000)
-    const toTime      = Math.floor(allCandles[allCandles.length - 1].openTime / 1000)
-    const rewardMid   = (tp + (bullish ? entryHigh : entryLow)) / 2
-    const riskColor   = lit ? RISK_LIT   : RISK_DIM
-    const rewardColor = lit ? REWARD_LIT : REWARD_DIM
+    const allCandles   = this.lastData.candles
+    const fromTime     = Math.floor(allCandles[0].openTime / 1000)
+    const toTime       = Math.floor(allCandles[allCandles.length - 1].openTime / 1000)
+    const rewardMid    = (tp + (bullish ? entryHigh : entryLow)) / 2
+    const riskColor    = lit ? RISK_LIT        : RISK_DIM
+    const riskEdge     = lit ? RISK_EDGE_LIT   : RISK_EDGE_DIM
+    const rewardColor  = lit ? REWARD_LIT      : REWARD_DIM
+    const rewardEdge   = lit ? REWARD_EDGE_LIT : REWARD_EDGE_DIM
 
     return [
       {
@@ -85,6 +91,7 @@ export class RiskRewardOverlay implements IAnalysisOverlay {
         topPrice:    bullish ? entryLow : stop,
         bottomPrice: bullish ? stop     : entryHigh,
         fillColor1:  riskColor,
+        lineColor:   riskEdge,
         fromTime,
         toTime,
         visible: this.visible,
@@ -95,6 +102,7 @@ export class RiskRewardOverlay implements IAnalysisOverlay {
         topPrice:    bullish ? tp       : entryLow,
         bottomPrice: bullish ? entryHigh : tp,
         fillColor1:  rewardColor,
+        lineColor:   rewardEdge,
         fromTime,
         toTime,
         visible: this.visible,

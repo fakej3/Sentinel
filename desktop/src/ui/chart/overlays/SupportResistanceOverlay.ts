@@ -6,10 +6,10 @@ import type { IAnalysisOverlay } from '../types'
 
 const MAX_ZONES = 3
 
-const SUPPORT_COLOR    = 'rgba(34, 211, 238, 0.55)'
-const RESISTANCE_COLOR = 'rgba(248, 113, 113, 0.55)'
-const SUPPORT_NEAR     = 'rgba(34, 211, 238, 0.90)'
-const RESISTANCE_NEAR  = 'rgba(248, 113, 113, 0.90)'
+const SUPPORT_COLOR    = 'rgba(34, 197, 94, 0.40)'
+const RESISTANCE_COLOR = 'rgba(239, 83, 80, 0.40)'
+const SUPPORT_NEAR     = 'rgba(34, 197, 94, 0.75)'
+const RESISTANCE_NEAR  = 'rgba(239, 83, 80, 0.75)'
 
 export class SupportResistanceOverlay implements IAnalysisOverlay {
   readonly id = 'sr'

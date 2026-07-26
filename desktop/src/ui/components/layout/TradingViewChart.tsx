@@ -283,30 +283,40 @@ function TradingViewChart({ symbol, interval, data, candles: controlledCandles }
       <div
         ref={hudRef}
         style={{ display: 'none' }}
-        className="absolute top-2 left-2 pointer-events-none z-10 flex items-center gap-2 px-2.5 py-1 rounded bg-[#0c0f18]/90 border border-white/[0.06] text-[11px] font-mono"
+        className="absolute top-2 left-2 pointer-events-none z-10 flex items-center gap-1.5 px-2.5 py-1 rounded bg-[#0c0f18]/92 border border-white/[0.05] text-[11px] font-mono"
       >
-        <span ref={hudTimeRef} className="text-slate-500 mr-0.5" />
-        <span className="text-slate-700">|</span>
-        <span className="text-slate-600 text-[10px]">O</span>
-        <span ref={hudOpenRef}  className="text-slate-200" />
-        <span className="text-slate-600 text-[10px]">H</span>
-        <span ref={hudHighRef}  className="text-slate-200" />
-        <span className="text-slate-600 text-[10px]">L</span>
-        <span ref={hudLowRef}   className="text-slate-200" />
-        <span className="text-slate-600 text-[10px]">C</span>
-        <span ref={hudCloseRef} className="text-slate-200" />
-        <span ref={hudChangeRef} className="ml-0.5" />
-        <span className="text-slate-700">|</span>
-        <span className="text-slate-600 text-[10px]">Vol</span>
-        <span ref={hudVolRef}   className="text-slate-400" />
+        <span ref={hudTimeRef} className="text-slate-400 tabular-nums" />
+        <span className="text-white/10 select-none">│</span>
+        <span className="flex items-baseline gap-0.5">
+          <span className="text-slate-500 text-[9px] leading-none">O</span>
+          <span ref={hudOpenRef}  className="text-slate-200 tabular-nums" />
+        </span>
+        <span className="flex items-baseline gap-0.5">
+          <span className="text-slate-500 text-[9px] leading-none">H</span>
+          <span ref={hudHighRef}  className="text-slate-200 tabular-nums" />
+        </span>
+        <span className="flex items-baseline gap-0.5">
+          <span className="text-slate-500 text-[9px] leading-none">L</span>
+          <span ref={hudLowRef}   className="text-slate-200 tabular-nums" />
+        </span>
+        <span className="flex items-baseline gap-0.5">
+          <span className="text-slate-500 text-[9px] leading-none">C</span>
+          <span ref={hudCloseRef} className="text-slate-200 tabular-nums" />
+        </span>
+        <span ref={hudChangeRef} className="tabular-nums" />
+        <span className="text-white/10 select-none">│</span>
+        <span className="flex items-baseline gap-0.5">
+          <span className="text-slate-500 text-[9px] leading-none">Vol</span>
+          <span ref={hudVolRef} className="text-slate-300 tabular-nums" />
+        </span>
         {/* EMA values — colored to match their line */}
-        <span className="text-slate-700">|</span>
+        <span className="text-white/10 select-none">│</span>
         {EMA_CONFIGS.map((cfg, i) => (
-          <span key={cfg.period} className="flex items-center gap-1">
-            <span className="text-[9px]" style={{ color: cfg.hudColor }}>E{cfg.period}</span>
+          <span key={cfg.period} className="flex items-baseline gap-0.5">
+            <span className="text-[9px] leading-none" style={{ color: cfg.hudColor, opacity: 0.7 }}>E{cfg.period}</span>
             <span
               ref={el => { hudEmaRefs.current[i] = el }}
-              className="text-[11px]"
+              className="tabular-nums"
               style={{ color: cfg.hudColor }}
             />
           </span>

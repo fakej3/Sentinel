@@ -33,7 +33,7 @@ function lineStyleForLevel(level: FibLevel): LineStyleValue {
 const GP_BASE = {
   fillColor1: 'rgba(234, 179, 8, 0.12)',
   fillColor2: 'rgba(234, 179, 8, 0.06)',
-  lineColor:  'rgba(234, 179, 8, 0.40)',
+  lineColor:  'rgba(234, 179, 8, 0.55)',
 } as const
 
 const GP_LIT = {

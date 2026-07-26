@@ -18,7 +18,7 @@ interface HeaderProps {
   stage: string | null
   onSymbolChange: (s: string) => void
   onIntervalChange: (i: string) => void
-  onAnalyze: () => void
+  onAnalyze: (sym?: string) => void
 }
 
 function ApiDot() {
@@ -97,8 +97,8 @@ export function Header({
     setSuggestions([])
     setShowSuggestions(false)
     setActiveSuggestion(-1)
-    // Slight delay so state settles before analyzing
-    setTimeout(onAnalyze, 50)
+    // Pass exact symbol so handleAnalyze never reads stale closure state.
+    onAnalyze(s.symbol)
   }, [onSymbolChange, onAnalyze])
 
   const handleKeyDown = useCallback((e: React.KeyboardEvent<HTMLInputElement>) => {
