@@ -7,8 +7,10 @@ import type { IAnalysisOverlay } from '../types'
 
 // ── Config ────────────────────────────────────────────────────────────────────
 
-const MAX_BOS_LINES   = 2
-const MAX_CHOCH_LINES = 2
+const MAX_BOS_LINES    = 2
+const MAX_CHOCH_LINES  = 2
+// Maximum labeled swings to show when no CHoCH has been detected
+const MAX_REGIME_SWINGS = 20
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -102,6 +104,8 @@ export class MarketStructureOverlay implements IAnalysisOverlay {
     const { marketStructure } = data
     const instructions: DrawingInstruction[] = []
 
+    const lastCandleSec = this.times.length > 0 ? this.times[this.times.length - 1] : 0
+
     // ── CHoCH coords (computed first — BOS defers to CHoCH for axis labels) ──
     const chochEvents = marketStructure.choch.events.slice(-MAX_CHOCH_LINES)
     const chochCoords: number[] = chochEvents
@@ -115,19 +119,32 @@ export class MarketStructureOverlay implements IAnalysisOverlay {
 
     const significantLineCoords = [...chochCoords, ...bosCoords]
 
-    // ── Swing markers ─────────────────────────────────────────────────────────
+    // ── Swing markers — limited to the current regime ─────────────────────────
+    // Regime boundary = the most recent CHoCH event. If none, cap at MAX_REGIME_SWINGS.
+    // This prevents hundreds of historical HH/HL/LH/LL from earlier regimes cluttering
+    // the chart and rendering the zigzag useless.
+    const allLabeled    = marketStructure.swings.filter(s => s.label !== null)
+    const lastChoch     = marketStructure.choch.events[marketStructure.choch.events.length - 1]
+    const regimeStart   = lastChoch?.timestamp ?? 0
+    const labeledSwings = lastChoch
+      ? allLabeled.filter(s => s.timestamp >= regimeStart)
+      : allLabeled.slice(-MAX_REGIME_SWINGS)
+
     const swingByTime = new Map(marketStructure.swings.map(s => [Math.floor(s.timestamp / 1000), s]))
 
-    const anchor = this.times.map(time => {
-      const swing  = swingByTime.get(time)
-      const candle = this.candleByTime.get(time)
-      if (swing && candle) {
-        return { time, value: swing.type === 'high' ? candle.high : candle.low }
-      }
-      return { time, value: candle?.close ?? 0 }
-    })
-
-    const labeledSwings = marketStructure.swings.filter(s => s.label !== null)
+    // Anchor series only covers the regime time window so the marker set doesn't
+    // drag the chart back to the very first candle.
+    const regimeStartSec = lastChoch ? Math.floor(regimeStart / 1000) : 0
+    const anchor = this.times
+      .filter(t => t >= regimeStartSec)
+      .map(time => {
+        const swing  = swingByTime.get(time)
+        const candle = this.candleByTime.get(time)
+        if (swing && candle) {
+          return { time, value: swing.type === 'high' ? candle.high : candle.low }
+        }
+        return { time, value: candle?.close ?? 0 }
+      })
 
     let litTs: number | null = null
     if (key?.startsWith('ms:swing:')) litTs = Number(key.slice('ms:swing:'.length))
@@ -171,10 +188,10 @@ export class MarketStructureOverlay implements IAnalysisOverlay {
       visible:   this.visible,
     })
 
-    // ── BOS price lines ───────────────────────────────────────────────────────
-    // Only the most-recent BOS gets an axis label; older ones are visual context.
-    // If a BOS is within 14px of a CHoCH, its axis label is also suppressed
-    // (CHoCH signals take priority as they mark trend reversals).
+    // ── BOS lines — temporally anchored ──────────────────────────────────────
+    // Each BOS is drawn as a polyline from its event timestamp to the last candle
+    // so it is visually anchored in time. A dim hline (invisible line, visible axis
+    // label) provides the price-axis "BOS" label for the most-recent event only.
     const bosEvents = marketStructure.bos.events.slice(-MAX_BOS_LINES)
     const bosUsedCoords: number[] = [...chochCoords]
 
@@ -185,21 +202,36 @@ export class MarketStructureOverlay implements IAnalysisOverlay {
       const litLine      = key === 'ms:all' || key === `ms:bos:${e.timestamp}`
       const coord        = this.engine?.priceToCoordinate(e.level) ?? null
 
-      // Skip the BOS line entirely when it is pixel-obscured by a CHoCH line.
-      // CHoCH (trend reversal) takes priority at that price level.
-      // Exception: always render when the user is actively highlighting this BOS.
       const obscuredByChoch = !litLine && coord !== null && chochCoords.some(c => Math.abs(c - coord) < 8)
       if (obscuredByChoch) continue
 
       const tooClose = coord !== null && bosUsedCoords.some(c => Math.abs(c - coord) < 14)
       if (coord !== null && !tooClose) bosUsedCoords.push(coord)
 
+      const bosColor = isBull ? 'rgba(34, 197, 94, 0.55)' : 'rgba(239, 83, 80, 0.55)'
+      const bosLit   = isBull ? 'rgba(34, 197, 94, 0.85)' : 'rgba(239, 83, 80, 0.85)'
+      const eventSec = Math.floor(e.timestamp / 1000)
+
+      // Temporal polyline — visible only from the BOS event onward
+      if (lastCandleSec > 0 && eventSec <= lastCandleSec) {
+        instructions.push({
+          kind:      'polyline',
+          key:       `bos_line_${e.timestamp}`,
+          color:     litLine ? bosLit : bosColor,
+          lineWidth: litLine ? 3 : 1,
+          lineStyle: LineStyle.Solid,
+          data:      [{ time: eventSec, value: e.level }, { time: lastCandleSec, value: e.level }],
+          visible:   this.visible,
+        })
+      }
+
+      // Dim hline — provides axis label only; the transparent line itself is invisible
       instructions.push({
         kind:             'hline',
-        key:              `bos_${e.timestamp}`,
+        key:              `bos_label_${e.timestamp}`,
         price:            e.level,
-        color:            isBull ? 'rgba(34, 197, 94, 0.55)' : 'rgba(239, 83, 80, 0.55)',
-        lineWidth:        litLine ? 3 : 1,
+        color:            'rgba(0, 0, 0, 0)',
+        lineWidth:        1,
         lineStyle:        LineStyle.Solid,
         axisLabelVisible: isMostRecent && !tooClose,
         title:            'BOS',
@@ -207,8 +239,7 @@ export class MarketStructureOverlay implements IAnalysisOverlay {
       })
     }
 
-    // ── CHoCH price lines ─────────────────────────────────────────────────────
-    // Only the most-recent CHoCH gets an axis label.
+    // ── CHoCH lines — temporally anchored ────────────────────────────────────
     const chochUsedCoords: number[] = []
 
     for (let i = 0; i < chochEvents.length; i++) {
@@ -220,12 +251,30 @@ export class MarketStructureOverlay implements IAnalysisOverlay {
 
       if (coord !== null && !tooClose) chochUsedCoords.push(coord)
 
+      const chochColor = 'rgba(168, 85, 247, 0.65)'
+      const chochLit   = 'rgba(168, 85, 247, 0.95)'
+      const eventSec   = Math.floor(e.timestamp / 1000)
+
+      // Temporal polyline
+      if (lastCandleSec > 0 && eventSec <= lastCandleSec) {
+        instructions.push({
+          kind:      'polyline',
+          key:       `choch_line_${e.timestamp}`,
+          color:     litLine ? chochLit : chochColor,
+          lineWidth: litLine ? 3 : 2,
+          lineStyle: LineStyle.Dashed,
+          data:      [{ time: eventSec, value: e.level }, { time: lastCandleSec, value: e.level }],
+          visible:   this.visible,
+        })
+      }
+
+      // Dim hline for axis label
       instructions.push({
         kind:             'hline',
-        key:              `choch_${e.timestamp}`,
+        key:              `choch_label_${e.timestamp}`,
         price:            e.level,
-        color:            'rgba(168, 85, 247, 0.65)',
-        lineWidth:        litLine ? 3 : 2,
+        color:            'rgba(0, 0, 0, 0)',
+        lineWidth:        1,
         lineStyle:        LineStyle.Dashed,
         axisLabelVisible: isMostRecent && !tooClose,
         title:            'CHoCH',

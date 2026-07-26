@@ -129,8 +129,9 @@ describe('computeFibonacci', () => {
     expect(level618?.confluence).toBe(false)
   })
 
-  it('selects the dominant (widest range) pair from multiple swings', () => {
-    // small move first, big move second — algorithm should pick the bigger one
+  it('returns unavailable when no valid bullish impulse (HH+HL) exists in the swings', () => {
+    // Bearish-to-bullish transition: LL, LH, LL, HH — no HL present.
+    // Without a confirmed HL preceding the HH there is no valid bullish impulse leg.
     const swings = [
       swing(0,  100, 'low',  'LL'),
       swing(2,  110, 'high', 'LH'),
@@ -138,9 +139,20 @@ describe('computeFibonacci', () => {
       swing(10, 200, 'high', 'HH'),
     ]
     const result = computeFibonacci(swings, 'bullish', emptySR)
+    expect(result.available).toBe(false)
+  })
+
+  it('selects the most recent HH+HL impulse pair from multiple swings', () => {
+    // Two bullish impulse legs — algorithm must pick the most recent one (HH@200 + HL@90)
+    const swings = [
+      swing(0,  80,  'low',  'HL'),
+      swing(5,  150, 'high', 'HH'),
+      swing(7,  90,  'low',  'HL'),
+      swing(10, 200, 'high', 'HH'),
+    ]
+    const result = computeFibonacci(swings, 'bullish', emptySR)
     expect(result.available).toBe(true)
-    // Dominant pair: low@80, high@200 → range=120
     expect(result.swingHigh.price).toBe(200)
-    expect(result.swingLow.price).toBe(80)
+    expect(result.swingLow.price).toBe(90)
   })
 })

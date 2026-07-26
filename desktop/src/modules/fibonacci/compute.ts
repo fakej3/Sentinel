@@ -57,50 +57,10 @@ function findDominantPair(
   const lows  = labeled.filter(s => s.type === 'low')
   if (highs.length === 0 || lows.length === 0) return null
 
-  // Primary: anchor to the most recent confirmed impulse leg — traders use the
-  // current move's swing points, not the historically largest range.
-  const recentImpulse = findMostRecentImpulse(labeled, trend)
-  if (recentImpulse) return recentImpulse
-
-  // Fallback: use the largest trend-ordered pair (original behaviour).
-  // Covers ranging markets and situations where no labelled impulse is found.
-  let bestHigh: SwingPoint | null = null
-  let bestLow: SwingPoint | null  = null
-  let maxRange = 0
-
-  const orderedOk = (h: SwingPoint, l: SwingPoint) => {
-    if (trend === 'bullish') return l.index < h.index
-    if (trend === 'bearish') return h.index < l.index
-    return true
-  }
-
-  for (const h of highs) {
-    for (const l of lows) {
-      const range = h.price - l.price
-      if (range > maxRange && orderedOk(h, l)) {
-        maxRange = range
-        bestHigh = h
-        bestLow  = l
-      }
-    }
-  }
-
-  if (!bestHigh || !bestLow) {
-    maxRange = 0
-    for (const h of highs) {
-      for (const l of lows) {
-        const range = h.price - l.price
-        if (range > maxRange) {
-          maxRange = range
-          bestHigh = h
-          bestLow  = l
-        }
-      }
-    }
-  }
-
-  if (!bestHigh || !bestLow || maxRange <= 0) return null
-  return { high: bestHigh, low: bestLow }
+  // Require a confirmed impulse leg matching the trend direction.
+  // Ranging markets and structures without a valid HH+HL or LL+LH sequence
+  // return null — silence is better than Fibonacci on an arbitrary price range.
+  return findMostRecentImpulse(labeled, trend)
 }
 
 function inferDirection(high: SwingPoint, low: SwingPoint): FibDirection {

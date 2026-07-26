@@ -23,7 +23,14 @@ export function useAppState() {
   const [saving,      setSaving     ] = useState(false)
   const savingRef = useRef(false)
 
-  const { data, loading, stage, error, errorDetail, analyze, cancel, loadData } = useAnalyze()
+  const { data, loading, stage, error, errorDetail, analyze, cancel, loadData, reset } = useAnalyze()
+
+  // Clear analysis state and saved entry. Called whenever symbol or interval changes
+  // so stale IAnalysisOverlay drawings are never left on screen with wrong data.
+  const clearAnalysis = useCallback(() => {
+    reset()
+    setSavedEntry(null)
+  }, [reset])
 
   const handleAnalyze = useCallback(async (symOverride?: string) => {
     const sym = resolveSymbol(symOverride ?? symbol)
@@ -58,11 +65,16 @@ export function useAppState() {
     if (meta) setSavedEntry(meta)
   }, [data, symbol, interval])
 
+  // Wrappers exposed in place of raw localStorage setters so every consumer
+  // automatically clears stale analysis when the trading pair or timeframe changes.
+  const handleSetSymbol   = useCallback((sym: string) => { setSymbol(sym);   clearAnalysis() }, [setSymbol,   clearAnalysis])
+  const handleSetInterval = useCallback((iv: string)  => { setInterval(iv);  clearAnalysis() }, [setInterval, clearAnalysis])
+
   const handleSelectSymbol = useCallback((sym: string, iv?: string) => {
     setSymbol(sym)
     if (iv) setInterval(iv)
-    setSavedEntry(null)
-  }, [setSymbol, setInterval])
+    clearAnalysis()
+  }, [setSymbol, setInterval, clearAnalysis])
 
   const handleToggleSidebar       = useCallback(() => setSidebarCollapsed(c => !c), [setSidebarCollapsed])
   const handleAddToWatchlist      = useCallback((sym: string) => setWatchlist(p => p.includes(sym) ? p : [...p, sym]), [setWatchlist])
@@ -93,9 +105,9 @@ export function useAppState() {
   }, [setRecentAnalyses, setWatchlist])
 
   return {
-    // State
-    symbol, setSymbol,
-    interval, setInterval,
+    // State — setSymbol/setInterval are wrappers that also clear stale analysis
+    symbol,   setSymbol:   handleSetSymbol,
+    interval, setInterval: handleSetInterval,
     page, setPage,
     sidebarCollapsed, setSidebarCollapsed,
     watchlist,

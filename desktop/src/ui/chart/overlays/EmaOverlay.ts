@@ -15,8 +15,9 @@ export class EmaOverlay implements IOverlay {
   private engine: DrawingEngine | null = null
   private seriesH: SeriesHandle | null = null
   private lit = false
-  private lastLength = 0
-  private lastClose  = NaN
+  private lastLength    = 0
+  private lastClose     = NaN
+  private lastFirstTime = 0
   private valueMap: Map<number, number> = new Map()
 
   constructor(config: EmaConfig) {
@@ -37,10 +38,12 @@ export class EmaOverlay implements IOverlay {
 
   update(candles: Candle[]): void {
     if (!this.engine || !this.seriesH || candles.length === 0) return
-    const last = candles[candles.length - 1]
-    if (candles.length === this.lastLength && last.close === this.lastClose) return
-    this.lastLength = candles.length
-    this.lastClose  = last.close
+    const last      = candles[candles.length - 1]
+    const firstTime = candles[0].openTime
+    if (candles.length === this.lastLength && last.close === this.lastClose && firstTime === this.lastFirstTime) return
+    this.lastLength    = candles.length
+    this.lastClose     = last.close
+    this.lastFirstTime = firstTime
     const closes = candles.map(c => c.close)
     const emaValues = computeEma(closes, this.config.period)
     if (emaValues.length === 0) {
@@ -77,8 +80,9 @@ export class EmaOverlay implements IOverlay {
     if (this.engine && this.seriesH) this.engine.removeSeries(this.seriesH)
     this.seriesH    = null
     this.engine     = null
-    this.lastLength = 0
-    this.lastClose  = NaN
+    this.lastLength    = 0
+    this.lastClose     = NaN
+    this.lastFirstTime = 0
     this.valueMap.clear()
   }
 }
