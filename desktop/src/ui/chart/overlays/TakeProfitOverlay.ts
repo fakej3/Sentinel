@@ -94,7 +94,7 @@ export class TakeProfitOverlay implements IAnalysisOverlay {
         key:              `tp${i + 1}`,
         price,
         color:            TP_COLORS[i],
-        lineWidth:        lit ? 3 : 1,
+        lineWidth:        lit ? 3 : (i === 0 ? 2 : 1),
         lineStyle:        LineStyle.Solid,
         axisLabelVisible: !tooClose,
         title:            `TP${i + 1} ${rr}R`,

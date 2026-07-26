@@ -8,7 +8,7 @@ import type { IAnalysisOverlay } from '../types'
 // ── Visual helpers ────────────────────────────────────────────────────────────
 
 function colorForLevel(level: FibLevel): string {
-  if (level.isExtension)     return level.confluence ? '#00e676' : '#22c55e'
+  if (level.isExtension)     return level.confluence ? '#22d3ee' : '#06b6d4'
   if (level.ratio === 1.000) return level.confluence ? '#c8e0ff' : '#94a3b8'
   if (level.ratio === 0.786) return level.confluence ? '#ffb340' : '#f97316'
   if (level.ratio === 0.650) return level.confluence ? '#ffd740' : '#eab308'

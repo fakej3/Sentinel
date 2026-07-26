@@ -7,7 +7,7 @@ import type { IAnalysisOverlay } from '../types'
 
 // ── Config ────────────────────────────────────────────────────────────────────
 
-const MAX_BOS_LINES   = 4
+const MAX_BOS_LINES   = 2
 const MAX_CHOCH_LINES = 2
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -148,7 +148,7 @@ export class MarketStructureOverlay implements IAnalysisOverlay {
         shape:    'circle' as const,
         color:    swingLabelColor(s.label as SwingLabel),
         text:     nearLine ? '' : (s.label as string),
-        size:     shouldLit ? 2.5 : 1.2,
+        size:     shouldLit ? 2.5 : 0.9,
       }
     })
 
@@ -164,9 +164,9 @@ export class MarketStructureOverlay implements IAnalysisOverlay {
     instructions.push({
       kind:      'polyline',
       key:       'zigzag',
-      color:     'rgba(100, 116, 139, 0.45)',
+      color:     'rgba(100, 116, 139, 0.35)',
       lineWidth: 1,
-      lineStyle: LineStyle.Dashed,
+      lineStyle: LineStyle.SparseDotted,
       data:      labeledSwings.map(s => ({ time: Math.floor(s.timestamp / 1000), value: s.price })),
       visible:   this.visible,
     })
