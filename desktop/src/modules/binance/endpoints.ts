@@ -33,11 +33,13 @@ export async function fetchCandlesAuto(
   limit: number = DEFAULT_CANDLE_LIMIT,
   market?: 'spot' | 'futures',
   endTime?: number,
+  startTime?: number,
 ): Promise<{ candles: Candle[]; market: MarketType }> {
   const safeLimit    = Math.min(Math.max(1, limit), MAX_CANDLE_LIMIT)
   const resolvedMarket = market ?? symbolRegistry.getPreferredMarket(symbol)
   const params: Record<string, string | number> = { symbol, interval, limit: safeLimit }
-  if (endTime !== undefined) params.endTime = endTime
+  if (endTime   !== undefined) params.endTime   = endTime
+  if (startTime !== undefined) params.startTime = startTime
 
   if (resolvedMarket === 'futures') {
     if (import.meta.env.DEV) console.debug('[Binance] candles', symbol, '→ futures /fapi/v1/klines')

@@ -12,16 +12,30 @@ export interface LiveCandle extends Candle {
 export type LiveCandleHandler = (candle: LiveCandle) => void
 
 /**
+ * Connection status of the live stream.
+ * 'connected'    — socket open, frames flowing
+ * 'disconnected' — socket dropped; automatic reconnect is in progress
+ */
+export type LiveStreamStatus = 'connected' | 'disconnected'
+export type LiveStatusHandler = (status: LiveStreamStatus) => void
+
+/**
  * Subscribe to Binance kline WebSocket stream for a given symbol + interval.
  * Returns an unsubscribe function; calling it closes the socket and prevents reconnect.
  *
  * Reconnects automatically with exponential backoff (1s → 2s → 4s … → 30s cap).
+ *
+ * This layer owns NO data — it only emits events. Candle merging, validation,
+ * and gap recovery are the CandleStore's responsibility. `onStatus` lets the
+ * store detect disconnect→reconnect transitions so it can repair any candles
+ * missed while the socket was down.
  */
 export function subscribeLiveCandles(
   symbol: string,
   interval: Timeframe,
   onCandle: LiveCandleHandler,
   market: 'spot' | 'futures' = 'spot',
+  onStatus?: LiveStatusHandler,
 ): () => void {
   const wsBase = market === 'futures' ? WS_FUTURES_BASE : WS_SPOT_BASE
   const stream = `${symbol.toLowerCase()}@kline_${interval}`
@@ -39,6 +53,7 @@ export function subscribeLiveCandles(
 
     ws.onopen = () => {
       retryDelay = INITIAL_BACKOFF_MS  // reset backoff on successful open
+      onStatus?.('connected')
     }
 
     ws.onmessage = (event: MessageEvent<string>) => {
@@ -74,6 +89,7 @@ export function subscribeLiveCandles(
     ws.onclose = () => {
       ws = null
       if (destroyed) return
+      onStatus?.('disconnected')
       retryTimer = setTimeout(() => {
         retryDelay = Math.min(retryDelay * 2, MAX_BACKOFF_MS)
         connect()
