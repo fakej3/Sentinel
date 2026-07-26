@@ -66,45 +66,55 @@ export function checkConsistency(
 
   // ── EMA stack order ────────────────────────────────────────────────────────
 
-  const allEMAsAvailable =
-    indicators.ema20 !== null && indicators.ema50 !== null &&
-    indicators.ema100 !== null && indicators.ema200 !== null
+  // The stack conditions degrade gracefully: they are evaluated over whichever
+  // EMAs are available (fast→slow), requiring at least two so a single line
+  // cannot masquerade as a "stack". These checks mirror that contract exactly.
+  // When all four EMAs are present this is identical to the previous
+  // all-or-nothing rule; with 2–3 present it validates the degraded form
+  // rather than declaring correct output a critical inconsistency.
+  const availableEmas: Array<[number, number]> = ([
+    [20,  indicators.ema20],
+    [50,  indicators.ema50],
+    [100, indicators.ema100],
+    [200, indicators.ema200],
+  ] as Array<[number, number | null]>)
+    .filter((e): e is [number, number] => e[1] !== null)
 
-  if (allEMAsAvailable) {
-    const e20 = indicators.ema20 as number
-    const e50 = indicators.ema50 as number
-    const e100 = indicators.ema100 as number
-    const e200 = indicators.ema200 as number
+  const emaLabel = availableEmas.map(([p]) => `EMA${p}`).join('>')
 
-    const expectedBullishOrder = e20 > e50 && e50 > e100 && e100 > e200
+  if (availableEmas.length >= 2) {
+    const values = availableEmas.map(([, v]) => v)
+
+    const expectedBullishOrder = values.every((v, i) => i === 0 || values[i - 1] > v)
     if (conditions.emaInBullishOrder !== expectedBullishOrder) {
       issues.push(critical(
         'fullTrend.conditions.emaInBullishOrder',
-        `emaInBullishOrder is ${conditions.emaInBullishOrder} but EMA20>50>100>200 is ${expectedBullishOrder}`,
+        `emaInBullishOrder is ${conditions.emaInBullishOrder} but ${emaLabel} (available EMAs, descending) is ${expectedBullishOrder}`,
         String(expectedBullishOrder), String(conditions.emaInBullishOrder),
       ))
     }
 
-    const expectedBearishOrder = e20 < e50 && e50 < e100 && e100 < e200
+    const expectedBearishOrder = values.every((v, i) => i === 0 || values[i - 1] < v)
     if (conditions.emaInBearishOrder !== expectedBearishOrder) {
       issues.push(critical(
         'fullTrend.conditions.emaInBearishOrder',
-        `emaInBearishOrder is ${conditions.emaInBearishOrder} but EMA20<50<100<200 is ${expectedBearishOrder}`,
+        `emaInBearishOrder is ${conditions.emaInBearishOrder} but ${emaLabel} (available EMAs, ascending) is ${expectedBearishOrder}`,
         String(expectedBearishOrder), String(conditions.emaInBearishOrder),
       ))
     }
   } else {
+    // Fewer than two EMAs — "in order" is meaningless and must be false.
     if (conditions.emaInBullishOrder) {
       issues.push(critical(
         'fullTrend.conditions.emaInBullishOrder',
-        'emaInBullishOrder is true but not all 4 EMAs are available',
+        'emaInBullishOrder is true but fewer than two EMAs are available',
         'false', 'true',
       ))
     }
     if (conditions.emaInBearishOrder) {
       issues.push(critical(
         'fullTrend.conditions.emaInBearishOrder',
-        'emaInBearishOrder is true but not all 4 EMAs are available',
+        'emaInBearishOrder is true but fewer than two EMAs are available',
         'false', 'true',
       ))
     }
@@ -236,8 +246,10 @@ export function checkConsistency(
     ))
   }
 
+  // Mirrors the degraded contract: "between EMAs without clear order" needs
+  // enough EMAs to judge (>=2), not all four.
   const expectedBetween =
-    allEMAsAvailable &&
+    availableEmas.length >= 2 &&
     !conditions.priceAboveAllEMAs && !conditions.priceBelowAllEMAs &&
     !conditions.emaInBullishOrder && !conditions.emaInBearishOrder
   if (conditions.priceBetweenEMAsWithoutClearOrder !== expectedBetween) {

@@ -358,6 +358,25 @@ export interface AnalysisConfig {
    * ENGINE_RULES.md §9: default 8
    */
   bollingerWideThreshold: number
+
+  /**
+   * MACD neutrality deadband, expressed as a fraction of ATR.
+   *
+   * MACD is a difference of two EMAs of price and therefore carries price
+   * units, so its separation is only meaningful relative to how far price
+   * normally moves — hence ATR rather than an absolute constant, which would
+   * mean different things per symbol and per timeframe.
+   *
+   * |macdLine − signalLine| below this band is treated as NEUTRAL: MACD
+   * abstains from the directional vote instead of always taking a side.
+   * Without it, MACD is a coin flip in flat markets that reliably
+   * contributes a spurious directional condition.
+   *
+   * Default 0.05 = 5% of one bar's typical range: a histogram smaller than a
+   * twentieth of a normal bar is not a separation a trader could act on,
+   * while anything larger is genuinely visible on the chart.
+   */
+  macdNeutralAtrFraction: number
 }
 
 // ─── Result ───────────────────────────────────────────────────────────────────

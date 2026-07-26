@@ -66,12 +66,45 @@ describe('checkConsistency', () => {
     expect(issues.some(i => i.field === 'fullTrend.conditions.emaInBullishOrder')).toBe(true)
   })
 
-  it('flags emaInBullishOrder true when any EMA is null', () => {
+  it('flags emaInBullishOrder true when the AVAILABLE EMAs are not in descending order', () => {
+    // EMA200 unavailable is no longer disqualifying on its own — the stack is
+    // judged over the EMAs that exist. Here 20 < 50, so the claim is wrong.
     const result = makeValidResult({
-      indicators: makeIndicators({ ema200: null }),
+      indicators: makeIndicators({ ema20: 90, ema50: 95, ema100: 85, ema200: null }),
       fullTrend: makeFullTrend({
         conditions: makeTrendConditions({
-          emaInBullishOrder: true, // wrong: not all EMAs available
+          emaInBullishOrder: true, // wrong: EMA20 (90) is below EMA50 (95)
+          priceAboveAllEMAs: false,
+        }),
+      }),
+    })
+    const issues = checkConsistency(result, DEFAULT_VALIDATION_CONFIG)
+    expect(issues.some(i => i.field === 'fullTrend.conditions.emaInBullishOrder')).toBe(true)
+  })
+
+  it('accepts emaInBullishOrder true when the available EMAs ARE in order (EMA200 missing)', () => {
+    // Graceful degradation: a genuine 20>50>100 stack is valid structure even
+    // though EMA200 has not warmed up yet.
+    const result = makeValidResult({
+      indicators: makeIndicators({ ema20: 110, ema50: 105, ema100: 100, ema200: null }),
+      fullTrend: makeFullTrend({
+        conditions: makeTrendConditions({
+          emaInBullishOrder: true,
+          priceAboveAllEMAs: false,
+        }),
+      }),
+    })
+    const issues = checkConsistency(result, DEFAULT_VALIDATION_CONFIG)
+    expect(issues.some(i => i.field === 'fullTrend.conditions.emaInBullishOrder')).toBe(false)
+  })
+
+  it('flags emaInBullishOrder true when fewer than two EMAs are available', () => {
+    // One line cannot be a "stack" — the condition must be false.
+    const result = makeValidResult({
+      indicators: makeIndicators({ ema20: 110, ema50: null, ema100: null, ema200: null }),
+      fullTrend: makeFullTrend({
+        conditions: makeTrendConditions({
+          emaInBullishOrder: true,
           priceAboveAllEMAs: false,
         }),
       }),
@@ -392,18 +425,42 @@ describe('checkConsistency', () => {
     expect(issues.some(i => i.field === 'fullTrend.conditions.priceBetweenEMAsWithoutClearOrder')).toBe(true)
   })
 
-  // ── SR-2 regression: priceBetweenEMAsWithoutClearOrder must be false when any EMA is null ──
-  it('does not flag priceBetweenEMAsWithoutClearOrder=false when EMA200 is null (regression: SR-2)', () => {
-    // When EMA200 is null, all compound conditions are false, so the old derived formula
-    // would evaluate to true — but the engine now returns false (requires all 4 EMAs).
+  // ── SR-2 regression: priceBetweenEMAsWithoutClearOrder must track its derivation ──
+  // The original guard asserted "EMA200 null → cannot evaluate → must be false".
+  // Under graceful degradation the condition IS evaluable from the remaining
+  // EMAs, so the invariant is restated in its degraded form: the flag must
+  // equal its derivation over the available EMAs, and is false only when
+  // fewer than two exist.
+  it('flags priceBetweenEMAsWithoutClearOrder=false when it IS derivable from 3 available EMAs (regression: SR-2)', () => {
     const result = makeValidResult({
-      indicators: makeIndicators({ ema200: null }),
+      indicators: makeIndicators({ ema20: 100, ema50: 105, ema100: 95, ema200: null }),
       fullTrend: makeFullTrend({
         conditions: makeTrendConditions({
           priceAboveEMA200: false,
           priceAboveAllEMAs: false,
+          priceBelowAllEMAs: false,
           emaInBullishOrder: false,
-          priceBetweenEMAsWithoutClearOrder: false, // correct: EMA200 null → can't evaluate
+          emaInBearishOrder: false,
+          priceBetweenEMAsWithoutClearOrder: false, // wrong now: 3 EMAs, no clear order → true
+        }),
+      }),
+    })
+    const issues = checkConsistency(result, DEFAULT_VALIDATION_CONFIG)
+    expect(issues.some(i => i.field === 'fullTrend.conditions.priceBetweenEMAsWithoutClearOrder')).toBe(true)
+  })
+
+  it('does not flag priceBetweenEMAsWithoutClearOrder=false when fewer than two EMAs exist', () => {
+    // With one EMA the concept is undefined, so false is correct and must not flag.
+    const result = makeValidResult({
+      indicators: makeIndicators({ ema20: 100, ema50: null, ema100: null, ema200: null }),
+      fullTrend: makeFullTrend({
+        conditions: makeTrendConditions({
+          priceAboveEMA50: false, priceAboveEMA100: false, priceAboveEMA200: false,
+          priceAboveAllEMAs: false,
+          priceBelowAllEMAs: false,
+          emaInBullishOrder: false,
+          emaInBearishOrder: false,
+          priceBetweenEMAsWithoutClearOrder: false,
         }),
       }),
     })

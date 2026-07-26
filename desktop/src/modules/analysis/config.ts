@@ -20,4 +20,5 @@ export const DEFAULT_ANALYSIS_CONFIG: AnalysisConfig = {
   minBearishSwingsForTrend: 2,
   bollingerTightThreshold: 4,
   bollingerWideThreshold: 8,
+  macdNeutralAtrFraction: 0.05,
 }

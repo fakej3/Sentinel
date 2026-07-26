@@ -108,10 +108,72 @@ describe('synthesizeFullTrend', () => {
     expect(result.conditions.macdBearish).toBe(true)
   })
 
-  it('priceAboveAllEMAs is false when any EMA is null', () => {
+  // ── EMA graceful degradation ─────────────────────────────────────────────
+  // A short dataset (EMA200 not yet warmed up) must not collapse two of the
+  // five directional conditions at once. The compound conditions are judged
+  // over the EMAs that are available, requiring at least two.
+
+  it('priceAboveAllEMAs stays true over the available EMAs when EMA200 is unavailable', () => {
     const ind = indicators({ ema20: 95, ema50: 90, ema100: 85 })  // no ema200
     const result = synthesizeFullTrend(100, ind, emptyStructure(), cfg)
+    expect(result.conditions.priceAboveAllEMAs).toBe(true)
+    expect(result.conditions.emaInBullishOrder).toBe(true)
+  })
+
+  it('priceAboveAllEMAs is false when price is below any AVAILABLE EMA', () => {
+    const ind = indicators({ ema20: 95, ema50: 105, ema100: 85 })  // price 100 < ema50
+    const result = synthesizeFullTrend(100, ind, emptyStructure(), cfg)
     expect(result.conditions.priceAboveAllEMAs).toBe(false)
+  })
+
+  it('compound EMA conditions are false when fewer than two EMAs are available', () => {
+    // One line cannot establish "above all" or "in order".
+    const ind = indicators({ ema20: 95, ema50: null, ema100: null, ema200: null })
+    const result = synthesizeFullTrend(100, ind, emptyStructure(), cfg)
+    expect(result.conditions.priceAboveAllEMAs).toBe(false)
+    expect(result.conditions.emaInBullishOrder).toBe(false)
+    expect(result.conditions.priceBetweenEMAsWithoutClearOrder).toBe(false)
+  })
+
+  // ── MACD neutrality band ─────────────────────────────────────────────────
+  // MACD line is always on one side of its signal, so a bare inequality always
+  // votes directionally — a coin flip in flat markets. The deadband scales
+  // with ATR because MACD carries price units.
+
+  it('MACD abstains when the histogram is inside the ATR-scaled neutral band', () => {
+    // ATR 100, band = 0.05 * 100 = 5. Separation of 1 is well inside it.
+    const ind = indicators({ atr: 100, macd: { macdLine: 1, signalLine: 0, histogram: 1, previousHistogram: 0, bias: 'bullish' } })
+    const result = synthesizeFullTrend(100, ind, emptyStructure(), cfg)
+    expect(result.conditions.macdBullish).toBe(false)
+    expect(result.conditions.macdBearish).toBe(false)
+  })
+
+  it('MACD votes bullish once separation exceeds the band', () => {
+    const ind = indicators({ atr: 100, macd: { macdLine: 6, signalLine: 0, histogram: 6, previousHistogram: 0, bias: 'bullish' } })
+    const result = synthesizeFullTrend(100, ind, emptyStructure(), cfg)
+    expect(result.conditions.macdBullish).toBe(true)
+    expect(result.conditions.macdBearish).toBe(false)
+  })
+
+  it('MACD votes bearish symmetrically', () => {
+    const ind = indicators({ atr: 100, macd: { macdLine: -6, signalLine: 0, histogram: -6, previousHistogram: 0, bias: 'bearish' } })
+    const result = synthesizeFullTrend(100, ind, emptyStructure(), cfg)
+    expect(result.conditions.macdBearish).toBe(true)
+    expect(result.conditions.macdBullish).toBe(false)
+  })
+
+  it('the band scales with volatility — the same histogram votes in a quiet market', () => {
+    const macd = { macdLine: 1, signalLine: 0, histogram: 1, previousHistogram: 0, bias: 'bullish' as const }
+    const noisy = synthesizeFullTrend(100, indicators({ atr: 100, macd }), emptyStructure(), cfg)
+    const quiet = synthesizeFullTrend(100, indicators({ atr: 1,   macd }), emptyStructure(), cfg)
+    expect(noisy.conditions.macdBullish).toBe(false)  // 1 < band 5
+    expect(quiet.conditions.macdBullish).toBe(true)   // 1 > band 0.05
+  })
+
+  it('with ATR unavailable the band is zero — exact previous strict-inequality behaviour', () => {
+    const ind = indicators({ atr: null, macd: { macdLine: 0.0001, signalLine: 0, histogram: 0.0001, previousHistogram: 0, bias: 'bullish' } })
+    const result = synthesizeFullTrend(100, ind, emptyStructure(), cfg)
+    expect(result.conditions.macdBullish).toBe(true)
   })
 
   it('hasConsistentHHHL requires at least minBullishSwingsForTrend of each', () => {

@@ -32,35 +32,39 @@ export function checkContradictions(
 ): ValidationIssue[] {
   const issues: ValidationIssue[] = []
   const { conditions, bullishConditionsMet, bearishConditionsMet, neutralConditionsMet, trend } = result.fullTrend
+  const emaContext = result.emaContext
 
-  // ── priceAboveAllEMAs must be the AND of all four individual conditions ────
+  // ── priceAbove/BelowAllEMAs = AND over the AVAILABLE EMAs ─────────────────
+  //
+  // These conditions degrade gracefully: they are evaluated over whichever
+  // EMAs exist, requiring at least two. An unavailable EMA makes its
+  // individual priceAboveEMA{p} / priceBelowEMA{p} condition false, so the
+  // old "AND of all four" rule declared correct degraded output a critical
+  // contradiction on any dataset shorter than ~200 candles. Availability is
+  // read from emaContext, which is the canonical representation of it.
+  const emaAvailability = [
+    { above: conditions.priceAboveEMA20,  below: conditions.priceBelowEMA20,  avail: emaContext.priceVsEMA20  !== 'unavailable' },
+    { above: conditions.priceAboveEMA50,  below: conditions.priceBelowEMA50,  avail: emaContext.priceVsEMA50  !== 'unavailable' },
+    { above: conditions.priceAboveEMA100, below: conditions.priceBelowEMA100, avail: emaContext.priceVsEMA100 !== 'unavailable' },
+    { above: conditions.priceAboveEMA200, below: conditions.priceBelowEMA200, avail: emaContext.priceVsEMA200 !== 'unavailable' },
+  ]
+  const availableEmaConds = emaAvailability.filter(e => e.avail)
+  const enoughEmas = availableEmaConds.length >= 2
 
-  const expectedAboveAll =
-    conditions.priceAboveEMA20 &&
-    conditions.priceAboveEMA50 &&
-    conditions.priceAboveEMA100 &&
-    conditions.priceAboveEMA200
-
+  const expectedAboveAll = enoughEmas && availableEmaConds.every(e => e.above)
   if (conditions.priceAboveAllEMAs !== expectedAboveAll) {
     issues.push(critical(
       'fullTrend.conditions.priceAboveAllEMAs',
-      `priceAboveAllEMAs is ${conditions.priceAboveAllEMAs} but the AND of all four priceAboveEMA* conditions is ${expectedAboveAll}`,
+      `priceAboveAllEMAs is ${conditions.priceAboveAllEMAs} but the AND over the ${availableEmaConds.length} available priceAboveEMA* conditions is ${expectedAboveAll}`,
       String(expectedAboveAll), String(conditions.priceAboveAllEMAs),
     ))
   }
 
-  // ── priceBelowAllEMAs must be the AND of all four individual conditions ────
-
-  const expectedBelowAll =
-    conditions.priceBelowEMA20 &&
-    conditions.priceBelowEMA50 &&
-    conditions.priceBelowEMA100 &&
-    conditions.priceBelowEMA200
-
+  const expectedBelowAll = enoughEmas && availableEmaConds.every(e => e.below)
   if (conditions.priceBelowAllEMAs !== expectedBelowAll) {
     issues.push(critical(
       'fullTrend.conditions.priceBelowAllEMAs',
-      `priceBelowAllEMAs is ${conditions.priceBelowAllEMAs} but the AND of all four priceBelowEMA* conditions is ${expectedBelowAll}`,
+      `priceBelowAllEMAs is ${conditions.priceBelowAllEMAs} but the AND over the ${availableEmaConds.length} available priceBelowEMA* conditions is ${expectedBelowAll}`,
       String(expectedBelowAll), String(conditions.priceBelowAllEMAs),
     ))
   }
