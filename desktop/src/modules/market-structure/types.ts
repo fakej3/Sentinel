@@ -9,8 +9,22 @@ export type TrendStrength = 'strong' | 'moderate' | 'weak'
 export type StructureEventType = 'BOS' | 'CHOCH'
 
 export interface SwingPoint {
-  /** Position in the input candle array */
+  /** Position in the input candle array where the extreme actually occurred */
   index: number
+  /**
+   * Candle index at which this swing became KNOWABLE — the bar on which price
+   * had retraced far enough to confirm the extreme.
+   *
+   * `index` is where the swing IS; `confirmedIndex` is when we were allowed to
+   * know it. Every consumer that reasons about what was actionable at a given
+   * bar (BOS/CHoCH references, S/R zone birth) must gate on confirmedIndex,
+   * never on index — using index would grant knowledge of a pivot before the
+   * market had revealed it, which is look-ahead bias.
+   *
+   * confirmedIndex >= index always. The gap is variable, not a constant:
+   * fast reversals confirm quickly, slow ones take longer.
+   */
+  confirmedIndex: number
   /** candle.openTime */
   timestamp: number
   /** candle.high for type='high', candle.low for type='low' */
@@ -143,11 +157,22 @@ export interface MarketStructureResult {
  */
 export interface MarketStructureConfig {
   /**
-   * Number of candles required on each side of a pivot candle to confirm a swing.
-   * Higher = fewer but more significant swings.
-   * ENGINE_RULES.md default: 2
+   * ATR period used to size the swing reversal threshold.
+   * Wilder-14 is the standard volatility window and matches the ATR the rest
+   * of the engine (S/R zone width, stop buffers) already reasons in, so swing
+   * significance and level geometry share one definition of "normal movement".
    */
-  swingLookback: number
+  swingAtrPeriod: number
+
+  /**
+   * Swing reversal threshold in ATR multiples. Price must retrace this many
+   * ATR from a running extreme before that extreme is confirmed as a swing.
+   *
+   * Every confirmed leg therefore spans at least this many ATR — the minimum
+   * amplitude is structural, not a post-hoc filter. See the derivation of the
+   * default (2.0) in swings.ts.
+   */
+  swingReversalAtr: number
 
   /**
    * Minimum number of consecutive dominant swing points (without a new HH or LL)

@@ -51,9 +51,12 @@ export function swing(overrides: {
   type: 'high' | 'low'
   timestamp?: number
   label?: SwingPoint['label']
+  /** Defaults to `index` (swing knowable immediately) unless a test needs a delay. */
+  confirmedIndex?: number
 }): SwingPoint {
   return {
     index: overrides.index,
+    confirmedIndex: overrides.confirmedIndex ?? overrides.index,
     timestamp: overrides.timestamp ?? overrides.index * 1000,
     price: overrides.price,
     type: overrides.type,

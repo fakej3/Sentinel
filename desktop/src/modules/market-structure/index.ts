@@ -27,7 +27,7 @@ export type {
   BreakoutResult,
   PullbackResult,
 } from './types'
-import { detectRawSwings, filterDominantSwings } from './swings'
+import { detectSwings } from './swings'
 import { labelSwings } from './labels'
 import { countStructure, countRecentStructure, determineTrend } from './trend'
 import { detectBosChoch } from './bos-choch'
@@ -67,24 +67,24 @@ function makeEmptyResult(): MarketStructureResult {
  * Computes the full market structure analysis for a candle series.
  *
  * Processing pipeline:
- *   1. detectRawSwings       — find all pivot highs and lows
- *   2. filterDominantSwings  — collapse consecutive same-type swings into
- *                              the most extreme (alternating zigzag)
- *   3. labelSwings           — classify each swing as HH/HL/LH/LL/EH/EL
+ *   1. detectSwings          — ATR-thresholded alternating swings (already a
+ *                              zigzag by construction; no collapse pass needed)
+ *   2. detectBosChoch        — scan candles for BOS and CHOCH events
+ *   3. labelSwings           — classify each swing as HH/HL/LH/LL/EH/EL,
+ *                              resetting the baseline at each CHoCH regime
  *   4. countStructure        — aggregate counts for the full history
  *   5. determineTrend        — direction + strength from the recent window
- *   6. detectBosChoch        — scan candles for BOS and CHOCH events
- *   7. detectConsolidation   — check for tight range in recent swings
- *   8. detectBreakout        — check if current price broke out of the range
- *   9. detectPullback        — check for pullback after last BOS
- *  10. computeConfidence     — 0–10 evidence alignment score (ENGINE_RULES.md §11)
- *  11. buildEvidence         — human-readable explanation strings
+ *   6. detectConsolidation   — check for tight range in recent swings
+ *   7. detectBreakout        — check if current price broke out of the range
+ *   8. detectPullback        — check for pullback after last BOS
+ *   9. computeConfidence     — 0–10 evidence alignment score (ENGINE_RULES.md §11)
+ *  10. buildEvidence         — human-readable explanation strings
  *
  * Given the same candle array and config, the function always returns the
  * same result. No randomness, no AI, no stateful side effects.
  *
- * Returns the empty result object when fewer than (swingLookback×2 + 1)
- * candles are provided.
+ * Returns the empty result object when there are too few candles to seed the
+ * ATR window that sizes the swing threshold (swingAtrPeriod + 2).
  */
 export function computeMarketStructure(
   candles: Candle[],
@@ -92,17 +92,19 @@ export function computeMarketStructure(
 ): MarketStructureResult {
   const cfg: MarketStructureConfig = { ...DEFAULT_CONFIG, ...config }
 
-  const minCandles = cfg.swingLookback * 2 + 1
+  const minCandles = cfg.swingAtrPeriod + 2
   if (candles.length < minCandles) {
     return makeEmptyResult()
   }
 
   // Pipeline
   // Event detection runs BEFORE labeling: detectBosChoch needs only the
-  // dominant (unlabeled) swings, and its CHoCH events define the regime
-  // boundaries at which labelSwings resets its comparison baseline.
-  const rawSwings = detectRawSwings(candles, cfg)
-  const dominantSwings = filterDominantSwings(rawSwings)
+  // unlabeled swings, and its CHoCH events define the regime boundaries at
+  // which labelSwings resets its comparison baseline.
+  //
+  // detectSwings emits a strictly alternating sequence by construction, so
+  // no dominance/collapse pass is required.
+  const dominantSwings = detectSwings(candles, cfg)
   const allEvents = detectBosChoch(candles, dominantSwings, cfg)
   const bosEvents = allEvents.filter(e => e.type === 'BOS')
   const chochEvents = allEvents.filter(e => e.type === 'CHOCH')

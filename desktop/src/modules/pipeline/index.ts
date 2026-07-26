@@ -198,10 +198,9 @@ export async function analyzeMarket(options: PipelineOptions): Promise<PipelineR
   const t3 = Date.now()
   let supportResistance!: SupportResistanceResult
   try {
-    supportResistance = computeSupportResistance(marketData.candles, marketStructure, {
-      ...cfg.supportResistance,
-      swingLookback: cfg.marketStructure?.swingLookback ?? 2,
-    })
+    supportResistance = computeSupportResistance(
+      marketData.candles, marketStructure, cfg.supportResistance,
+    )
   } catch (err) {
     throw new PipelineError('internal_module_failure', 'support-resistance', String(err), err)
   }

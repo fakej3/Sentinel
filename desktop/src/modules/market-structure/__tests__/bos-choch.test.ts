@@ -4,10 +4,21 @@ import { DEFAULT_CONFIG } from '../config'
 import type { SwingPoint } from '../types'
 import { candles } from './helpers'
 
-const cfg1 = { ...DEFAULT_CONFIG, swingLookback: 1 }
+const cfg1 = { ...DEFAULT_CONFIG }
 
-function swing(type: 'high' | 'low', price: number, index: number): SwingPoint {
-  return { index, timestamp: index * 1000, price, type, label: null }
+/**
+ * Swings are supplied pre-confirmed here: these tests exercise BOS/CHoCH
+ * event logic, not swing detection. confirmedIndex defaults to index+1 —
+ * one bar after the extreme — which preserves the confirmation semantics
+ * every assertion below was originally written against.
+ */
+function swing(
+  type: 'high' | 'low',
+  price: number,
+  index: number,
+  confirmedIndex = index + 1,
+): SwingPoint {
+  return { index, confirmedIndex, timestamp: index * 1000, price, type, label: null }
 }
 
 describe('detectBosChoch', () => {

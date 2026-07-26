@@ -16,6 +16,46 @@ export function emaSeries(values: number[], period: number): number[] {
 }
 
 /**
+ * Returns the full ATR series using Wilder's smoothing.
+ *
+ * Index mapping: result[k] is the ATR **at candle index period + k**, computed
+ * exclusively from candles[0..period+k]. This causality guarantee is what makes
+ * ATR-thresholded swing detection look-ahead-free and replay-safe: the value
+ * used to judge candle i is the value that was knowable at candle i.
+ *
+ * Returns [] when fewer than period+1 candles are provided (a true range needs
+ * a previous close, so n candles yield n−1 TRs, and the seed consumes `period`).
+ */
+export function atrSeries(
+  highs: number[],
+  lows: number[],
+  closes: number[],
+  period: number,
+): number[] {
+  if (closes.length < period + 1) return []
+
+  const trs: number[] = []
+  for (let i = 1; i < closes.length; i++) {
+    trs.push(Math.max(
+      highs[i] - lows[i],
+      Math.abs(highs[i] - closes[i - 1]),
+      Math.abs(lows[i] - closes[i - 1]),
+    ))
+  }
+
+  // Seed: mean of the first `period` true ranges → ATR at candle index `period`.
+  let atr = trs.slice(0, period).reduce((s, v) => s + v, 0) / period
+  const result: number[] = [atr]
+
+  for (let i = period; i < trs.length; i++) {
+    atr = (atr * (period - 1) + trs[i]) / period
+    result.push(atr)
+  }
+
+  return result
+}
+
+/**
  * Returns the full RSI series using Wilder's smoothing.
  * result[0] = first RSI value computed from closes[0..period] (period+1 closes needed).
  * result[k] corresponds to closes[period+k].

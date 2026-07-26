@@ -107,8 +107,9 @@ describe('computeMarketStructure', () => {
     expect(result.choch.detected).toBe(false)
   })
 
-  it('returns the empty result when fewer than 2*lookback+1 candles provided', () => {
-    // DEFAULT lookback=2 → min candles=5
+  it('returns the empty result when there are too few candles to seed the ATR window', () => {
+    // Default swingAtrPeriod=14 → needs at least 16 candles before any swing
+    // threshold is computable.
     const result = computeMarketStructure([c(100, {}, 0), c(110, {}, 1), c(100, {}, 2), c(90, {}, 3)])
     expect(result.swings).toHaveLength(0)
   })
@@ -157,7 +158,7 @@ describe('computeMarketStructure', () => {
     expect(r2.bos.events).toHaveLength(0)
     r1.evidence.push('extra')
     expect(r2.evidence).toHaveLength(1)
-    r1.swings.push({ index: 0, timestamp: 0, price: 100, type: 'high', label: 'HH' })
+    r1.swings.push({ index: 0, confirmedIndex: 0, timestamp: 0, price: 100, type: 'high', label: 'HH' })
     expect(r2.swings).toHaveLength(0)
   })
 
@@ -270,7 +271,7 @@ describe('computeMarketStructure', () => {
   it('detects consolidation in a tight sideways market', () => {
     // Use amplitude=1 so range ≈ 2% (100 ± 1)
     const result = computeMarketStructure(buildRanging(60, 100, 1), {
-      swingLookback: 2,
+
       consolidationThreshold: 3.0,
       consolidationSwings: 5,
     })
@@ -281,8 +282,15 @@ describe('computeMarketStructure', () => {
   // ── CHOCH ────────────────────────────────────
 
   it('detects CHOCH when uptrend reverses', () => {
-    // Build: 3 bullish steps then sharp drop below structural low
-    const bullish = buildBullishTrend(3)
+    // Build: bullish steps then a sharp drop below the structural low.
+    //
+    // Six steps, not three: a CHoCH requires bullish BIAS to be established
+    // first (a close above one confirmed swing high) before a break of a
+    // confirmed swing low can be classified as a change of character rather
+    // than a plain BOS. Volatility-thresholded swing detection spends the
+    // first ~14 bars seeding ATR, so a 3-step fixture yields only a single
+    // swing pair — never enough to establish bias before the reversal.
+    const bullish = buildBullishTrend(6)
     const lowestLow = Math.min(...bullish.map(c => c.low))
     const crashCandles = Array.from({ length: 10 }, (_, k) =>
       c(lowestLow - 5 - k, {}, bullish.length + k),
@@ -297,7 +305,7 @@ describe('computeMarketStructure', () => {
   it('detects pullback when price retraces after BOS without breaking structure', () => {
     // Build uptrend, then add a pullback candle below the last BOS level
     // but above the last swing low
-    const cfg = { ...DEFAULT_CONFIG, swingLookback: 1 }
+    const cfg = { ...DEFAULT_CONFIG }
 
     // Hand-crafted: swing low @ 90, swing high @ 110, then BOS close > 110, then pullback to 105
     const cs: Candle[] = [
@@ -321,15 +329,18 @@ describe('computeMarketStructure', () => {
   // ── Config overrides ─────────────────────────
 
   it('accepts partial config and merges with defaults', () => {
-    const result = computeMarketStructure(buildBullishTrend(3), { swingLookback: 1 })
+    const result = computeMarketStructure(buildBullishTrend(3), { swingReversalAtr: 1.5 })
     expect(result).toBeDefined()
   })
 
-  it('swingLookback=1 detects more swings than lookback=3 on the same data', () => {
-    const data = buildBullishTrend(5)
-    const r1 = computeMarketStructure(data, { swingLookback: 1 })
-    const r3 = computeMarketStructure(data, { swingLookback: 3 })
-    expect(r1.swings.length).toBeGreaterThanOrEqual(r3.swings.length)
+  it('a lower ATR reversal multiple detects at least as many swings as a higher one', () => {
+    // Monotonic sensitivity: raising the threshold can only remove swings,
+    // never add them, because the confirmation test is a strict inequality on
+    // the same retracement measured against a larger bound.
+    const data = buildBullishTrend(8)
+    const loose  = computeMarketStructure(data, { swingReversalAtr: 1.0 })
+    const strict = computeMarketStructure(data, { swingReversalAtr: 3.0 })
+    expect(loose.swings.length).toBeGreaterThanOrEqual(strict.swings.length)
   })
 
   // ── Evidence ─────────────────────────────────

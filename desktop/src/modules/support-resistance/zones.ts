@@ -53,7 +53,10 @@ export function createZoneCandidates(
       failedReactions: 0,
       broken: false,
       retested: false,
-      firstDetectedIndex: swing.index + (config.swingLookback ?? 0),
+      // A zone is born when its swing became knowable, not when the extreme
+      // printed — interaction scanning must not credit touches that occurred
+      // before the market had revealed the pivot.
+      firstDetectedIndex: swing.confirmedIndex,
       lastInteractionIndex: swing.index,
       age,
       strength: 0,

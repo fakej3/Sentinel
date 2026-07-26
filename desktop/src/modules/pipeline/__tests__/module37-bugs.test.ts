@@ -7,7 +7,7 @@
  * BUG-05  scoreToGrade falls through to 'weak' for NaN/Infinity inputs.
  * BUG-06  market-story RSI description uses hardcoded thresholds instead of classification.
  * BUG-07  classifyRSI duplicated in consistency.ts; analysis/compute/indicators must export it.
- * BUG-13  S/R zone firstDetectedIndex ignores swingLookback — look-ahead bias.
+ * BUG-13  S/R zone firstDetectedIndex must use each swing own confirmation bar.
  */
 
 import { describe, it, expect } from 'vitest'
@@ -402,50 +402,50 @@ describe('BUG-07 — classifyRSI exported and matches validation thresholds', ()
   })
 })
 
-// ─── BUG-13: S/R look-ahead bias via swingLookback ───────────────────────────
+// ─── BUG-13: S/R look-ahead bias via zone birth index ────────────────────────
 
-describe('BUG-13 — firstDetectedIndex respects swingLookback to eliminate look-ahead bias', () => {
-  it('firstDetectedIndex equals swing.index when swingLookback is 0 (default)', () => {
+describe('BUG-13 — zone birth uses each swing\'s own confirmation bar (no look-ahead bias)', () => {
+  // The invariant this guards is unchanged: a zone must never be dated before
+  // its swing was knowable, or interaction scanning would credit touches the
+  // market had not yet revealed. The MECHANISM changed — a per-swing
+  // confirmedIndex supplied by the detector, rather than a global config
+  // offset — which is strictly more accurate, since volatility-thresholded
+  // confirmation delay varies per swing instead of being a constant.
+
+  it('firstDetectedIndex equals the swing confirmation bar, not the extreme bar', () => {
     const candles = flatCandles(50, 100)
-    const swings = [swing({ index: 10, price: 110, type: 'high' })]
+    const swings = [swing({ index: 10, price: 110, type: 'high', confirmedIndex: 14 })]
+    const zones = createZoneCandidates(swings, candles, SR_CONFIG, null)
+    expect(zones[0].firstDetectedIndex).toBe(14)
+  })
+
+  it('a swing confirmed immediately is dated at its own index', () => {
+    const candles = flatCandles(50, 100)
+    const swings = [swing({ index: 10, price: 110, type: 'high' })]  // confirmedIndex defaults to index
     const zones = createZoneCandidates(swings, candles, SR_CONFIG, null)
     expect(zones[0].firstDetectedIndex).toBe(10)
   })
 
-  it('firstDetectedIndex equals swing.index + swingLookback when swingLookback=2', () => {
-    const candles = flatCandles(50, 100)
-    const swings = [swing({ index: 10, price: 110, type: 'high' })]
-    const cfgWithLookback = { ...SR_CONFIG, swingLookback: 2 }
-    const zones = createZoneCandidates(swings, candles, cfgWithLookback, null)
-    expect(zones[0].firstDetectedIndex).toBe(12)
-  })
-
-  it('firstDetectedIndex equals swing.index + swingLookback when swingLookback=1', () => {
-    const candles = flatCandles(50, 100)
-    const swings = [swing({ index: 15, price: 90, type: 'low' })]
-    const cfgWithLookback = { ...SR_CONFIG, swingLookback: 1 }
-    const zones = createZoneCandidates(swings, candles, cfgWithLookback, null)
-    expect(zones[0].firstDetectedIndex).toBe(16)
-  })
-
-  it('all zones in a batch are offset by the same swingLookback', () => {
+  it('each swing carries its OWN delay — confirmation is not a shared constant', () => {
     const candles = flatCandles(60, 100)
     const swings = [
-      swing({ index: 10, price: 120, type: 'high' }),
-      swing({ index: 20, price: 80, type: 'low' }),
+      swing({ index: 10, price: 120, type: 'high', confirmedIndex: 13 }),  // fast reversal
+      swing({ index: 20, price: 80,  type: 'low',  confirmedIndex: 31 }),  // slow reversal
     ]
-    const cfgWithLookback = { ...SR_CONFIG, swingLookback: 2 }
-    const zones = createZoneCandidates(swings, candles, cfgWithLookback, null)
-    expect(zones[0].firstDetectedIndex).toBe(12)
-    expect(zones[1].firstDetectedIndex).toBe(22)
+    const zones = createZoneCandidates(swings, candles, SR_CONFIG, null)
+    expect(zones[0].firstDetectedIndex).toBe(13)
+    expect(zones[1].firstDetectedIndex).toBe(31)
   })
 
-  it('config without swingLookback (undefined) falls back to 0 — backwards compatible', () => {
-    const candles = flatCandles(50, 100)
-    const swings = [swing({ index: 10, price: 110, type: 'high' })]
-    const cfgNoLookback = { ...SR_CONFIG }
-    delete (cfgNoLookback as Record<string, unknown>).swingLookback
-    const zones = createZoneCandidates(swings, candles, cfgNoLookback, null)
-    expect(zones[0].firstDetectedIndex).toBe(10)
+  it('firstDetectedIndex is never earlier than the swing extreme', () => {
+    const candles = flatCandles(60, 100)
+    const swings = [
+      swing({ index: 10, price: 120, type: 'high', confirmedIndex: 10 }),
+      swing({ index: 20, price: 80,  type: 'low',  confirmedIndex: 25 }),
+    ]
+    const zones = createZoneCandidates(swings, candles, SR_CONFIG, null)
+    for (let i = 0; i < zones.length; i++) {
+      expect(zones[i].firstDetectedIndex).toBeGreaterThanOrEqual(swings[i].index)
+    }
   })
 })

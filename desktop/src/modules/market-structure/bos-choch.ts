@@ -30,9 +30,14 @@ import type { SwingPoint, StructureEvent, MarketStructureConfig } from './types'
  * ──────────────────────────────────────────────
  *
  * Forward pass over candles:
- *   At candle i, swings with index ≤ (i − swingLookback) are considered
- *   "confirmed" (their right-side lookback has elapsed). They become the
- *   new reference levels for BOS / CHOCH checks.
+ *   At candle i, swings whose confirmedIndex ≤ i are considered actionable
+ *   and become the new reference levels for BOS / CHOCH checks.
+ *
+ *   confirmedIndex is supplied by the swing detector and is the bar on which
+ *   the extreme actually became knowable. It is NOT a fixed offset from the
+ *   swing's own index: volatility-thresholded detection confirms fast
+ *   reversals quickly and slow ones late. Gating on it — rather than on
+ *   `index + constant` — is what keeps this pass free of look-ahead bias.
  *
  *   Each swing level triggers at most ONE event (the first close that
  *   breaches it). After the breach, the level is marked as consumed and
@@ -48,19 +53,17 @@ import type { SwingPoint, StructureEvent, MarketStructureConfig } from './types'
 export function detectBosChoch(
   candles: Candle[],
   dominantSwings: SwingPoint[],
-  config: MarketStructureConfig,
+  _config: MarketStructureConfig,
 ): StructureEvent[] {
   if (candles.length === 0 || dominantSwings.length === 0) return []
 
-  const L = config.swingLookback
   const events: StructureEvent[] = []
 
-  // Build a map: candle index → swings that become confirmed at that index.
-  // A swing at candle[k] is confirmed once candle[k+L] has formed, meaning
-  // candle[k+L] is the first bar where we can act on this swing.
+  // Build a map: candle index → swings that become actionable at that index,
+  // taken directly from each swing's own confirmation bar.
   const confirmAt = new Map<number, SwingPoint[]>()
   for (const s of dominantSwings) {
-    const idx = s.index + L
+    const idx = s.confirmedIndex
     if (!confirmAt.has(idx)) confirmAt.set(idx, [])
     confirmAt.get(idx)!.push(s)
   }
