@@ -106,8 +106,15 @@ export function useAnalyze() {
   }, [clearTimers])
 
   const reset = useCallback(() => {
+    // Abort any in-flight analyze so a late response can never resurrect stale
+    // analysis after the symbol/timeframe has changed. Clearing abortRef makes
+    // the aborted request's catch-path a no-op (it only touches state when it
+    // is still the current controller).
+    clearTimers()
+    abortRef.current?.abort()
+    abortRef.current = null
     setState({ data: null, loading: false, stage: null, error: null, errorDetail: undefined })
-  }, [])
+  }, [clearTimers])
 
   const loadData = useCallback((result: PipelineResult) => {
     clearTimers()
