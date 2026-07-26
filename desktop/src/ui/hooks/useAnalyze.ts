@@ -2,6 +2,7 @@ import { useState, useCallback, useRef, useEffect } from 'react'
 import { getTransport, SentinelApiError } from '../transport'
 import type { PipelineResult } from '../types'
 import type { AnalyzeParams } from '../types'
+import { checkAnalyzeResponseMatches } from './analyzeResponseGuard'
 
 // ── Pipeline stage simulation ─────────────────────────────────────────────────
 // The engine runs ~2–6 s. These stages are shown progressively while loading.
@@ -79,13 +80,13 @@ export function useAnalyze() {
       // The abort above handles user-driven context switches; this guards
       // against any transport/server returning a mismatched result — a stale
       // analysis must never render.
-      const requestedSymbol = params.symbol.trim().toUpperCase()
-      if (data.metadata.symbol !== requestedSymbol || data.metadata.interval !== params.interval) {
+      const mismatch = checkAnalyzeResponseMatches(data, params.symbol, params.interval)
+      if (mismatch) {
         clearTimers()
         setState({
           data: null, loading: false, stage: null,
           error: 'Analysis response did not match the request and was discarded.',
-          errorDetail: `requested ${requestedSymbol}/${params.interval}, received ${data.metadata.symbol}/${data.metadata.interval}`,
+          errorDetail: `requested ${mismatch.requestedSymbol}/${mismatch.requestedInterval}, received ${mismatch.receivedSymbol}/${mismatch.receivedInterval}`,
         })
         return null
       }
