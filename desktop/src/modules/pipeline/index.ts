@@ -198,8 +198,12 @@ export async function analyzeMarket(options: PipelineOptions): Promise<PipelineR
   const t3 = Date.now()
   let supportResistance!: SupportResistanceResult
   try {
+    // indicators.atr is passed explicitly so S/R zone geometry, swing
+    // significance, Fibonacci impulse filtering and trade-plan stop buffers
+    // all measure volatility with the SAME number. Recomputing it here would
+    // be a duplicate O(n) pass and a silent divergence path.
     supportResistance = computeSupportResistance(
-      marketData.candles, marketStructure, cfg.supportResistance,
+      marketData.candles, marketStructure, cfg.supportResistance, indicators.atr,
     )
   } catch (err) {
     throw new PipelineError('internal_module_failure', 'support-resistance', String(err), err)

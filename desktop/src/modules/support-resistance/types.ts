@@ -44,13 +44,48 @@ export interface PriceZone {
 
 export interface SupportResistanceConfig {
   /**
-   * Zone half-width = ATR × atrMultiplier.
-   * Default: 0.25
+   * Zone half-width = ATR × atrMultiplier, so total zone width = 2 × this × ATR.
+   *
+   * DERIVATION (default 0.25 → zone width = 0.5 ATR = half a typical bar range):
+   *
+   * A support/resistance level is a band, not a price. The band must be wide
+   * enough that ordinary wick noise still registers as a touch, and narrow
+   * enough that a touch remains discriminating.
+   *
+   *   Too LARGE (≥ 1.0 ATR width): a single average bar spans the entire zone,
+   *     so essentially every bar "touches" it. touchCount inflates, every zone
+   *     scores as strong, and the strength ranking loses all discriminating
+   *     power — the failure mode is that everything looks like support.
+   *   Too SMALL (≤ 0.1 ATR width): the band is thinner than routine wick noise,
+   *     so price repeatedly steps over the level without registering. touchCount
+   *     collapses and the minTouchCount ≥ 2 filter rejects genuine levels — the
+   *     failure mode is that real support disappears.
+   *   At 0.5 ATR width an average bar spans two zone-widths, so a touch means
+   *     price actually visited the level rather than merely passing through the
+   *     neighbourhood. This is the largest width that keeps a touch informative.
+   *
+   * SCALING: expressed in ATR, so it scales automatically with volatility
+   * regime and with timeframe — the same multiplier is correct on 15m and 1D.
+   *
+   * PROVENANCE: heuristic. The reasoning above bounds the value between roughly
+   * 0.15 and 0.4; 0.25 sits in the middle of that defensible range. It is not
+   * fitted against resolved outcomes.
    */
   atrMultiplier: number
   /**
-   * Two zones merge when gap < ATR × mergeTolerance.
-   * Default: 0.5
+   * Two zones of the same type merge when the empty gap between them is
+   * smaller than ATR × mergeTolerance.
+   *
+   * DERIVED, NOT INDEPENDENT: the correct merge distance is exactly one zone
+   * width, i.e. mergeTolerance = 2 × atrMultiplier. Two levels separated by
+   * less than the width of a single zone are not resolvable as distinct
+   * levels — treating them as separate double-counts one level and splits its
+   * touch history across two weaker zones.
+   *
+   * The default (0.5) already satisfies 2 × 0.25, so this is a statement of an
+   * existing invariant rather than a change. It is kept configurable because
+   * overriding atrMultiplier alone must not silently break the relationship;
+   * DEFAULT_CONFIG derives it explicitly so the two cannot drift apart.
    */
   mergeTolerance: number
   /**

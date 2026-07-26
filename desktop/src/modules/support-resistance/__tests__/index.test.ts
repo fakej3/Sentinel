@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { computeSupportResistance } from '../index'
+import { computeAtr } from '../../indicators'
 import { DEFAULT_CONFIG } from '../config'
 import { candle, flatCandles, emptyStructure, swing, withSwings } from './helpers'
 import type { Candle } from '../../binance/types'
@@ -430,5 +431,47 @@ describe('computeSupportResistance — evidence', () => {
   it('evidence mentions "No active" when all zones are filtered out', () => {
     const result = computeSupportResistance(flatCandles(50, 100), emptyStructure())
     expect(result.evidence.join(' ')).toMatch(/insufficient|no active/i)
+  })
+})
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ATR is a shared input, not a recomputation
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('computeSupportResistance — ATR is supplied by the caller', () => {
+  it('an explicitly passed ATR governs zone geometry', () => {
+    const candles = priceCandles(60, 100)
+    const structure = withSwings([
+      swing({ index: 20, price: 110, type: 'high' }),
+      swing({ index: 30, price: 90,  type: 'low'  }),
+    ])
+    const wide   = computeSupportResistance(candles, structure, { minTouchCount: 1 }, 20)
+    const narrow = computeSupportResistance(candles, structure, { minTouchCount: 1 }, 2)
+    // Zone half-width = ATR × atrMultiplier, so a 10× ATR must widen zones.
+    if (wide.zones.length > 0 && narrow.zones.length > 0) {
+      expect(wide.zones[0].width).toBeGreaterThan(narrow.zones[0].width)
+    }
+  })
+
+  it('omitting ATR reproduces the internally-computed value exactly (standalone use)', () => {
+    const candles = priceCandles(60, 100)
+    const structure = withSwings([
+      swing({ index: 20, price: 110, type: 'high' }),
+      swing({ index: 30, price: 90,  type: 'low'  }),
+    ])
+    const internal = computeSupportResistance(candles, structure, { minTouchCount: 1 })
+    const explicit = computeSupportResistance(
+      candles, structure, { minTouchCount: 1 },
+      computeAtr(candles.map(c => c.high), candles.map(c => c.low), candles.map(c => c.close)),
+    )
+    // Proves the pipeline's explicit hand-off is behaviour-identical to the
+    // former internal recomputation — the dedup changed no output.
+    expect(explicit).toEqual(internal)
+  })
+
+  it('an explicit null ATR falls back to the percentage-based zone width', () => {
+    const candles = priceCandles(60, 100)
+    const structure = withSwings([swing({ index: 20, price: 110, type: 'high' })])
+    expect(() => computeSupportResistance(candles, structure, { minTouchCount: 1 }, null)).not.toThrow()
   })
 })

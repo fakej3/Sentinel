@@ -52,6 +52,7 @@ export function computeSupportResistance(
   candles: Candle[],
   marketStructure: MarketStructureResult,
   config?: Partial<SupportResistanceConfig>,
+  atrInput?: number | null,
 ): SupportResistanceResult {
   const cfg: SupportResistanceConfig = { ...DEFAULT_CONFIG, ...config }
 
@@ -60,10 +61,22 @@ export function computeSupportResistance(
   }
 
   const currentPrice = candles[candles.length - 1].close
-  const highs = candles.map(c => c.high)
-  const lows = candles.map(c => c.low)
-  const closes = candles.map(c => c.close)
-  const atr = computeAtr(highs, lows, closes)
+
+  // ── Volatility unit ────────────────────────────────────────────────────────
+  // ATR is supplied by the caller so the WHOLE engine reasons in one volatility
+  // unit. The pipeline passes indicators.atr, which is the same Wilder-14 value
+  // already computed in the indicator stage — previously this module recomputed
+  // it from the same candles, duplicating an O(n) pass and creating a silent
+  // divergence path if the two periods ever drifted apart.
+  //
+  // The internal fallback is NOT a compatibility shim: this module is also used
+  // standalone (and in unit tests) where no indicator suite has been computed,
+  // and it must remain usable without one. Production callers always pass the
+  // shared value, so no duplicate computation occurs on the analysis path.
+  const atr = atrInput !== undefined
+    ? atrInput
+    : computeAtr(candles.map(c => c.high), candles.map(c => c.low), candles.map(c => c.close))
+
   const mergeThreshold = atr !== null ? atr * cfg.mergeTolerance : currentPrice * 0.003
 
   // 1. Create zone candidates from swing points
