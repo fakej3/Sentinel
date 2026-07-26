@@ -3,7 +3,7 @@ import { LineStyle } from '../drawing/types'
 import type { DrawingInstruction } from '../drawing/types'
 import type { PipelineResult } from '../../../modules/pipeline/types'
 import type { TrendDirection, TrendStrength } from '../../../modules/market-structure/types'
-import type { IAnalysisOverlay } from '../types'
+import type { IAnalysisOverlay, ChartTimeRange } from '../types'
 
 // ── Config ────────────────────────────────────────────────────────────────────
 
@@ -41,6 +41,7 @@ export class MarketStructureOverlay implements IAnalysisOverlay {
 
   private engine:           DrawingEngine | null = null
   private lastData:         PipelineResult | null = null
+  private lastRange:        ChartTimeRange | null = null
   private lastHighlightKey: string | null = null
   private visible = true
 
@@ -54,8 +55,9 @@ export class MarketStructureOverlay implements IAnalysisOverlay {
     this.engine = engine
   }
 
-  update(data: PipelineResult | null): void {
-    this.lastData = data
+  update(data: PipelineResult | null, range: ChartTimeRange | null): void {
+    this.lastData  = data
+    this.lastRange = range
     if (data) {
       this.times        = data.candles.map(c => Math.floor(c.openTime / 1000))
       this.candleByTime = new Map(
@@ -104,7 +106,10 @@ export class MarketStructureOverlay implements IAnalysisOverlay {
     const { marketStructure } = data
     const instructions: DrawingInstruction[] = []
 
-    const lastCandleSec = this.times.length > 0 ? this.times[this.times.length - 1] : 0
+    // Segment end = the chart's live edge (falls back to the analysis snapshot's
+    // last candle when the chart range isn't known yet).
+    const lastCandleSec = this.lastRange?.toSec
+      ?? (this.times.length > 0 ? this.times[this.times.length - 1] : 0)
 
     // ── CHoCH coords (computed first — BOS defers to CHoCH for axis labels) ──
     const chochEvents = marketStructure.choch.events.slice(-MAX_CHOCH_LINES)

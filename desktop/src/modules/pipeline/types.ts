@@ -149,12 +149,25 @@ export type TradeSetupQuality = 'excellent' | 'good' | 'average' | 'poor' | 'avo
  * All price levels are in the same currency unit as the market data.
  */
 export interface TradePlan {
+  /**
+   * Trade direction derived from the full trend — the single authority for
+   * renderers. null when no directional setup exists. Overlays must consume
+   * this field, never re-derive direction from level geometry.
+   */
+  direction: 'long' | 'short' | null
   /** Price zone to target for entry — null when insufficient S/R data */
   entryZone: { lower: number; upper: number } | null
   /** Level at which the thesis is invalidated — null when S/R is unavailable */
   invalidationLevel: number | null
   /** Price target level (nearest S/R on the opposite side) */
   targetLevel: number | null
+  /**
+   * Full target ladder: targetLevel plus up to two further S/R levels beyond
+   * it in the trade direction. Computed here — never in the rendering layer —
+   * so the chart and analysis views always agree on targets.
+   * Empty when targetLevel is null.
+   */
+  targets: number[]
   /**
    * Risk/reward ratio computed from the entry zone midpoint, not current price.
    * risk   = |entryMid − invalidationLevel|

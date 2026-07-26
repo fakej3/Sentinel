@@ -2,7 +2,7 @@ import type { DrawingEngine } from '../drawing/DrawingEngine'
 import { LineStyle } from '../drawing/types'
 import type { DrawingInstruction } from '../drawing/types'
 import type { PipelineResult } from '../../../modules/pipeline/types'
-import type { IAnalysisOverlay } from '../types'
+import type { IAnalysisOverlay, ChartTimeRange } from '../types'
 
 const MAX_ZONES = 3
 
@@ -23,7 +23,7 @@ export class SupportResistanceOverlay implements IAnalysisOverlay {
     this.engine = engine
   }
 
-  update(data: PipelineResult | null): void {
+  update(data: PipelineResult | null, _range: ChartTimeRange | null): void {
     this.lastData = data
     this.submit()
   }

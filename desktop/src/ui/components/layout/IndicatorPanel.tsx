@@ -1,25 +1,22 @@
 import { useState } from 'react'
 
 export const INDICATORS = [
-  { id: 'ema-20',           label: 'E20',   group: 'overlay'  },
-  { id: 'ema-50',           label: 'E50',   group: 'overlay'  },
-  { id: 'ema-100',          label: 'E100',  group: 'overlay'  },
-  { id: 'ema-200',          label: 'E200',  group: 'overlay'  },
-  { id: 'volume',           label: 'Vol',   group: 'overlay'  },
-  { id: 'sr',               label: 'S/R',   group: 'analysis' },
-  { id: 'market-structure', label: 'MS',    group: 'analysis' },
-  { id: 'fibonacci',        label: 'Fib',   group: 'analysis' },
-  { id: 'entry-zone',       label: 'Entry', group: 'analysis' },
-  { id: 'stop-loss',        label: 'SL',    group: 'analysis' },
-  { id: 'take-profit',      label: 'TP',    group: 'analysis' },
-  { id: 'risk-reward',      label: 'RR',    group: 'analysis' },
+  { id: 'ema-20',           label: 'E20',  group: 'overlay'  },
+  { id: 'ema-50',           label: 'E50',  group: 'overlay'  },
+  { id: 'ema-100',          label: 'E100', group: 'overlay'  },
+  { id: 'ema-200',          label: 'E200', group: 'overlay'  },
+  { id: 'volume',           label: 'Vol',  group: 'overlay'  },
+  { id: 'sr',               label: 'S/R',  group: 'analysis' },
+  { id: 'market-structure', label: 'MS',   group: 'analysis' },
+  { id: 'fibonacci',        label: 'Fib',  group: 'analysis' },
+  { id: 'trade-plan',       label: 'Plan', group: 'analysis' },
 ] as const
 
 export type IndicatorId    = typeof INDICATORS[number]['id']
 export type IndicatorGroup = typeof INDICATORS[number]['group']
 
-const ROW1 = INDICATORS.slice(0, 6)
-const ROW2 = INDICATORS.slice(6)
+const ROW1 = INDICATORS.slice(0, 5)
+const ROW2 = INDICATORS.slice(5)
 
 const STORAGE_KEY = 'sentinel:indicator-visibility'
 

@@ -30,7 +30,7 @@ export function computeTradePlan(
   mtfAgreement?: MultiTimeframeAgreement,
   marketStructure?: MarketStructureResult,
 ): TradePlan {
-  const { fullTrend, srContext, price } = analysis
+  const { fullTrend, srContext } = analysis
   const trend = fullTrend.trend
   const isBullish = trend.includes('bullish')
   const isBearish = trend.includes('bearish')
@@ -145,20 +145,38 @@ export function computeTradePlan(
   // excellent / good / average are actionable; poor / avoid / no_setup are not
   const actionable = setupQuality === 'excellent' || setupQuality === 'good' || setupQuality === 'average'
 
+  // ── Direction + target ladder ─────────────────────────────────────────────
+  // The single directional authority for every renderer. The ladder extends
+  // targetLevel with up to two further S/R levels beyond it in trade direction
+  // (zone boundary facing the trade, same convention as the primary target).
+  const direction: TradePlan['direction'] = isBullish ? 'long' : isBearish ? 'short' : null
+  const targets: number[] = []
+  if (targetLevel !== null && direction !== null) {
+    targets.push(targetLevel)
+    const ladderZones = direction === 'long'
+      ? supportResistance.activeResistance
+      : supportResistance.activeSupport
+    for (const zone of ladderZones) {
+      if (targets.length >= 3) break
+      const price = direction === 'long' ? zone.lower : zone.upper
+      if (direction === 'long' ? price > targetLevel : price < targetLevel) {
+        targets.push(price)
+      }
+    }
+  }
+
   // ── Patience message ──────────────────────────────────────────────────────
   const patienceMessage = buildPatienceMessage(
     setupQuality, trend, confidence, srContext, riskRewardRatio, validation,
     entryZone, invalidationLevel, targetLevel, maturity, atrBased,
   )
 
-  // price is referenced here only to satisfy the linter — the variable is
-  // kept in scope so future callers can add current-price context cheaply.
-  void price
-
   return {
+    direction,
     entryZone,
     invalidationLevel,
     targetLevel,
+    targets,
     riskRewardRatio,
     setupQuality,
     setupQualityReason,

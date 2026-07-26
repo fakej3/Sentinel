@@ -128,6 +128,50 @@ describe('computeTradePlan', () => {
 })
 
 // ─────────────────────────────────────────────────────────────────────────────
+// Direction + target ladder (moved from the rendering layer into the pipeline)
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('computeTradePlan — direction and target ladder', () => {
+  const mkLadderZone = (lower: number, upper: number) =>
+    ({ lower, upper, center: (lower + upper) / 2, strength: 6 }) as unknown as
+      NonNullable<SupportResistanceResult['nearestResistance']>
+
+  it('bullish trend → direction long; bearish → short; ranging → null', () => {
+    const sr = makeSR({ lower: 95, upper: 97, center: 96 }, { lower: 110, upper: 112, center: 111 })
+    expect(computeTradePlan(makeAnalysis('strong bullish', 100), sr, makeConfidence()).direction).toBe('long')
+    expect(computeTradePlan(makeAnalysis('strong bearish', 100), makeSR(null, { lower: 103, upper: 105, center: 104 }), makeConfidence()).direction).toBe('short')
+    expect(computeTradePlan(makeAnalysis('ranging', 100), makeSR(), makeConfidence()).direction).toBeNull()
+  })
+
+  it('long ladder: targetLevel first, then further resistance lower-bounds above it, max 3', () => {
+    const sr = makeSR({ lower: 95, upper: 97, center: 96 }, { lower: 110, upper: 112, center: 111 })
+    sr.activeResistance = [
+      mkLadderZone(110, 112),  // primary target zone (price 110 == targetLevel, not > → skipped)
+      mkLadderZone(118, 120),
+      mkLadderZone(125, 127),
+      mkLadderZone(133, 135),  // beyond the 3-target cap
+    ]
+    const plan = computeTradePlan(makeAnalysis('strong bullish', 100), sr, makeConfidence())
+    expect(plan.targets).toEqual([110, 118, 125])
+  })
+
+  it('short ladder: further support upper-bounds below the target', () => {
+    const sr = makeSR({ lower: 80, upper: 82, center: 81 }, { lower: 103, upper: 105, center: 104 })
+    sr.activeSupport = [
+      mkLadderZone(80, 82),   // primary target zone (price 82 == targetLevel, not < → skipped)
+      mkLadderZone(72, 74),
+    ]
+    const plan = computeTradePlan(makeAnalysis('strong bearish', 100), sr, makeConfidence())
+    expect(plan.targets).toEqual([82, 74])
+  })
+
+  it('empty ladder when no target exists', () => {
+    const plan = computeTradePlan(makeAnalysis('ranging'), makeSR(), makeConfidence())
+    expect(plan.targets).toEqual([])
+  })
+})
+
+// ─────────────────────────────────────────────────────────────────────────────
 // MTF Agreement integration
 // ─────────────────────────────────────────────────────────────────────────────
 

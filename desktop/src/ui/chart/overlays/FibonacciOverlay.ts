@@ -3,7 +3,7 @@ import { LineStyle } from '../drawing/types'
 import type { DrawingInstruction, LineStyleValue } from '../drawing/types'
 import type { PipelineResult } from '../../../modules/pipeline/types'
 import type { FibLevel } from '../../../modules/fibonacci/types'
-import type { IAnalysisOverlay } from '../types'
+import type { IAnalysisOverlay, ChartTimeRange } from '../types'
 
 // ── Visual helpers ────────────────────────────────────────────────────────────
 
@@ -53,6 +53,7 @@ export class FibonacciOverlay implements IAnalysisOverlay {
 
   private engine:           DrawingEngine | null = null
   private lastData:         PipelineResult | null = null
+  private lastRange:        ChartTimeRange | null = null
   private lastHighlightKey: string | null = null
   private visible = true
 
@@ -60,8 +61,9 @@ export class FibonacciOverlay implements IAnalysisOverlay {
     this.engine = engine
   }
 
-  update(data: PipelineResult | null): void {
-    this.lastData = data
+  update(data: PipelineResult | null, range: ChartTimeRange | null): void {
+    this.lastData  = data
+    this.lastRange = range
     this.submit()
   }
 
@@ -85,16 +87,19 @@ export class FibonacciOverlay implements IAnalysisOverlay {
   }
 
   private buildInstructions(): DrawingInstruction[] {
-    const fib = this.lastData?.fibonacci
-    if (!fib?.available || fib.levels.length === 0) return []
+    const fib   = this.lastData?.fibonacci
+    const range = this.lastRange
+    if (!fib?.available || fib.levels.length === 0 || range === null) return []
 
     const instructions: DrawingInstruction[] = []
     const key  = this.lastHighlightKey
     const gpLit = key === 'fib:golden-pocket' || key === 'fib:all'
 
-    const allCandles = this.lastData!.candles
-    const fromTime   = Math.floor(allCandles[0].openTime / 1000)
-    const toTime     = Math.floor(allCandles[allCandles.length - 1].openTime / 1000)
+    // Zone extent: from the impulse anchor to the chart's live edge — the
+    // measurement is only meaningful from the swing it was drawn from.
+    const impulseStartSec = Math.floor(Math.min(fib.swingLow.timestamp, fib.swingHigh.timestamp) / 1000)
+    const fromTime = Math.max(range.fromSec, impulseStartSec)
+    const toTime   = range.toSec
 
     // Golden pocket zone
     const gp618 = fib.levels.find(l => l.ratio === 0.618)
