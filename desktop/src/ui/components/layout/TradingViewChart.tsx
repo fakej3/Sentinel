@@ -1,8 +1,7 @@
 import { useEffect, useRef, useState, useCallback, forwardRef, useImperativeHandle } from 'react'
 import { DrawingEngine } from '../../chart/drawing/DrawingEngine'
 import type { CrosshairEvent } from '../../chart/drawing/types'
-import { fetchCandlesAuto } from '../../../modules/binance/endpoints'
-import { subscribeLiveCandles } from '../../../modules/binance/ws'
+import { candleStore } from '../../market-data/CandleStore'
 import type { Candle, Timeframe } from '../../../modules/market/types'
 import type { PipelineResult } from '../../../modules/pipeline/types'
 import { OverlayManager } from '../../chart/OverlayManager'
@@ -10,14 +9,14 @@ import { CandlestickOverlay } from '../../chart/overlays/CandlestickOverlay'
 import { VolumeOverlay } from '../../chart/overlays/VolumeOverlay'
 import { EmaOverlay } from '../../chart/overlays/EmaOverlay'
 import { SupportResistanceOverlay } from '../../chart/overlays/SupportResistanceOverlay'
-import { EntryZoneOverlay } from '../../chart/overlays/EntryZoneOverlay'
-import { StopLossOverlay } from '../../chart/overlays/StopLossOverlay'
-import { TakeProfitOverlay } from '../../chart/overlays/TakeProfitOverlay'
-import { RiskRewardOverlay } from '../../chart/overlays/RiskRewardOverlay'
+import { TradePlanOverlay } from '../../chart/overlays/TradePlanOverlay'
 import { FibonacciOverlay } from '../../chart/overlays/FibonacciOverlay'
 import { MarketStructureOverlay } from '../../chart/overlays/MarketStructureOverlay'
 import { formatPrice, formatPercent, formatVolume, formatTimestamp } from '../../utils/format'
 import { IndicatorPanel, INDICATORS, loadIndicatorVisibility, type IndicatorId } from './IndicatorPanel'
+
+/** Backfill older history when the user scrolls within this many bars of the left edge. */
+const BACKFILL_TRIGGER_BARS = 20
 
 export interface TradingViewChartHandle {
   highlight(key: string | null): void
@@ -49,7 +48,9 @@ function TradingViewChart({ symbol, interval, data, candles: controlledCandles }
   const managerRef    = useRef<OverlayManager | null>(null)
   const candlesRef    = useRef<Candle[]>([])
   const candleMapRef  = useRef<Map<number, Candle>>(new Map())
-  const marketTypeRef = useRef<'spot' | 'futures'>('spot')
+  // Replay-mode dataset identity — used to fit the viewport only on a NEW
+  // dataset (load/restart), never on per-step appends.
+  const replayIdentityRef = useRef<{ firstOpenTime: number; length: number } | null>(null)
 
   // References to EMA overlays for crosshair value lookup
   const emaOverlaysRef = useRef<EmaOverlay[]>([])
@@ -99,10 +100,7 @@ function TradingViewChart({ symbol, interval, data, candles: controlledCandles }
     emaOverlaysRef.current = emaOverlays
 
     manager.addAnalysis(new SupportResistanceOverlay())
-    manager.addAnalysis(new EntryZoneOverlay())
-    manager.addAnalysis(new StopLossOverlay())
-    manager.addAnalysis(new TakeProfitOverlay())
-    manager.addAnalysis(new RiskRewardOverlay())
+    manager.addAnalysis(new TradePlanOverlay())
     manager.addAnalysis(new FibonacciOverlay())
     manager.addAnalysis(new MarketStructureOverlay())
 
@@ -191,65 +189,82 @@ function TradingViewChart({ symbol, interval, data, candles: controlledCandles }
     }])
   }, [symbol])
 
-  // Fetch historical candles then subscribe to live WS ticks (live mode only).
+  // Live mode: subscribe to the CandleStore — the single source of truth.
+  // The store owns REST history, pagination, and the WebSocket lifecycle;
+  // this component only renders what the store publishes.
   useEffect(() => {
     if (controlledCandles !== undefined) return
     let cancelled = false
-    let unsubWs: (() => void) | null = null
+    let sawSnapshot = false
     setStatus('loading')
     setErrorMsg('')
 
-    fetchCandlesAuto(symbol, interval as Timeframe)
-      .then(({ candles: initial, market }) => {
-        if (cancelled) return
-        const manager = managerRef.current
-        if (!manager) return
+    const tf = interval as Timeframe
 
-        marketTypeRef.current = market
-        candlesRef.current   = initial
-        candleMapRef.current = new Map(initial.map(c => [c.openTime, c]))
-        manager.updateAll(initial)
-        engineRef.current?.fitContent()
-        setStatus('ready')
+    const unsubscribe = candleStore.subscribe(symbol, tf, update => {
+      if (cancelled) return
+      const manager = managerRef.current
+      const engine  = engineRef.current
+      if (!manager || !engine) return
 
-        unsubWs = subscribeLiveCandles(symbol, interval as Timeframe, live => {
-          if (cancelled) return
-          const mgr = managerRef.current
-          if (!mgr) return
+      candlesRef.current = update.candles
 
-          mgr.tickCandle(live)
-
-          // Update map first (O(1)), then the array buffer
-          candleMapRef.current.set(live.openTime, live)
-
-          const prev = candlesRef.current
-          const idx  = prev.findIndex(c => c.openTime === live.openTime)
-          if (idx >= 0) {
-            const next = prev.slice()
-            next[idx]  = live
-            candlesRef.current = next
-          } else {
-            candlesRef.current = prev.concat(live)
+      switch (update.type) {
+        case 'snapshot': {
+          candleMapRef.current = new Map(update.candles.map(c => [c.openTime, c]))
+          manager.updateAll(update.candles)
+          // Fit the viewport only on the first snapshot of this (symbol, interval)
+          // subscription — cached re-entry keeps the user's previous view intact.
+          if (!sawSnapshot) {
+            engine.fitContent()
+            sawSnapshot = true
           }
+          setStatus('ready')
+          break
+        }
+        case 'backfill': {
+          // Preserve the visible window across the prepend so the viewport
+          // does not jump while history streams in behind the scroll.
+          const view = engine.getVisibleTimeRange()
+          candleMapRef.current = new Map(update.candles.map(c => [c.openTime, c]))
+          manager.updateAll(update.candles)
+          if (view) engine.setVisibleTimeRange(view)
+          break
+        }
+        case 'tick': {
+          if (!update.tick) break
+          candleMapRef.current.set(update.tick.openTime, update.tick)
+          manager.tickCandle(update.tick)
+          if (update.tickClosed) manager.updateAll(update.candles)
+          break
+        }
+      }
+    }, err => {
+      if (cancelled) return
+      setErrorMsg(err instanceof Error ? err.message : 'Failed to fetch chart data')
+      setStatus('error')
+    })
 
-          if (live.isClosed) {
-            mgr.updateAll(candlesRef.current)
-          }
-        }, marketTypeRef.current)
-      })
-      .catch((err: unknown) => {
-        if (cancelled) return
-        setErrorMsg(err instanceof Error ? err.message : 'Failed to fetch chart data')
-        setStatus('error')
-      })
+    // Backfill older history when the user scrolls near the left edge.
+    // loadOlder() self-throttles (no-op while a backfill is in flight or
+    // when history is exhausted / the buffer is full).
+    const unsubRange = engineRef.current?.subscribeVisibleLogicalRange(range => {
+      if (cancelled || range === null) return
+      if (range.from < BACKFILL_TRIGGER_BARS) {
+        void candleStore.loadOlder(symbol, tf)
+      }
+    }) ?? null
 
     return () => {
       cancelled = true
-      unsubWs?.()
+      unsubRange?.()
+      unsubscribe()
     }
   }, [symbol, interval, controlledCandles, retryKey])
 
-  // In controlled (replay) mode, push candles whenever they change.
+  // Controlled (replay) mode: push candles whenever they change.
+  // Fit the viewport only when the DATASET changes (new load / restart) —
+  // never on per-step appends, which must preserve the trader's zoom.
   useEffect(() => {
     if (controlledCandles === undefined) return
     candlesRef.current   = controlledCandles
@@ -257,7 +272,15 @@ function TradingViewChart({ symbol, interval, data, candles: controlledCandles }
     const manager = managerRef.current
     if (!manager) return
     manager.updateAll(controlledCandles)
-    engineRef.current?.fitContent()
+
+    const first    = controlledCandles.length > 0 ? controlledCandles[0].openTime : 0
+    const prev     = replayIdentityRef.current
+    const newDataset = prev === null
+      || prev.firstOpenTime !== first
+      || controlledCandles.length < prev.length
+    replayIdentityRef.current = { firstOpenTime: first, length: controlledCandles.length }
+    if (newDataset) engineRef.current?.fitContent()
+
     setStatus('ready')
   }, [controlledCandles])
 

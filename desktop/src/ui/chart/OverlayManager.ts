@@ -1,7 +1,7 @@
 import { DrawingEngine } from './drawing/DrawingEngine'
 import type { Candle } from '../../modules/market/types'
 import type { PipelineResult } from '../../modules/pipeline/types'
-import type { IOverlay, IAnalysisOverlay } from './types'
+import type { IOverlay, IAnalysisOverlay, ChartTimeRange } from './types'
 
 export class OverlayManager {
   private readonly engine: DrawingEngine
@@ -9,6 +9,8 @@ export class OverlayManager {
   private readonly analysisOverlays = new Map<string, IAnalysisOverlay>()
   private readonly hiddenAnalysis = new Set<string>()
   private lastAnalysisData: PipelineResult | null | undefined = undefined
+  /** The chart's live candle window — the ONLY time authority for analysis drawings. */
+  private chartRange: ChartTimeRange | null = null
 
   constructor(engine: DrawingEngine) {
     this.engine = engine
@@ -32,6 +34,7 @@ export class OverlayManager {
     for (const overlay of this.overlays.values()) {
       overlay.update(candles)
     }
+    this.refreshChartRange(candles)
   }
 
   /** Fast single-bar update for live WebSocket ticks — skips overlays that don't implement tick(). */
@@ -45,7 +48,7 @@ export class OverlayManager {
     this.lastAnalysisData = data
     for (const [id, overlay] of this.analysisOverlays.entries()) {
       if (this.hiddenAnalysis.has(id)) continue
-      overlay.update(data)
+      overlay.update(data, this.chartRange)
     }
   }
 
@@ -59,9 +62,37 @@ export class OverlayManager {
     overlay.setVisible?.(visible)
     if (visible) {
       this.hiddenAnalysis.delete(id)
-      if (this.lastAnalysisData !== undefined) overlay.update(this.lastAnalysisData)
+      if (this.lastAnalysisData !== undefined) overlay.update(this.lastAnalysisData, this.chartRange)
     } else {
       this.hiddenAnalysis.add(id)
+    }
+  }
+
+  /**
+   * Recompute the chart time range from the current candle set. When the range
+   * advances (new candle closed, backfill, timeframe change) and an analysis
+   * snapshot is on screen, re-push it so temporal drawings track the live edge.
+   */
+  private refreshChartRange(candles: Candle[]): void {
+    const next: ChartTimeRange | null = candles.length > 0
+      ? {
+          fromSec: Math.floor(candles[0].openTime / 1000),
+          toSec:   Math.floor(candles[candles.length - 1].openTime / 1000),
+        }
+      : null
+
+    const changed =
+      (next === null) !== (this.chartRange === null) ||
+      (next !== null && this.chartRange !== null &&
+        (next.fromSec !== this.chartRange.fromSec || next.toSec !== this.chartRange.toSec))
+
+    this.chartRange = next
+
+    if (changed && this.lastAnalysisData !== undefined && this.lastAnalysisData !== null) {
+      for (const [id, overlay] of this.analysisOverlays.entries()) {
+        if (this.hiddenAnalysis.has(id)) continue
+        overlay.update(this.lastAnalysisData, this.chartRange)
+      }
     }
   }
 

@@ -24,11 +24,27 @@ export interface IOverlay {
   dispose(): void
 }
 
+/**
+ * The chart's live candle window in UTC seconds.
+ * Analysis overlays MUST take all temporal extents (zone from/to, segment ends)
+ * from this range — never from the analysis snapshot's own candle array, which
+ * was fetched at analysis time and goes stale as live candles arrive.
+ */
+export interface ChartTimeRange {
+  fromSec: number
+  toSec: number
+}
+
 /** Overlay driven by the full pipeline analysis result rather than raw candle data. */
 export interface IAnalysisOverlay {
   readonly id: string
   mount(engine: DrawingEngine): void
-  update(data: PipelineResult | null): void
+  /**
+   * Push a new analysis snapshot (or null to clear) together with the chart's
+   * current time range. The manager re-invokes this with a fresh range when
+   * the chart window advances, so temporal drawings extend to the live edge.
+   */
+  update(data: PipelineResult | null, range: ChartTimeRange | null): void
   setVisible?(visible: boolean): void
   /** Same contract as IOverlay.highlight. */
   highlight?(key: string | null): void

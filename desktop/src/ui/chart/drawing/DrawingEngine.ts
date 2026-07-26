@@ -295,6 +295,7 @@ interface PolylineEntry {
   lineWidth: number
   lineStyle: number
   visible:   boolean
+  data:      TimeSeriesPoint[]
 }
 
 class PolylineRenderer {
@@ -322,8 +323,11 @@ class PolylineRenderer {
         if (visible   !== existing.visible)   o.visible   = visible
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         if (Object.keys(o).length > 0) (existing.series as any).applyOptions(o)
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        ;(existing.series as any).setData(inst.data.map((d: TimeSeriesPoint) => ({ time: t(d.time), value: d.value })))
+        if (!polylineDataEqual(inst.data, existing.data)) {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          ;(existing.series as any).setData(inst.data.map((d: TimeSeriesPoint) => ({ time: t(d.time), value: d.value })))
+          existing.data = inst.data
+        }
         existing.color = color; existing.lineWidth = lineWidth; existing.lineStyle = lineStyle; existing.visible = visible
       } else {
         const s = this.chart.addSeries(LineSeries, {
@@ -336,7 +340,7 @@ class PolylineRenderer {
         })
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         ;(s as any).setData(inst.data.map((d: TimeSeriesPoint) => ({ time: t(d.time), value: d.value })))
-        this.pool.set(inst.key, { series: s, color, lineWidth, lineStyle, visible })
+        this.pool.set(inst.key, { series: s, color, lineWidth, lineStyle, visible, data: inst.data })
       }
     }
 
@@ -492,9 +496,25 @@ function markersEqual(a: DrawingMarker[], b: DrawingMarker[]): boolean {
   if (a === b) return true
   if (a.length !== b.length) return false
   for (let i = 0; i < a.length; i++) {
-    if (a[i].time !== b[i].time || a[i].size !== b[i].size || a[i].color !== b[i].color) return false
+    if (a[i].time !== b[i].time || a[i].size !== b[i].size || a[i].color !== b[i].color ||
+        a[i].text !== b[i].text || a[i].position !== b[i].position || a[i].shape !== b[i].shape) return false
   }
   return true
+}
+
+/**
+ * Cheap polyline data equality: length + endpoint sample.
+ * Interior-only changes with identical endpoints are not representable by any
+ * current overlay (zigzag/segment data always moves its last point), so the
+ * endpoint sample is sufficient and avoids O(n) compares per render.
+ */
+function polylineDataEqual(a: TimeSeriesPoint[], b: TimeSeriesPoint[]): boolean {
+  if (a === b) return true
+  if (a.length !== b.length) return false
+  if (a.length === 0) return true
+  const last = a.length - 1
+  return a[0].time === b[0].time && a[0].value === b[0].value &&
+         a[last].time === b[last].time && a[last].value === b[last].value
 }
 
 function watermarkLinesEqual(a: WatermarkLine[], b: WatermarkLine[]): boolean {
@@ -757,6 +777,29 @@ export class DrawingEngine {
 
   fitContent(): void {
     this.chart.timeScale().fitContent()
+  }
+
+  /**
+   * Subscribe to visible logical-range changes (fires on scroll/zoom).
+   * `from` < 0 means the user has scrolled into whitespace before the first
+   * loaded bar — the signal to backfill older history.
+   */
+  subscribeVisibleLogicalRange(cb: (range: { from: number; to: number } | null) => void): () => void {
+    const handler = (range: { from: number; to: number } | null) => cb(range)
+    this.chart.timeScale().subscribeVisibleLogicalRangeChange(handler)
+    return () => this.chart.timeScale().unsubscribeVisibleLogicalRangeChange(handler)
+  }
+
+  /** Current visible time window (UTC seconds), or null before first layout. */
+  getVisibleTimeRange(): { from: number; to: number } | null {
+    const r = this.chart.timeScale().getVisibleRange()
+    if (!r) return null
+    return { from: r.from as number, to: r.to as number }
+  }
+
+  /** Restore a visible time window (used to keep the viewport steady across backfills). */
+  setVisibleTimeRange(range: { from: number; to: number }): void {
+    this.chart.timeScale().setVisibleRange({ from: t(range.from), to: t(range.to) })
   }
 
   dispose(): void {

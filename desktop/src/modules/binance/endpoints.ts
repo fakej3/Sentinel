@@ -32,31 +32,34 @@ export async function fetchCandlesAuto(
   interval: Timeframe,
   limit: number = DEFAULT_CANDLE_LIMIT,
   market?: 'spot' | 'futures',
+  endTime?: number,
 ): Promise<{ candles: Candle[]; market: MarketType }> {
   const safeLimit    = Math.min(Math.max(1, limit), MAX_CANDLE_LIMIT)
   const resolvedMarket = market ?? symbolRegistry.getPreferredMarket(symbol)
+  const params: Record<string, string | number> = { symbol, interval, limit: safeLimit }
+  if (endTime !== undefined) params.endTime = endTime
 
   if (resolvedMarket === 'futures') {
     if (import.meta.env.DEV) console.debug('[Binance] candles', symbol, '→ futures /fapi/v1/klines')
-    const raw = await futuresRequest<RawCandle[]>('/fapi/v1/klines', { symbol, interval, limit: safeLimit })
+    const raw = await futuresRequest<RawCandle[]>('/fapi/v1/klines', params)
     return { candles: normaliseCandles(raw), market: 'futures' }
   }
 
   if (resolvedMarket === 'spot') {
     if (import.meta.env.DEV) console.debug('[Binance] candles', symbol, '→ spot /api/v3/klines')
-    const raw = await spotRequest<RawCandle[]>('/api/v3/klines', { symbol, interval, limit: safeLimit })
+    const raw = await spotRequest<RawCandle[]>('/api/v3/klines', params)
     return { candles: normaliseCandles(raw), market: 'spot' }
   }
 
   // 'unknown' — registry not yet loaded; spot-first with futures fallback on 400
   if (import.meta.env.DEV) console.debug('[Binance] candles', symbol, '→ unknown registry, trying spot first')
   try {
-    const raw = await spotRequest<RawCandle[]>('/api/v3/klines', { symbol, interval, limit: safeLimit })
+    const raw = await spotRequest<RawCandle[]>('/api/v3/klines', params)
     return { candles: normaliseCandles(raw), market: 'spot' }
   } catch (err) {
     if (err instanceof BinanceApiError && err.statusCode === 400) {
       if (import.meta.env.DEV) console.debug('[Binance] candles', symbol, '→ spot 400, retrying futures')
-      const raw = await futuresRequest<RawCandle[]>('/fapi/v1/klines', { symbol, interval, limit: safeLimit })
+      const raw = await futuresRequest<RawCandle[]>('/fapi/v1/klines', params)
       return { candles: normaliseCandles(raw), market: 'futures' }
     }
     throw err
