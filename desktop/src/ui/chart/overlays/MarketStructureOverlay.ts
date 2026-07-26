@@ -90,7 +90,6 @@ export class MarketStructureOverlay implements IAnalysisOverlay {
     const key  = this.lastHighlightKey
 
     if (!data) {
-      // Blank watermark when no data (trend badge must stay registered to avoid flicker)
       return [{
         kind:      'watermark',
         key:       'trend-badge',
@@ -103,9 +102,20 @@ export class MarketStructureOverlay implements IAnalysisOverlay {
     const { marketStructure } = data
     const instructions: DrawingInstruction[] = []
 
+    // ── CHoCH coords (computed first — BOS defers to CHoCH for axis labels) ──
+    const chochEvents = marketStructure.choch.events.slice(-MAX_CHOCH_LINES)
+    const chochCoords: number[] = chochEvents
+      .map(e => this.engine?.priceToCoordinate(e.level) ?? null)
+      .filter((c): c is number => c !== null)
+
+    // ── BOS coords (used to suppress swing text near significant lines) ───────
+    const bosCoords: number[] = marketStructure.bos.events.slice(-MAX_BOS_LINES)
+      .map(e => this.engine?.priceToCoordinate(e.level) ?? null)
+      .filter((c): c is number => c !== null)
+
+    const significantLineCoords = [...chochCoords, ...bosCoords]
+
     // ── Swing markers ─────────────────────────────────────────────────────────
-    // Build swingByTime only when building instructions (cheap: swings << candles).
-    // candleByTime is cached in update() so it's not rebuilt per highlight event.
     const swingByTime = new Map(marketStructure.swings.map(s => [Math.floor(s.timestamp / 1000), s]))
 
     const anchor = this.times.map(time => {
@@ -119,7 +129,6 @@ export class MarketStructureOverlay implements IAnalysisOverlay {
 
     const labeledSwings = marketStructure.swings.filter(s => s.label !== null)
 
-    // Determine highlight for swing markers
     let litTs: number | null = null
     if (key?.startsWith('ms:swing:')) litTs = Number(key.slice('ms:swing:'.length))
     const litAll = key === 'ms:all'
@@ -127,12 +136,18 @@ export class MarketStructureOverlay implements IAnalysisOverlay {
     const markers = labeledSwings.map(s => {
       const tsMs      = s.timestamp
       const shouldLit = litAll || (litTs !== null && tsMs === litTs)
+      const candle    = this.candleByTime.get(Math.floor(s.timestamp / 1000))
+      const mPrice    = s.type === 'high' ? (candle?.high ?? s.price) : (candle?.low ?? s.price)
+      const coord     = this.engine?.priceToCoordinate(mPrice) ?? null
+      // Suppress swing text when it would stack on top of a BOS/CHoCH axis label
+      const nearLine  = coord !== null && significantLineCoords.some(c => Math.abs(c - coord) < 16)
+
       return {
         time:     Math.floor(s.timestamp / 1000),
         position: s.type === 'high' ? 'aboveBar' as const : 'belowBar' as const,
         shape:    'circle' as const,
         color:    swingLabelColor(s.label as SwingLabel),
-        text:     s.label as string,
+        text:     nearLine ? '' : (s.label as string),
         size:     shouldLit ? 2.5 : 1.2,
       }
     })
@@ -157,9 +172,22 @@ export class MarketStructureOverlay implements IAnalysisOverlay {
     })
 
     // ── BOS price lines ───────────────────────────────────────────────────────
-    for (const e of marketStructure.bos.events.slice(-MAX_BOS_LINES)) {
-      const isBull  = e.direction === 'bullish'
-      const litLine = key === 'ms:all' || key === `ms:bos:${e.timestamp}`
+    // Only the most-recent BOS gets an axis label; older ones are visual context.
+    // If a BOS is within 14px of a CHoCH, its axis label is also suppressed
+    // (CHoCH signals take priority as they mark trend reversals).
+    const bosEvents = marketStructure.bos.events.slice(-MAX_BOS_LINES)
+    const bosUsedCoords: number[] = [...chochCoords]
+
+    for (let i = 0; i < bosEvents.length; i++) {
+      const e            = bosEvents[i]
+      const isBull       = e.direction === 'bullish'
+      const isMostRecent = i === bosEvents.length - 1
+      const litLine      = key === 'ms:all' || key === `ms:bos:${e.timestamp}`
+      const coord        = this.engine?.priceToCoordinate(e.level) ?? null
+      const tooClose     = coord !== null && bosUsedCoords.some(c => Math.abs(c - coord) < 14)
+
+      if (coord !== null && !tooClose) bosUsedCoords.push(coord)
+
       instructions.push({
         kind:             'hline',
         key:              `bos_${e.timestamp}`,
@@ -167,15 +195,25 @@ export class MarketStructureOverlay implements IAnalysisOverlay {
         color:            isBull ? 'rgba(34, 197, 94, 0.55)' : 'rgba(239, 83, 80, 0.55)',
         lineWidth:        litLine ? 3 : 1,
         lineStyle:        LineStyle.Solid,
-        axisLabelVisible: true,
+        axisLabelVisible: isMostRecent && !tooClose,
         title:            'BOS',
         visible:          this.visible,
       })
     }
 
     // ── CHoCH price lines ─────────────────────────────────────────────────────
-    for (const e of marketStructure.choch.events.slice(-MAX_CHOCH_LINES)) {
-      const litLine = key === 'ms:all' || key === `ms:choch:${e.timestamp}`
+    // Only the most-recent CHoCH gets an axis label.
+    const chochUsedCoords: number[] = []
+
+    for (let i = 0; i < chochEvents.length; i++) {
+      const e            = chochEvents[i]
+      const isMostRecent = i === chochEvents.length - 1
+      const litLine      = key === 'ms:all' || key === `ms:choch:${e.timestamp}`
+      const coord        = this.engine?.priceToCoordinate(e.level) ?? null
+      const tooClose     = coord !== null && chochUsedCoords.some(c => Math.abs(c - coord) < 14)
+
+      if (coord !== null && !tooClose) chochUsedCoords.push(coord)
+
       instructions.push({
         kind:             'hline',
         key:              `choch_${e.timestamp}`,
@@ -183,13 +221,13 @@ export class MarketStructureOverlay implements IAnalysisOverlay {
         color:            'rgba(168, 85, 247, 0.65)',
         lineWidth:        litLine ? 3 : 2,
         lineStyle:        LineStyle.Dashed,
-        axisLabelVisible: true,
+        axisLabelVisible: isMostRecent && !tooClose,
         title:            'CHoCH',
         visible:          this.visible,
       })
     }
 
-    // ── Trend badge (top-right, away from OHLCV HUD) ─────────────────────────
+    // ── Trend badge ───────────────────────────────────────────────────────────
     instructions.push({
       kind:      'watermark',
       key:       'trend-badge',

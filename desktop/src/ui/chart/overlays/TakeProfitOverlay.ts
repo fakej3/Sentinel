@@ -71,8 +71,16 @@ export class TakeProfitOverlay implements IAnalysisOverlay {
       }
     }
 
+    // Pre-seed collision map with SL and Entry so TP labels avoid them.
+    // SL and Entry axis labels are always rendered; TPs must work around them.
+    const slCoord    = this.engine?.priceToCoordinate(plan.invalidationLevel) ?? null
+    const entryCoord = this.engine?.priceToCoordinate(entryMid) ?? null
+    const usedCoords: number[] = [
+      ...(slCoord    !== null ? [slCoord]    : []),
+      ...(entryCoord !== null ? [entryCoord] : []),
+    ]
+
     const instructions: DrawingInstruction[] = []
-    const usedCoords: number[] = []
 
     for (let i = 0; i < targets.length; i++) {
       const price    = targets[i]

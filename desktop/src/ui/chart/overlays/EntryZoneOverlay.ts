@@ -65,6 +65,14 @@ export class EntryZoneOverlay implements IAnalysisOverlay {
     const toTime     = Math.floor(allCandles[allCandles.length - 1].openTime / 1000)
     const lw: 1 | 2 = lit ? 2 : 1
 
+    // Suppress Entry axis label if SL lands within 14px — SL takes priority.
+    const midCoord         = this.engine?.priceToCoordinate(mid) ?? null
+    const slCoord          = plan.invalidationLevel !== null
+      ? (this.engine?.priceToCoordinate(plan.invalidationLevel) ?? null)
+      : null
+    const entryLabelVisible = midCoord === null || slCoord === null
+      || Math.abs(midCoord - slCoord) >= 14
+
     return [
       {
         kind: 'zone',
@@ -103,7 +111,7 @@ export class EntryZoneOverlay implements IAnalysisOverlay {
         color:            'rgba(0,0,0,0)',
         lineWidth:        1,
         lineStyle:        LineStyle.Solid,
-        axisLabelVisible: true,
+        axisLabelVisible: entryLabelVisible,
         title:            'Entry',
         visible:          this.visible,
       },
