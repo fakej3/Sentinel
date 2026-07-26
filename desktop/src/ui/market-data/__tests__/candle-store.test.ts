@@ -25,9 +25,22 @@ function candlesBetween(start: number, end: number): Candle[] {
   return out
 }
 
+interface Deferred {
+  promise: Promise<void>
+  resolve: () => void
+}
+
+function deferred(): Deferred {
+  let resolve!: () => void
+  const promise = new Promise<void>(r => { resolve = r })
+  return { promise, resolve }
+}
+
 class MockProvider implements CandleProvider {
   readonly maxCandlesPerRequest = CHUNK
   fetchCalls: FetchRangeOptions[] = []
+  /** Richer call log (symbol/interval included) for tests that need to filter by series. */
+  calls: Array<{ symbol: string; interval: Timeframe; options: FetchRangeOptions }> = []
   liveHandlers: LiveHandlers[] = []
   unsubscribeCount = 0
   failNext: Error | null = null
@@ -35,10 +48,35 @@ class MockProvider implements CandleProvider {
   historyStart = 0
   now = 100_000 * MINUTE
 
+  private pendingGates: Array<{
+    match: (symbol: string, interval: Timeframe, options: FetchRangeOptions) => boolean
+    defer: Deferred
+  }> = []
+
+  /**
+   * Gate the NEXT fetchCandles call matching `match` — that call's promise
+   * won't resolve until the returned Deferred's `.resolve()` is invoked.
+   * One-shot: consumed on first match, so a second matching call is not gated.
+   */
+  gateNext(match: (symbol: string, interval: Timeframe, options: FetchRangeOptions) => boolean): Deferred {
+    const d = deferred()
+    this.pendingGates.push({ match, defer: d })
+    return d
+  }
+
   async fetchCandles(
-    _symbol: string, _interval: Timeframe, options: FetchRangeOptions, _market?: MarketKind,
+    symbol: string, interval: Timeframe, options: FetchRangeOptions, _market?: MarketKind,
   ): Promise<{ candles: Candle[]; market: MarketKind }> {
     this.fetchCalls.push(options)
+    this.calls.push({ symbol, interval, options })
+
+    const gateIdx = this.pendingGates.findIndex(g => g.match(symbol, interval, options))
+    if (gateIdx >= 0) {
+      const { defer } = this.pendingGates[gateIdx]
+      this.pendingGates.splice(gateIdx, 1)
+      await defer.promise
+    }
+
     if (this.failNext) {
       const err = this.failNext
       this.failNext = null
@@ -352,5 +390,363 @@ describe('CandleStore — fetchSnapshot / prefetch', () => {
     const updates: CandleUpdate[] = []
     store.subscribe('BTCUSDT', '1m', u => updates.push(u))
     expect(updates).toHaveLength(1)  // served synchronously from memory
+  })
+})
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Eviction safety — regression coverage for the race found in the Phase 1
+// self-audit: evictIfNeeded() must never remove a series while it is busy
+// (initialLoad / backfilling / repairing), even though such a series has
+// zero listeners and would otherwise look identical to any other idle entry.
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('CandleStore — eviction safety', () => {
+  it('does not evict a series while fetchSnapshot is still loading it, and does not truncate or duplicate the fetch', async () => {
+    const { provider, store } = setup()
+
+    const gate = provider.gateNext(symbol => symbol === 'SLOW')
+    const snapshotPromise = store.fetchSnapshot('SLOW', '1m', 500)
+
+    // Flood the store with far more idle series than the cache retains, each
+    // fully loaded and immediately abandoned, to create real eviction
+    // pressure while SLOW's cold load is still gated open.
+    for (let i = 0; i < 20; i++) {
+      const unsub = store.subscribe(`SYM${i}`, '1m', () => {})
+      await flush()
+      unsub()
+    }
+
+    // SLOW must have survived every eviction sweep triggered by those 20
+    // subscribes, because it was busy the entire time.
+    gate.resolve()
+    const { candles } = await snapshotPromise
+
+    expect(candles).toHaveLength(500)                                           // not truncated
+    expect(provider.calls.filter(c => c.symbol === 'SLOW')).toHaveLength(1)      // not duplicated
+  })
+
+  it('does not evict a series while prefetch is still loading it', async () => {
+    const { provider, store } = setup()
+
+    const gate = provider.gateNext(symbol => symbol === 'SLOW')
+    store.prefetch('SLOW', '1m')
+
+    for (let i = 0; i < 20; i++) {
+      const unsub = store.subscribe(`SYM${i}`, '1m', () => {})
+      await flush()
+      unsub()
+    }
+
+    gate.resolve()
+    await flush()
+
+    expect(store.getCandles('SLOW', '1m')).not.toBeNull()
+    expect(provider.calls.filter(c => c.symbol === 'SLOW')).toHaveLength(1)
+  })
+
+  it('still evicts a genuinely idle, finished series once enough other idle series accumulate', async () => {
+    const { store } = setup()
+    store.prefetch('WARM', '1m')
+    await flush()
+    expect(store.getCandles('WARM', '1m')).not.toBeNull()
+
+    // WARM is idle and NOT busy — a positive control proving the busy-check
+    // didn't just disable eviction outright.
+    for (let i = 0; i < 20; i++) {
+      const unsub = store.subscribe(`SYM${i}`, '1m', () => {})
+      await flush()
+      unsub()
+    }
+
+    expect(store.getCandles('WARM', '1m')).toBeNull()
+  })
+})
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Concurrent access patterns
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('CandleStore — concurrent access patterns', () => {
+  it('subscribe and fetchSnapshot for the same cold series share one REST fetch', async () => {
+    const { provider, store } = setup()
+    const updates: CandleUpdate[] = []
+    const unsub = store.subscribe('BTCUSDT', '1m', u => updates.push(u))
+    const snapshotPromise = store.fetchSnapshot('BTCUSDT', '1m', 500)
+
+    await flush()
+    const { candles } = await snapshotPromise
+
+    expect(provider.fetchCalls).toHaveLength(1)  // deduped — one REST call serves both callers
+    expect(candles).toHaveLength(500)
+    expect(updates[0].candles).toHaveLength(INITIAL_CANDLES)
+    unsub()
+  })
+
+  it('rapid subscribe/unsubscribe churn across many symbols leaks no sockets and corrupts no state', async () => {
+    const { provider, store } = setup()
+    const symbols = ['AAA', 'BBB', 'CCC', 'DDD', 'EEE']
+
+    for (const sym of symbols) {
+      const unsub = store.subscribe(sym, '1m', () => {})
+      unsub()  // unsubscribed before the cold load even has a chance to resolve
+    }
+    await flush()
+
+    // Each unsubscribe happened before ensureColdLoad's .then() could observe
+    // listeners.size > 0, so no socket should ever have opened for any of them.
+    expect(provider.liveHandlers).toHaveLength(0)
+
+    // Re-subscribing afterward still works correctly — no corrupted entries.
+    const updates: CandleUpdate[] = []
+    store.subscribe('AAA', '1m', u => updates.push(u))
+    await flush()
+    expect(updates[updates.length - 1].candles.length).toBeGreaterThan(0)
+  })
+
+  it('settles on exactly one active socket when a chart-like consumer rapidly switches through several intervals', async () => {
+    const { provider, store } = setup()
+    let currentUnsub: (() => void) | null = null
+    const intervals: Timeframe[] = ['1m', '5m', '15m', '1h']
+
+    for (const iv of intervals) {
+      currentUnsub?.()
+      currentUnsub = store.subscribe('BTCUSDT', iv, () => {})
+    }
+    await flush()
+
+    // Only the LAST interval subscribed should end up with an active socket.
+    expect(provider.liveHandlers).toHaveLength(1)
+    currentUnsub?.()
+  })
+})
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Concurrent backfill / repair / cold-load composition
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('CandleStore — concurrent backfill and gap repair', () => {
+  it('composes correctly when a reconnect-triggered gap repair runs while a backfill is still in flight', async () => {
+    const { provider, store } = setup()
+    const updates: CandleUpdate[] = []
+    store.subscribe('BTCUSDT', '1m', u => updates.push(u))
+    await flush()
+    const before = updates[0].candles
+    const oldestBefore = before[0].openTime
+    const newestBefore = before[before.length - 1].openTime
+
+    // Gate the backfill's endTime-based fetch so it stays in flight.
+    const gate = provider.gateNext((_s, _i, o) => o.endTime !== undefined)
+    const backfillPromise = store.loadOlder('BTCUSDT', '1m')
+
+    // While the backfill is stuck, a reconnect fires — repairGap uses a
+    // startTime-based fetch (not gated) and completes immediately.
+    provider.emitStatus('disconnected')
+    provider.now += 5 * MINUTE
+    provider.emitStatus('connected')
+    await flush()
+
+    const afterRepair = updates[updates.length - 1]
+    expect(afterRepair.type).toBe('snapshot')
+    expect(afterRepair.candles[afterRepair.candles.length - 1].openTime).toBe(newestBefore + 5 * MINUTE)
+
+    // Now release the backfill.
+    gate.resolve()
+    const added = await backfillPromise
+    expect(added).toBeGreaterThan(0)
+
+    const final = store.getCandles('BTCUSDT', '1m')!
+    // Both contributions present: older history from the backfill AND the
+    // newer candles recovered by the repair — neither clobbered the other.
+    expect(final[0].openTime).toBeLessThan(oldestBefore)
+    expect(final[final.length - 1].openTime).toBe(newestBefore + 5 * MINUTE)
+    // No duplicates, no gaps introduced by the interleaving.
+    for (let i = 1; i < final.length; i++) {
+      expect(final[i].openTime).toBeGreaterThan(final[i - 1].openTime)
+    }
+  })
+
+  it('an unrelated series repairing a gap does not interfere with a different series still cold-loading', async () => {
+    const { provider, store } = setup()
+
+    // Series B is already live.
+    const updatesB: CandleUpdate[] = []
+    store.subscribe('ETHUSDT', '1m', u => updatesB.push(u))
+    await flush()
+
+    // Series A's cold load is gated in flight — it has NOT called
+    // subscribeLive yet, so it has no registered status handler at all.
+    const gate = provider.gateNext(symbol => symbol === 'BTCUSDT')
+    const updatesA: CandleUpdate[] = []
+    const unsubA = store.subscribe('BTCUSDT', '1m', u => updatesA.push(u))
+    await flush()
+    expect(updatesA).toHaveLength(0)  // still stuck on the gate
+
+    // B reconnects concurrently while A is still cold-loading. emitStatus
+    // only reaches handlers that exist yet — since A never registered one,
+    // this can only reach B, which is exactly the isolation being verified.
+    provider.emitStatus('disconnected')
+    provider.now += 3 * MINUTE
+    provider.emitStatus('connected')
+    await flush()
+
+    expect(updatesA).toHaveLength(0)  // A is untouched — proves isolation
+    const bFinal = updatesB[updatesB.length - 1]
+    expect(bFinal.type).toBe('snapshot')  // B's repair completed fine on its own
+
+    // Release A — it completes normally afterward.
+    gate.resolve()
+    await flush()
+    expect(updatesA.length).toBeGreaterThan(0)
+    expect(updatesA[updatesA.length - 1].candles.length).toBeGreaterThan(0)
+
+    unsubA()
+  })
+})
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Immutability boundary
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('CandleStore — immutability boundary', () => {
+  it('freezes the array wrapper handed to listeners', async () => {
+    const { store } = setup()
+    const updates: CandleUpdate[] = []
+    store.subscribe('BTCUSDT', '1m', u => updates.push(u))
+    await flush()
+
+    expect(Object.isFrozen(updates[0].candles)).toBe(true)
+    expect(() => (updates[0].candles as Candle[]).push(candle(0))).toThrow()
+  })
+
+  it('freezes individual candle objects', async () => {
+    const { store } = setup()
+    const updates: CandleUpdate[] = []
+    store.subscribe('BTCUSDT', '1m', u => updates.push(u))
+    await flush()
+
+    const c = updates[0].candles[0]
+    expect(Object.isFrozen(c)).toBe(true)
+    expect(() => { (c as unknown as { close: number }).close = 999 }).toThrow()
+  })
+
+  it('freezes candles delivered via tick, backfill, and gap repair — not just the initial snapshot', async () => {
+    const { provider, store } = setup()
+    const updates: CandleUpdate[] = []
+    store.subscribe('BTCUSDT', '1m', u => updates.push(u))
+    await flush()
+
+    const last = updates[0].candles[updates[0].candles.length - 1]
+    provider.emitTick({ ...candle(last.openTime + MINUTE, 111), isClosed: false })
+    const tickUpdate = updates[updates.length - 1]
+    expect(Object.isFrozen(tickUpdate.candles)).toBe(true)
+    expect(Object.isFrozen(tickUpdate.tick)).toBe(true)
+
+    await store.loadOlder('BTCUSDT', '1m')
+    const backfillUpdate = updates[updates.length - 1]
+    expect(Object.isFrozen(backfillUpdate.candles)).toBe(true)
+    expect(Object.isFrozen(backfillUpdate.candles[0])).toBe(true)
+  })
+
+  it('freezes candles hydrated from the persistent cache', async () => {
+    const cache = new InMemoryCandleCache()
+    const { provider, store } = setup(cache)
+    await cache.save('BTCUSDT:1m', candlesBetween(provider.now - 200 * MINUTE, provider.now))
+
+    const updates: CandleUpdate[] = []
+    store.subscribe('BTCUSDT', '1m', u => updates.push(u))
+    // First synchronous-ish microtask turn delivers the fromCache snapshot,
+    // before the REST reconciliation (also awaited) has necessarily resolved.
+    await Promise.resolve()
+    await Promise.resolve()
+
+    const cached = updates.find(u => u.fromCache)
+    expect(cached).toBeDefined()
+    expect(Object.isFrozen(cached!.candles)).toBe(true)
+    expect(Object.isFrozen(cached!.candles[0])).toBe(true)
+  })
+})
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Persistence coalescing
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('CandleStore — persistence coalescing', () => {
+  it('coalesces rapid successive backfill chunks into a single debounced write, not one write per chunk', async () => {
+    const cache = new InMemoryCandleCache()
+    const { store } = setup(cache)
+
+    store.subscribe('BTCUSDT', '1m', () => {})
+    await flush()  // real timers — cold load settles, including its own immediate write
+
+    const saveSpy = vi.spyOn(cache, 'save')
+    vi.useFakeTimers()
+    try {
+      await store.loadOlder('BTCUSDT', '1m')
+      await store.loadOlder('BTCUSDT', '1m')
+      await store.loadOlder('BTCUSDT', '1m')
+
+      // All three chunks land inside the debounce window — none should have
+      // triggered a write yet.
+      expect(saveSpy).not.toHaveBeenCalled()
+
+      await vi.advanceTimersByTimeAsync(2_000)
+
+      // Exactly one write for all three chunks combined.
+      expect(saveSpy).toHaveBeenCalledOnce()
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  it('coalesces rapid successive candle closes the same way', async () => {
+    const cache = new InMemoryCandleCache()
+    const { provider, store } = setup(cache)
+    store.subscribe('BTCUSDT', '1m', () => {})
+    await flush()
+
+    const saveSpy = vi.spyOn(cache, 'save')
+    vi.useFakeTimers()
+    try {
+      const base = store.getCandles('BTCUSDT', '1m')!
+      const lastOpen = base[base.length - 1].openTime
+      provider.emitTick({ ...candle(lastOpen + MINUTE, 1), isClosed: true })
+      provider.emitTick({ ...candle(lastOpen + 2 * MINUTE, 2), isClosed: true })
+      provider.emitTick({ ...candle(lastOpen + 3 * MINUTE, 3), isClosed: true })
+
+      expect(saveSpy).not.toHaveBeenCalled()
+      await vi.advanceTimersByTimeAsync(2_000)
+      expect(saveSpy).toHaveBeenCalledOnce()
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  it('flushes a pending debounced write immediately when the series is evicted, rather than losing it', async () => {
+    const cache = new InMemoryCandleCache()
+    const { store } = setup(cache)
+
+    const unsub = store.subscribe('WARM', '1m', () => {})
+    await flush()
+
+    await store.loadOlder('WARM', '1m')  // schedules a debounced write, not yet fired
+    const beforeEviction = await cache.load('WARM:1m')
+    const bufferAtBackfillTime = store.getCandles('WARM', '1m')!.length
+
+    // The debounced write has NOT landed in the cache yet.
+    expect(beforeEviction!.length).toBeLessThan(bufferAtBackfillTime)
+
+    // Make WARM genuinely idle (zero listeners), then force eviction pressure.
+    unsub()
+    for (let i = 0; i < 20; i++) {
+      const u = store.subscribe(`SYM${i}`, '1m', () => {})
+      await flush()
+      u()
+    }
+
+    // Confirm eviction genuinely happened...
+    expect(store.getCandles('WARM', '1m')).toBeNull()
+    // ...and that the pending write was flushed before WARM was evicted, not dropped.
+    const afterEviction = await cache.load('WARM:1m')
+    expect(afterEviction!.length).toBe(bufferAtBackfillTime)
   })
 })

@@ -32,6 +32,8 @@ import type {
 } from './types'
 import { BinanceProvider } from './providers/BinanceProvider'
 import { createDefaultCandleCache } from './cache/CandleCache'
+import { selectEvictionCandidates } from './eviction'
+import type { EvictionCandidate } from './eviction'
 
 export type { CandleProvider, CandlePersistence, CandleListener, CandleUpdate, MarketKind } from './types'
 export { BinanceProvider } from './providers/BinanceProvider'
@@ -46,10 +48,15 @@ export const INITIAL_CANDLES = 1000
  * 50k ≈ 5.7 years of 1h candles, 34 days of 1m, 136 years of 1d.
  */
 export const MAX_BUFFER = 50_000
-/** Inactive (unsubscribed) series kept in memory before LRU eviction. */
+/** Inactive AND idle (unsubscribed, not mid-load) series kept in memory before LRU eviction. */
 const MAX_CACHED_SERIES = 6
-/** Minimum interval between persistence writes triggered by live ticks. */
-const PERSIST_THROTTLE_MS = 30_000
+/**
+ * Debounce window for persistence writes triggered by rapid, repeated
+ * activity (successive backfill chunks, successive candle closes). Multiple
+ * calls within this window collapse into a single write of whatever the
+ * buffer looks like when the timer fires — not one write per call.
+ */
+const PERSIST_DEBOUNCE_MS = 2_000
 /** Safety bound on chained requests in a single gap-repair pass. */
 const MAX_REPAIR_CHUNKS = 5
 
@@ -80,6 +87,8 @@ interface SeriesEntry {
   /** Set on WS drop; triggers gap repair on the next reconnect. */
   disconnected: boolean
   lastPersistAt: number
+  /** Pending debounced persistence write, if any. See PERSIST_DEBOUNCE_MS. */
+  persistTimer: ReturnType<typeof setTimeout> | null
   lastAccess: number
 }
 
@@ -91,6 +100,45 @@ function isValidCandle(c: Candle): boolean {
   return Number.isFinite(c.open) && Number.isFinite(c.high) &&
          Number.isFinite(c.low)  && Number.isFinite(c.close) &&
          Number.isFinite(c.volume) && c.openTime > 0 && c.high >= c.low
+}
+
+/**
+ * Freeze each newly-created candle so it can never be mutated after entering
+ * the store. Candle has only primitive numeric fields (no nested objects),
+ * so a shallow Object.freeze is a complete immutability boundary — no
+ * deep/recursive freeze is needed. Cost is O(k) for k NEW candles per call
+ * (freezing an already-frozen object is a fast no-op check under the hood),
+ * negligible next to the REST/JSON-parse work that produced them — this is
+ * not a case where freezing is "too expensive."
+ *
+ * Only NEW candles need freezing here; candles already in entry.candles from
+ * a prior assignment are already frozen (every assignment site freezes
+ * before writing), so re-running this over the full merged array each time
+ * would just be redundant no-op checks — callers freeze only the incoming
+ * slice, then freeze the array wrapper of the merge result separately via
+ * freezeArray().
+ */
+function freezeCandles(candles: Candle[]): void {
+  for (const c of candles) Object.freeze(c)
+}
+
+/**
+ * Freeze the array wrapper itself (blocks push/splice/index-assignment).
+ * Element mutation is blocked separately by freezeCandles() on the elements
+ * that were new when they entered the store.
+ *
+ * Deliberate scope limitation: the public Candle[]/CandleUpdate types are
+ * NOT changed to `readonly Candle[]`. Doing so would be the fully rigorous
+ * version of this contract (a compile-time guarantee, not just a runtime
+ * one) but would ripple `readonly` through every overlay and consumer that
+ * touches candles — out of scope for the market-data subsystem and
+ * explicitly excluded by prior instruction not to touch overlay/drawing
+ * code. The cast below confines that gap to this one call site: the type
+ * system will not catch a violation, only a thrown TypeError at the actual
+ * mutation site will. That is a real, accepted tradeoff, not an oversight.
+ */
+function freezeArray(candles: Candle[]): Candle[] {
+  return Object.freeze(candles) as Candle[]
 }
 
 // ── Store ─────────────────────────────────────────────────────────────────────
@@ -158,6 +206,24 @@ export class CandleStore {
    * live updates. Serves from memory when possible, otherwise loads (and
    * paginates) through the store so the result also warms the cache.
    * Used by replay and the desktop analysis pipeline.
+   *
+   * The entry this operates on has zero listeners (fetchSnapshot never
+   * subscribes), which would normally make it eviction-eligible — but it is
+   * provably protected for the full duration of this method: `initialLoad`
+   * is assigned synchronously before ensureColdLoad's first await, and
+   * `backfilling` is set synchronously at the top of every loadOlder call
+   * before ITS first await, so there is no window between iterations where
+   * a concurrent evictIfNeeded() (triggered by an unrelated subscribe())
+   * could observe this entry as idle. See eviction.ts for the policy this
+   * relies on.
+   *
+   * Deliberately does NOT call evictIfNeeded() on completion: a series that
+   * has just finished loading is, by definition, the single most-idle entry
+   * at that instant, so self-triggering a sweep here would tend to evict the
+   * very data this call just fetched — defeating repeated fetchSnapshot
+   * calls' ability to reuse a warm buffer (e.g. re-analyzing the same pair).
+   * Eviction pressure from ordinary subscribe() churn is sufficient to keep
+   * the cache bounded over time without this entry doing it to itself.
    */
   async fetchSnapshot(
     symbol: string,
@@ -185,7 +251,13 @@ export class CandleStore {
     return { candles, market: entry.market }
   }
 
-  /** Warm the cache for a series in the background (no listeners, no socket). */
+  /**
+   * Warm the cache for a series in the background (no listeners, no socket).
+   * Does not call evictIfNeeded() on completion, for the same reason as
+   * fetchSnapshot above — doubly so here, since prefetch's entire purpose is
+   * to keep data warm for a later subscribe(); self-evicting the moment the
+   * load finishes would be actively counterproductive.
+   */
   prefetch(symbol: string, interval: Timeframe): void {
     const entry = this.getOrCreate(symbol, interval)
     if (entry.candles.length > 0 || entry.initialLoad) return
@@ -223,12 +295,16 @@ export class CandleStore {
         entry.historyExhausted = true
         return 0
       }
+      freezeCandles(fresh)
 
       let merged = [...fresh, ...entry.candles]
       if (merged.length > MAX_BUFFER) merged = merged.slice(merged.length - MAX_BUFFER)
-      entry.candles = merged
-      this.notify(entry, { type: 'backfill', candles: merged, market: entry.market })
-      this.persist(entry, true)
+      entry.candles = freezeArray(merged)
+      this.notify(entry, { type: 'backfill', candles: entry.candles, market: entry.market })
+      // Debounced, not forced: a fast scroll can trigger many chunks in a
+      // row, and each one writing the full (growing) buffer to IndexedDB
+      // would be wasted work — coalesce into one write after activity settles.
+      this.persistDebounced(entry)
       return fresh.length
     } finally {
       entry.backfilling = false
@@ -248,6 +324,14 @@ export class CandleStore {
     for (const entry of this.series.values()) {
       entry.unsubWs?.()
       entry.unsubWs = null
+      // Cancel rather than flush: dispose() means the store is going away
+      // now (test teardown; the singleton has no production call site),
+      // not "series is retiring but the app keeps running" — kicking off a
+      // fresh async write while tearing down is not something to guarantee.
+      if (entry.persistTimer !== null) {
+        clearTimeout(entry.persistTimer)
+        entry.persistTimer = null
+      }
       entry.listeners.clear()
     }
     this.series.clear()
@@ -273,6 +357,7 @@ export class CandleStore {
         repairing: false,
         disconnected: false,
         lastPersistAt: 0,
+        persistTimer: null,
         lastAccess: Date.now(),
       }
       this.series.set(key, entry)
@@ -295,13 +380,13 @@ export class CandleStore {
 
   private async loadCold(entry: SeriesEntry): Promise<void> {
     // 1. Hydrate from the persistent cache for an instant (possibly stale) chart.
-    let hydrated: Candle[] | null = null
     if (this.persistence) {
-      hydrated = await this.persistence.load(entry.key)
+      const hydrated = await this.persistence.load(entry.key)
       if (hydrated && hydrated.length > 0 && entry.candles.length === 0) {
-        hydrated = hydrated.filter(isValidCandle)
-        entry.candles = hydrated
-        this.notify(entry, { type: 'snapshot', candles: hydrated, market: entry.market, fromCache: true })
+        const valid = hydrated.filter(isValidCandle)
+        freezeCandles(valid)  // fresh from JSON.parse — not frozen yet
+        entry.candles = freezeArray(valid)
+        this.notify(entry, { type: 'snapshot', candles: entry.candles, market: entry.market, fromCache: true })
       }
     }
 
@@ -311,13 +396,14 @@ export class CandleStore {
         entry.symbol, entry.interval, { limit: INITIAL_CANDLES },
       )
       const freshValid = fresh.filter(isValidCandle)
+      freezeCandles(freshValid)
       entry.market  = market
-      entry.candles = this.mergeCachedWithFresh(entry.candles, freshValid, entry.interval)
+      entry.candles = freezeArray(this.mergeCachedWithFresh(entry.candles, freshValid, entry.interval))
       if (freshValid.length < INITIAL_CANDLES && entry.candles.length === freshValid.length) {
         entry.historyExhausted = true
       }
       this.notify(entry, { type: 'snapshot', candles: entry.candles, market })
-      this.persist(entry, true)
+      this.persistNow(entry)
     } catch (err) {
       // REST failed. With hydrated data the chart is still usable (stale);
       // without any data this is a hard failure surfaced to the caller.
@@ -368,6 +454,7 @@ export class CandleStore {
 
   private applyTick(entry: SeriesEntry, live: LiveCandle): void {
     if (!isValidCandle(live)) return  // reject malformed frames
+    Object.freeze(live)
 
     const prev = entry.candles
     const last = prev[prev.length - 1]
@@ -385,15 +472,15 @@ export class CandleStore {
       return
     }
 
-    entry.candles = next
+    entry.candles = freezeArray(next)
     this.notify(entry, {
       type: 'tick',
-      candles: next,
+      candles: entry.candles,
       tick: live,
       tickClosed: live.isClosed,
       market: entry.market,
     })
-    if (live.isClosed) this.persist(entry, false)
+    if (live.isClosed) this.persistDebounced(entry)
   }
 
   private handleStreamStatus(entry: SeriesEntry, status: LiveStreamStatus): void {
@@ -428,6 +515,7 @@ export class CandleStore {
         )
         const valid = fetched.filter(isValidCandle)
         if (valid.length === 0) break
+        freezeCandles(valid)
 
         const firstNew = valid[0].openTime
         let cut = entry.candles.length
@@ -437,7 +525,7 @@ export class CandleStore {
 
         const grew = merged.length !== entry.candles.length ||
           merged[merged.length - 1].openTime !== entry.candles[entry.candles.length - 1].openTime
-        entry.candles = merged
+        entry.candles = freezeArray(merged)
         changed = true
 
         if (!grew || valid.length < chunk) break
@@ -445,7 +533,9 @@ export class CandleStore {
 
       if (changed) {
         this.notify(entry, { type: 'snapshot', candles: entry.candles, market: entry.market })
-        this.persist(entry, true)
+        // Immediate, not debounced: gap repair is infrequent (fires only on
+        // reconnect-after-drop) and its result should be captured promptly.
+        this.persistNow(entry)
       }
     } catch {
       // Repair is best-effort; the next reconnect (or tick) tries again.
@@ -455,28 +545,70 @@ export class CandleStore {
     }
   }
 
-  // ── Persistence + eviction ──────────────────────────────────────────────────
+  // ── Persistence ──────────────────────────────────────────────────────────────
 
-  private persist(entry: SeriesEntry, force: boolean): void {
+  /** Write immediately. Used for infrequent, significant events (cold load, gap repair). */
+  private persistNow(entry: SeriesEntry): void {
     if (!this.persistence || entry.candles.length === 0) return
-    const now = Date.now()
-    if (!force && now - entry.lastPersistAt < PERSIST_THROTTLE_MS) return
-    entry.lastPersistAt = now
+    if (entry.persistTimer !== null) {
+      clearTimeout(entry.persistTimer)
+      entry.persistTimer = null
+    }
+    entry.lastPersistAt = Date.now()
     void this.persistence.save(entry.key, entry.candles).catch(() => { /* cache is best-effort */ })
+  }
+
+  /**
+   * Schedule a write after PERSIST_DEBOUNCE_MS of no further scheduling.
+   * Used for potentially-rapid events (successive backfill chunks, successive
+   * candle closes) — repeated calls within the window collapse into exactly
+   * one write of whatever entry.candles is when the timer fires, rather than
+   * one write per call.
+   */
+  private persistDebounced(entry: SeriesEntry): void {
+    if (!this.persistence || entry.candles.length === 0) return
+    if (entry.persistTimer !== null) return  // already scheduled — it reads entry.candles at fire time
+    entry.persistTimer = setTimeout(() => {
+      entry.persistTimer = null
+      entry.lastPersistAt = Date.now()
+      void this.persistence!.save(entry.key, entry.candles).catch(() => { /* cache is best-effort */ })
+    }, PERSIST_DEBOUNCE_MS)
+  }
+
+  /** Fire a pending debounced write immediately instead of losing it (used before eviction). */
+  private flushPersist(entry: SeriesEntry): void {
+    if (entry.persistTimer !== null) {
+      clearTimeout(entry.persistTimer)
+      entry.persistTimer = null
+      this.persistNow(entry)
+    }
   }
 
   private notify(entry: SeriesEntry, update: CandleUpdate): void {
     for (const listener of entry.listeners) listener(update)
   }
 
+  // ── Eviction ───────────────────────────────────────────────────────────────
+
+  /** True while any async operation is in flight for this entry — protects it from eviction. */
+  private isBusy(entry: SeriesEntry): boolean {
+    return entry.initialLoad !== null || entry.backfilling || entry.repairing
+  }
+
   private evictIfNeeded(): void {
-    const inactive = [...this.series.values()].filter(e => e.listeners.size === 0)
-    if (inactive.length <= MAX_CACHED_SERIES) return
-    inactive.sort((a, b) => a.lastAccess - b.lastAccess)
-    const toEvict = inactive.slice(0, inactive.length - MAX_CACHED_SERIES)
-    for (const e of toEvict) {
+    const candidates: EvictionCandidate[] = [...this.series.values()].map(e => ({
+      key: e.key,
+      listenerCount: e.listeners.size,
+      busy: this.isBusy(e),
+      lastAccess: e.lastAccess,
+    }))
+
+    for (const key of selectEvictionCandidates(candidates, MAX_CACHED_SERIES)) {
+      const e = this.series.get(key)
+      if (!e) continue
+      this.flushPersist(e)  // don't lose a pending debounced write on eviction
       e.unsubWs?.()
-      this.series.delete(e.key)  // persisted copy remains for instant rehydration
+      this.series.delete(key)  // persisted copy remains for instant rehydration
     }
   }
 }

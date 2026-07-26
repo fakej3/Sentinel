@@ -251,7 +251,10 @@ function TradingViewChart({ symbol, interval, data, candles: controlledCandles }
     const unsubRange = engineRef.current?.subscribeVisibleLogicalRange(range => {
       if (cancelled || range === null) return
       if (range.from < BACKFILL_TRIGGER_BARS) {
-        void candleStore.loadOlder(symbol, tf)
+        // Backfill is best-effort: a transient failure here is silently
+        // retried on the next scroll trigger. Without this catch, a
+        // rejected fetch would surface as an unhandled promise rejection.
+        candleStore.loadOlder(symbol, tf).catch(() => {})
       }
     }) ?? null
 
