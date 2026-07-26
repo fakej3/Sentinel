@@ -11,14 +11,14 @@ function isBullish(plan: TradePlan): boolean {
     plan.invalidationLevel < plan.entryZone.lower
 }
 
-const RISK_DIM        = 'rgba(239, 83, 80, 0.12)'
-const RISK_LIT        = 'rgba(239, 83, 80, 0.25)'
-const RISK_EDGE_DIM   = 'rgba(239, 83, 80, 0.30)'
-const RISK_EDGE_LIT   = 'rgba(239, 83, 80, 0.65)'
-const REWARD_DIM      = 'rgba(34, 197, 94, 0.12)'
-const REWARD_LIT      = 'rgba(34, 197, 94, 0.25)'
-const REWARD_EDGE_DIM = 'rgba(34, 197, 94, 0.30)'
-const REWARD_EDGE_LIT = 'rgba(34, 197, 94, 0.65)'
+const RISK_DIM        = 'rgba(239, 83, 80, 0.15)'
+const RISK_LIT        = 'rgba(239, 83, 80, 0.28)'
+const RISK_EDGE_DIM   = 'rgba(239, 83, 80, 0.35)'
+const RISK_EDGE_LIT   = 'rgba(239, 83, 80, 0.70)'
+const REWARD_DIM      = 'rgba(34, 197, 94, 0.15)'
+const REWARD_LIT      = 'rgba(34, 197, 94, 0.28)'
+const REWARD_EDGE_DIM = 'rgba(34, 197, 94, 0.35)'
+const REWARD_EDGE_LIT = 'rgba(34, 197, 94, 0.70)'
 
 export class RiskRewardOverlay implements IAnalysisOverlay {
   readonly id = 'risk-reward'

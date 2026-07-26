@@ -149,7 +149,7 @@ export class MarketStructureOverlay implements IAnalysisOverlay {
     instructions.push({
       kind:      'polyline',
       key:       'zigzag',
-      color:     'rgba(100, 116, 139, 0.65)',
+      color:     'rgba(100, 116, 139, 0.45)',
       lineWidth: 1,
       lineStyle: LineStyle.Dashed,
       data:      labeledSwings.map(s => ({ time: Math.floor(s.timestamp / 1000), value: s.price })),
@@ -181,7 +181,7 @@ export class MarketStructureOverlay implements IAnalysisOverlay {
         key:              `choch_${e.timestamp}`,
         price:            e.level,
         color:            'rgba(168, 85, 247, 0.65)',
-        lineWidth:        litLine ? 3 : 1,
+        lineWidth:        litLine ? 3 : 2,
         lineStyle:        LineStyle.Dashed,
         axisLabelVisible: true,
         title:            'CHoCH',
