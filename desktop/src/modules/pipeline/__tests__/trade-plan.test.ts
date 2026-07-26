@@ -172,6 +172,140 @@ describe('computeTradePlan — direction and target ladder', () => {
 })
 
 // ─────────────────────────────────────────────────────────────────────────────
+// Structural anchoring: weakening-zone exclusion + BOS-anchored stops
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('computeTradePlan — weakening zones are excluded from entry/stop selection', () => {
+  type Zone = NonNullable<SupportResistanceResult['nearestSupport']>
+  const mkZone = (lower: number, upper: number, state = 'active') =>
+    ({ lower, upper, center: (lower + upper) / 2, strength: 6, state }) as unknown as Zone
+
+  it('a weakening nearest support is skipped in favor of the next reliable support', () => {
+    const weakening = mkZone(95, 97, 'weakening')
+    const reliable  = mkZone(90, 92, 'strengthened')
+    const sr = makeSR({ lower: 95, upper: 97, center: 96 }, { lower: 110, upper: 112, center: 111 })
+    sr.nearestSupport = weakening
+    sr.activeSupport  = [weakening, reliable]  // nearest-first ordering
+
+    const plan = computeTradePlan(makeAnalysis('strong bullish', 100), sr, makeConfidence())
+    expect(plan.entryZone).not.toBeNull()
+    expect(plan.entryZone!.lower).toBe(90)   // the reliable zone, not the failed one
+    expect(plan.entryZone!.upper).toBe(92)
+    expect(plan.invalidationLevel!).toBeLessThan(90)  // stop derived from the reliable zone
+  })
+
+  it('with ONLY weakening zones available, falls through to ATR-based levels (capped at average)', () => {
+    const weakening = mkZone(95, 97, 'weakening')
+    const sr = makeSR({ lower: 95, upper: 97, center: 96 }, { lower: 110, upper: 112, center: 111 })
+    sr.nearestSupport = weakening
+    sr.activeSupport  = [weakening]
+
+    const analysis = makeAnalysis('strong bullish', 100)
+    analysis.price.atrPercent = 2  // enable the ATR fallback path
+    const plan = computeTradePlan(analysis, sr, makeConfidence())
+
+    // Entry near current price (ATR fallback), NOT at the failed zone
+    expect(plan.entryZone!.lower).toBeCloseTo(99.9, 1)
+    expect(plan.entryZone!.upper).toBeCloseTo(100.1, 1)
+    expect(['average', 'poor', 'no_setup', 'avoid']).toContain(plan.setupQuality)  // never above average
+  })
+
+  it('a reliable nearest support is used exactly as before (control)', () => {
+    const sr = makeSR({ lower: 95, upper: 97, center: 96 }, { lower: 110, upper: 112, center: 111 })
+    const plan = computeTradePlan(makeAnalysis('strong bullish', 100), sr, makeConfidence())
+    expect(plan.entryZone!.lower).toBeCloseTo(95, 1)
+  })
+})
+
+describe('computeTradePlan — BOS-anchored invalidation (sweep-zone widening, 1 ATR bound)', () => {
+  const mkMS = (bosDirection: 'bullish' | 'bearish', level: number) =>
+    ({
+      bos: { detected: true, events: [], last: { type: 'BOS', index: 0, timestamp: 0, level, direction: bosDirection } },
+      choch: { detected: false, events: [], last: null },
+      strength: 'moderate',
+    }) as unknown as import('../../market-structure/types').MarketStructureResult
+
+  const analysisWithAtr = (trend: string, atrPercent: number) => {
+    const a = makeAnalysis(trend, 100)
+    a.price.atrPercent = atrPercent
+    return a
+  }
+
+  it('long: widens the stop below a bullish BOS when the zone stop sits in the sweep zone above it', () => {
+    // ATR 2% of 100 = 2. Buffer = max(0.5%, 2/200) = 1%.
+    // Support 95–97 → naive stop = 95 × 0.99 = 94.05.
+    // Bullish BOS at 94.8 → structural stop = 94.8 × 0.99 = 93.852.
+    // The naive stop (94.05) sits ABOVE the structural line (93.852) — i.e.
+    // in the sweep zone above confirmed structure. Adjustment = 0.198 ≤ 1 ATR
+    // (2) → stop widens to the structural line.
+    const sr = makeSR({ lower: 95, upper: 97, center: 96 }, { lower: 110, upper: 112, center: 111 })
+    const plan = computeTradePlan(
+      analysisWithAtr('strong bullish', 2), sr, makeConfidence(),
+      undefined, undefined, mkMS('bullish', 94.8),
+    )
+    expect(plan.invalidationLevel!).toBeCloseTo(94.8 * 0.99, 3)
+  })
+
+  it('long: does NOT widen to a BOS more than 1 ATR away (stale structure)', () => {
+    // BOS at 80 → structural stop 79.2; adjustment from 94.05 is ~14.85,
+    // far beyond 1 ATR (2) — silently multiplying risk to reach stale
+    // structure is refused; the conservative zone stop stands.
+    const sr = makeSR({ lower: 95, upper: 97, center: 96 }, { lower: 110, upper: 112, center: 111 })
+    const plan = computeTradePlan(
+      analysisWithAtr('strong bullish', 2), sr, makeConfidence(),
+      undefined, undefined, mkMS('bullish', 80),
+    )
+    expect(plan.invalidationLevel!).toBeCloseTo(95 * 0.99, 3)
+  })
+
+  it('long: ignores a BOS level inside or above the entry zone', () => {
+    const sr = makeSR({ lower: 95, upper: 97, center: 96 }, { lower: 110, upper: 112, center: 111 })
+    const plan = computeTradePlan(
+      analysisWithAtr('strong bullish', 2), sr, makeConfidence(),
+      undefined, undefined, mkMS('bullish', 96),  // inside the zone — not below it
+    )
+    expect(plan.invalidationLevel!).toBeCloseTo(95 * 0.99, 3)
+  })
+
+  it('long: an opposite-direction (bearish) BOS never moves the stop', () => {
+    const sr = makeSR({ lower: 95, upper: 97, center: 96 }, { lower: 110, upper: 112, center: 111 })
+    const plan = computeTradePlan(
+      analysisWithAtr('strong bullish', 2), sr, makeConfidence(),
+      undefined, undefined, mkMS('bearish', 94.8),
+    )
+    expect(plan.invalidationLevel!).toBeCloseTo(95 * 0.99, 3)
+  })
+
+  it('short: widens the stop above a bearish BOS in the sweep zone (symmetric)', () => {
+    // ATR 2. Buffer 1%. Resistance 103–105 → naive stop = 105 × 1.01 = 106.05.
+    // Bearish BOS at 105.3 (above the zone) → structural stop = 105.3 × 1.01
+    // = 106.353. Naive sits BELOW it (sweepable); adjustment 0.303 ≤ 2 → widen.
+    const sr = makeSR(null, { lower: 103, upper: 105, center: 104 })
+    const plan = computeTradePlan(
+      analysisWithAtr('strong bearish', 2), sr, makeConfidence(),
+      undefined, undefined, mkMS('bearish', 105.3),
+    )
+    expect(plan.invalidationLevel!).toBeCloseTo(105.3 * 1.01, 3)
+  })
+
+  it('without ATR the rule is skipped — no volatility unit to bound the adjustment', () => {
+    // makeAnalysis default atrPercent = null → buffer 0.5%, no BOS adjustment.
+    const sr = makeSR({ lower: 95, upper: 97, center: 96 }, { lower: 110, upper: 112, center: 111 })
+    const plan = computeTradePlan(
+      makeAnalysis('strong bullish', 100), sr, makeConfidence(),
+      undefined, undefined, mkMS('bullish', 94.8),
+    )
+    expect(plan.invalidationLevel!).toBeCloseTo(95 * (1 - 0.005), 3)
+  })
+
+  it('without marketStructure the stop is unchanged (backward compatible)', () => {
+    const sr = makeSR({ lower: 95, upper: 97, center: 96 }, { lower: 110, upper: 112, center: 111 })
+    const plan = computeTradePlan(makeAnalysis('strong bullish', 100), sr, makeConfidence())
+    expect(plan.invalidationLevel!).toBeCloseTo(95 * (1 - 0.005), 3)
+  })
+})
+
+// ─────────────────────────────────────────────────────────────────────────────
 // MTF Agreement integration
 // ─────────────────────────────────────────────────────────────────────────────
 

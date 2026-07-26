@@ -39,10 +39,37 @@ export function computeTradePlan(
   const nearestResistance = supportResistance.nearestResistance
   const currentZone       = supportResistance.currentZone
 
+  // ── Entry/stop zone selection: exclude weakening zones ────────────────────
+  // A 'weakening' zone has already failed to hold at least once
+  // (failedReactions >= 1). Anchoring an ENTRY or a STOP to a level that has
+  // already demonstrated failure is the single most common way to hand a
+  // trader a bad reference: the zone most likely to fail again is the one
+  // that just failed. Weakening zones are excluded from entry/stop selection;
+  // the nearest reliable zone (activeSupport/activeResistance are sorted
+  // nearest-first) is used instead. If NO reliable zone exists on the trade
+  // side, we deliberately fall through to the ATR-based levels below, which
+  // are already capped at 'average' quality — honest volatility-based levels
+  // beat structure-based levels anchored to demonstrated failure.
+  //
+  // TARGETS intentionally still use the plain nearest opposing zone: taking
+  // profit BEFORE a weakening level is conservative (price reaching a level
+  // likely to break does not hurt a target placed in front of it).
+  const isReliable = (z: { state: string }) => z.state !== 'weakening'
+
+  const reliableNearestSupport =
+    (nearestSupport && isReliable(nearestSupport)) ? nearestSupport
+      : supportResistance.activeSupport.find(isReliable) ?? null
+  const reliableNearestResistance =
+    (nearestResistance && isReliable(nearestResistance)) ? nearestResistance
+      : supportResistance.activeResistance.find(isReliable) ?? null
+
   // When price is AT a zone, nearestSupport/nearestResistance is null (filtered out).
-  // Fall back to currentZone so we can still establish trade levels.
-  const effectiveSupport    = nearestSupport    ?? (currentZone?.type === 'support'    ? currentZone : null)
-  const effectiveResistance = nearestResistance ?? (currentZone?.type === 'resistance' ? currentZone : null)
+  // Fall back to currentZone so we can still establish trade levels — but only
+  // when the current zone itself is reliable.
+  const effectiveSupport    = reliableNearestSupport
+    ?? (currentZone?.type === 'support'    && isReliable(currentZone) ? currentZone : null)
+  const effectiveResistance = reliableNearestResistance
+    ?? (currentZone?.type === 'resistance' && isReliable(currentZone) ? currentZone : null)
 
   // ── Entry zone ────────────────────────────────────────────────────────────
   let entryZone: TradePlan['entryZone'] = null
@@ -66,6 +93,43 @@ export function computeTradePlan(
     invalidationLevel = effectiveSupport.lower * (1 - stopBufferFraction)
   } else if (isBearish && effectiveResistance) {
     invalidationLevel = effectiveResistance.upper * (1 + stopBufferFraction)
+  }
+
+  // ── Structural (BOS-anchored) invalidation ────────────────────────────────
+  // A confirmed same-direction BOS below a long entry (above a short entry)
+  // is the TRUE invalidation structure: a close back through the broken
+  // level kills the directional thesis by definition. When the zone-derived
+  // stop sits on the wrong side of that structure — above it (long) / below
+  // it (short) — the stop lies in the sweep zone: price can wick through the
+  // synthetic zone boundary, take the stop, and reverse without structure
+  // ever breaking. In that case the stop moves beyond the BOS level (same
+  // relative buffer).
+  //
+  // Bound: the adjustment applies only when it moves the stop by at most
+  // 1 ATR. Within one ATR, the zone stop is inside a single bar's typical
+  // range of the structure — statistically indistinguishable from sitting AT
+  // the level, but on the sweepable side, so anchoring beyond structure is
+  // strictly better. Beyond one ATR the BOS is a materially different
+  // (usually stale) structure; silently multiplying the trade's risk to
+  // reach it would be wrong — the conservative zone stop stands and the
+  // setup's RR is judged on it. Requires ATR; skipped when unavailable
+  // (no volatility unit to bound the adjustment).
+  const lastBos = marketStructure?.bos.last ?? null
+  if (invalidationLevel !== null && entryZone !== null && lastBos !== null && atrPct !== null) {
+    const atrPrice = analysis.price.current * atrPct / 100
+    if (isBullish && lastBos.direction === 'bullish' && lastBos.level < entryZone.lower) {
+      const structuralStop = lastBos.level * (1 - stopBufferFraction)
+      const adjustment = invalidationLevel - structuralStop
+      if (adjustment > 0 && adjustment <= atrPrice) {
+        invalidationLevel = structuralStop
+      }
+    } else if (isBearish && lastBos.direction === 'bearish' && lastBos.level > entryZone.upper) {
+      const structuralStop = lastBos.level * (1 + stopBufferFraction)
+      const adjustment = structuralStop - invalidationLevel
+      if (adjustment > 0 && adjustment <= atrPrice) {
+        invalidationLevel = structuralStop
+      }
+    }
   }
 
   // ── Target level ──────────────────────────────────────────────────────────
