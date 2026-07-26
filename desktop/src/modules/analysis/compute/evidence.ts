@@ -334,14 +334,23 @@ export function collectEvidence(
     items.push(item(F_OBV_DIVERGING_BULLISH, 'medium',
       'OBV rising while price falls — potential bullish reversal signal', 'volume', 'bullish'))
   }
-  if (!volumeContext.respectingVWAP) {
-    if (volumeContext.priceAboveVWAP) {
+  // VWAP evidence is emitted only when a session VWAP actually exists. The
+  // previous form was `if (above) …bullish… else …bearish…`, so an unavailable
+  // VWAP — daily timeframe, window starting mid-session, or a zero-volume
+  // session — fell into the else and contributed a fabricated bearish factor
+  // reading "Price is 0.00% below VWAP". Absence of a reference level is not a
+  // bearish signal.
+  if (volumeContext.vwap.available && !volumeContext.vwap.respectingVWAP) {
+    const { side, distancePercent } = volumeContext.vwap
+    if (side === 'above') {
       items.push(item(F_PRICE_ABOVE_VWAP, 'low',
-        `Price is ${volumeContext.vwapDistancePercent.toFixed(2)}% above VWAP`, 'volume', 'bullish'))
-    } else {
+        `Price is ${distancePercent.toFixed(2)}% above VWAP`, 'volume', 'bullish'))
+    } else if (side === 'below') {
       items.push(item(F_PRICE_BELOW_VWAP, 'low',
-        `Price is ${Math.abs(volumeContext.vwapDistancePercent).toFixed(2)}% below VWAP`, 'volume', 'bearish'))
+        `Price is ${Math.abs(distancePercent).toFixed(2)}% below VWAP`, 'volume', 'bearish'))
     }
+    // side === 'at' emits nothing: price sitting exactly on VWAP is not
+    // directional evidence in either direction.
   }
   if (volumeContext.volumeClassification === 'very_high' || volumeContext.volumeClassification === 'high') {
     items.push(item(F_HIGH_RELATIVE_VOLUME, 'medium',

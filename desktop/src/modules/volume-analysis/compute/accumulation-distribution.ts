@@ -31,9 +31,10 @@ export function computeAccumulationDistribution(
   else if (obv.direction === 'bullish' && marketStructure.trend === 'bearish') score += 1  // bullish divergence
   else if (obv.direction === 'bearish' && marketStructure.trend === 'bullish') score -= 1  // bearish divergence
 
-  // Price vs VWAP
-  if (vwap.above) score += 1
-  else if (vwap.below) score -= 1
+  // Price vs VWAP. An unavailable VWAP contributes 0 — it is an absence of
+  // evidence, not evidence of distribution.
+  if (vwap.side === 'above') score += 1
+  else if (vwap.side === 'below') score -= 1
 
   // Market structure events
   const lastBOS = marketStructure.bos.last

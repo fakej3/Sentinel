@@ -69,13 +69,20 @@ describe('buildVolumeContext', () => {
     expect(result.climaxSignal).toBe('buying_climax')
   })
 
-  it('projects VWAP analysis fields', () => {
-    const result = buildVolumeContext(vol({
-      vwapAnalysis: { above: false, below: true, distancePercent: -1.5, respectingVWAP: false },
-    }))
-    expect(result.priceAboveVWAP).toBe(false)
-    expect(result.vwapDistancePercent).toBe(-1.5)
-    expect(result.respectingVWAP).toBe(false)
+  it('mirrors the VWAP analysis verbatim, including its unavailability', () => {
+    const below = {
+      available: true, unavailable: null, value: 100,
+      side: 'below', distancePercent: -1.5, respectingVWAP: false,
+    } as const
+    expect(buildVolumeContext(vol({ vwapAnalysis: below })).vwap).toEqual(below)
+
+    // The case the old flattened shape could not carry: no VWAP at all. It
+    // arrived downstream as `priceAboveVWAP: false`, i.e. as bearish evidence.
+    const none = {
+      available: false, value: null, side: null, distancePercent: null, respectingVWAP: null,
+      unavailable: { code: 'undefined-at-timeframe', detail: 'daily bars' },
+    } as const
+    expect(buildVolumeContext(vol({ vwapAnalysis: none })).vwap).toEqual(none)
   })
 
   it('projects OBV analysis fields', () => {

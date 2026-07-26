@@ -1,3 +1,7 @@
+import type { VwapResult } from './compute/vwap'
+
+export type { VwapResult, VwapSeries } from './compute/vwap'
+
 export interface MACDResult {
   macdLine: number
   signalLine: number
@@ -48,7 +52,13 @@ export interface IndicatorResult {
   atr: number | null
   atrPercent: number | null
   adx: ADXResult | null
-  vwap: number
+  /**
+   * Session-anchored VWAP (UTC day). Carries its own availability, because it
+   * is undefined at bar durations of 1D and above and when the window begins
+   * mid-session — see compute/vwap.ts. Never a bare number: a sentinel value
+   * here becomes a directional vote downstream.
+   */
+  vwap: VwapResult
   bollingerBands: BollingerResult | null
   stochRsi: StochRSIResult | null
   obv: number

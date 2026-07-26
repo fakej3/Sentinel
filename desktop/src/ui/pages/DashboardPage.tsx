@@ -7,6 +7,7 @@ import { formatPrice, formatPercent, formatScore, formatTimeAgo } from '../utils
 import { changeColor, gradeColor } from '../utils/colors'
 import { trendLabel } from '../utils/tradingLanguage'
 import type { PipelineResult, RecentAnalysis, ConfidenceGrade, AppPage, HistoryMeta } from '../types'
+import { vwapDistanceLabel, vwapPositionLabel, vwapSideClass } from '../utils/tradingLanguage'
 
 interface DashboardPageProps {
   symbol: string
@@ -194,9 +195,11 @@ export function DashboardPage({
         />
         <MetricCard
           label="VWAP"
-          value={volumeContext.priceAboveVWAP ? 'Above' : 'Below'}
-          sub={`${volumeContext.vwapDistancePercent.toFixed(2)}% distance`}
-          valueClass={volumeContext.priceAboveVWAP ? 'text-emerald-400' : 'text-red-400'}
+          value={vwapPositionLabel(volumeContext.vwap)}
+          sub={volumeContext.vwap.available
+            ? `${vwapDistanceLabel(volumeContext.vwap)} distance`
+            : volumeContext.vwap.unavailable.detail}
+          valueClass={vwapSideClass(volumeContext.vwap.side)}
         />
       </div>
 

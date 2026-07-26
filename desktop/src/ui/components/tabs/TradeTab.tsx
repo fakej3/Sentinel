@@ -5,6 +5,7 @@ import { formatPrice, formatPercent } from '../../utils/format'
 import { changeColor, decisionColor, decisionBg, riskBadgeColor } from '../../utils/colors'
 import type { PipelineResult } from '../../types'
 import type { TradeSetupQuality } from '../../types'
+import { vwapDistanceLabel, vwapPositionLabel, vwapSideClass } from '../../utils/tradingLanguage'
 
 interface TradeTabProps {
   result: PipelineResult
@@ -202,9 +203,11 @@ export function TradeTab({ result }: TradeTabProps) {
             </DataRow>
           )}
           <DataRow label="VWAP">
-            <span className={`text-xs font-mono ${volumeContext.priceAboveVWAP ? 'text-emerald-400' : 'text-red-400'}`}>
-              {volumeContext.priceAboveVWAP ? '▲ Above' : '▼ Below'}
-              <span className="text-slate-600 ml-1">({volumeContext.vwapDistancePercent.toFixed(2)}%)</span>
+            <span className={`text-xs font-mono ${vwapSideClass(volumeContext.vwap.side)}`}>
+              {volumeContext.vwap.side === 'above' ? '▲ Above'
+                : volumeContext.vwap.side === 'below' ? '▼ Below'
+                : vwapPositionLabel(volumeContext.vwap)}
+              <span className="text-slate-600 ml-1">({vwapDistanceLabel(volumeContext.vwap)})</span>
             </span>
           </DataRow>
         </div>

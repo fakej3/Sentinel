@@ -3,7 +3,7 @@ import { computeVolumeAnalysis } from '../index'
 import { flatCandles, emptyIndicators, emptyStructure, emptySupportResistance } from './helpers'
 
 const BASE_CANDLES = flatCandles(25, 100, 1000)
-const BASE_INDICATORS = emptyIndicators({ vwap: 100 })
+const BASE_INDICATORS = emptyIndicators()
 const BASE_STRUCTURE = emptyStructure()
 const BASE_SR = emptySupportResistance()
 
@@ -52,19 +52,31 @@ describe('computeVolumeAnalysis', () => {
   it('handles minimal input (single candle) without throwing', () => {
     const single = flatCandles(1, 100)
     expect(() =>
-      computeVolumeAnalysis(single, emptyIndicators({ vwap: 100 }), BASE_STRUCTURE, BASE_SR),
+      computeVolumeAnalysis(single, emptyIndicators(), BASE_STRUCTURE, BASE_SR),
     ).not.toThrow()
   })
 
   it('handles exactly 2 candles', () => {
     const two = flatCandles(2, 100)
-    const result = computeVolumeAnalysis(two, emptyIndicators({ vwap: 100 }), BASE_STRUCTURE, BASE_SR)
+    const result = computeVolumeAnalysis(two, emptyIndicators(), BASE_STRUCTURE, BASE_SR)
     expect(result.overallStrength).toBeGreaterThanOrEqual(0)
   })
 
-  it('vwapAnalysis.above is true when price > vwap', () => {
-    const indicators = emptyIndicators({ vwap: 90 })
-    const result = computeVolumeAnalysis(BASE_CANDLES, indicators, BASE_STRUCTURE, BASE_SR)
-    expect(result.vwapAnalysis.above).toBe(true)
+  it('vwapAnalysis reports the side of the session VWAP', () => {
+    // flatCandles are all priced identically, so the session VWAP equals the
+    // close and the side is the genuine third state rather than above/below.
+    const result = computeVolumeAnalysis(BASE_CANDLES, BASE_INDICATORS, BASE_STRUCTURE, BASE_SR)
+    expect(result.vwapAnalysis.available).toBe(true)
+    expect(result.vwapAnalysis.side).toBe('at')
+  })
+
+  it('vwapAnalysis is derived from the candles, not from the indicator snapshot', () => {
+    // The indicator argument no longer carries VWAP into this module; passing a
+    // fixture that claims a different value must not change the result.
+    const withVwap = computeVolumeAnalysis(BASE_CANDLES, emptyIndicators({
+      vwap: { available: true, value: 9999, unavailable: null, anchorTime: 0 },
+    }), BASE_STRUCTURE, BASE_SR)
+    const withoutVwap = computeVolumeAnalysis(BASE_CANDLES, BASE_INDICATORS, BASE_STRUCTURE, BASE_SR)
+    expect(withVwap.vwapAnalysis).toEqual(withoutVwap.vwapAnalysis)
   })
 })

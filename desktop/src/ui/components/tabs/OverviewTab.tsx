@@ -9,6 +9,7 @@ import { formatPrice, formatPercent, formatScore } from '../../utils/format'
 import { trendColor, changeColor, scoreColor } from '../../utils/colors'
 import { trendLabel, emaAlignmentLabel, volumeLabel } from '../../utils/tradingLanguage'
 import type { PipelineResult } from '../../types'
+import { vwapDistanceLabel, vwapPositionLabel, vwapSideClass } from '../../utils/tradingLanguage'
 
 interface OverviewTabProps {
   result: PipelineResult
@@ -279,9 +280,9 @@ export function OverviewTab({ result }: OverviewTabProps) {
               </span>
             </Row>
             <Row label="VWAP">
-              <span className={`text-[11px] font-mono ${volumeContext.priceAboveVWAP ? 'text-emerald-400' : 'text-red-400'}`}>
-                {volumeContext.priceAboveVWAP ? 'Above' : 'Below'}{' '}
-                <span className="text-slate-500">({volumeContext.vwapDistancePercent.toFixed(2)}%)</span>
+              <span className={`text-[11px] font-mono ${vwapSideClass(volumeContext.vwap.side)}`}>
+                {vwapPositionLabel(volumeContext.vwap)}{' '}
+                <span className="text-slate-500">({vwapDistanceLabel(volumeContext.vwap)})</span>
               </span>
             </Row>
             <Row label="Validation">

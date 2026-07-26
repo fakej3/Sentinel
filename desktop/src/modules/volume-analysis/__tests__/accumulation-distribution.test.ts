@@ -12,7 +12,8 @@ function obv(dir: 'bullish' | 'bearish' | 'neutral', confirming = false, divergi
 }
 
 function vwap(above: boolean): VWAPAnalysisResult {
-  return { above, below: !above, distancePercent: 1, respectingVWAP: false }
+  return { available: true, unavailable: null, value: 100,
+    side: above ? 'above' : 'below', distancePercent: above ? 1 : -1, respectingVWAP: false }
 }
 
 describe('computeAccumulationDistribution', () => {

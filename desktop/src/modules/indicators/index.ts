@@ -10,6 +10,7 @@
  */
 import type { Candle } from '../binance'
 import type { IndicatorResult } from './types'
+import { unavailable } from '../common/availability'
 import { computeEma } from './compute/ema'
 import { computeSma } from './compute/sma'
 import { computeRsi } from './compute/rsi'
@@ -31,17 +32,29 @@ export type {
   BollingerResult,
   StochRSIResult,
   VolumeMaResult,
+  VwapResult,
+  VwapSeries,
 } from './types'
 
 // Exported for downstream modules that need ATR without running the full indicator suite.
 // Module 4 (Support & Resistance) uses this to compute zone widths per ENGINE_RULES.md §12.2.
 export { computeAtr } from './compute/atr'
 
+// Exported for Module 5 (Volume Analysis), which needs the VWAP *series* — not
+// just its last value — to detect crosses against the contemporaneous VWAP.
+export { computeVwap, computeVwapSeries } from './compute/vwap'
+
 const NULL_RESULT: IndicatorResult = {
   ema20: null, ema50: null, ema100: null, ema200: null,
   sma20: null, sma50: null, sma200: null,
   rsi: null, macd: null, atr: null, atrPercent: null, adx: null,
-  vwap: 0, bollingerBands: null, stochRsi: null, obv: 0,
+  vwap: {
+    value: null,
+    available: false,
+    unavailable: unavailable('insufficient-history', 'No candles supplied.'),
+    anchorTime: null,
+  },
+  bollingerBands: null, stochRsi: null, obv: 0,
   mfi: null, cci: null, volumeMA: null,
 }
 
@@ -74,7 +87,7 @@ export function computeIndicators(candles: Candle[]): IndicatorResult {
     atr,
     atrPercent: atr !== null && lastClose > 0 ? (atr / lastClose) * 100 : null,
     adx: computeAdx(highs, lows, closes),
-    vwap: computeVwap(highs, lows, closes, volumes),
+    vwap: computeVwap(candles),
     bollingerBands: computeBollinger(closes),
     stochRsi: computeStochRsi(closes),
     obv: computeObv(closes, volumes),

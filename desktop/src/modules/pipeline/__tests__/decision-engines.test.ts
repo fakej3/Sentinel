@@ -89,7 +89,7 @@ function makeAnalysis(overrides: Partial<{
       confirmsCurrentMove: o.volumeConfirms ?? true,
       climaxSignal: (o.climaxSignal ?? 'none') as 'none' | 'buying_climax' | 'selling_climax',
       accDistState: (o.accDistState ?? 'neutral') as 'accumulation' | 'distribution' | 'neutral',
-      priceAboveVWAP: true, vwapDistancePercent: 1.0, respectingVWAP: true,
+      vwap: { available: true, unavailable: null, value: 100, side: 'above', distancePercent: 1.0, respectingVWAP: true },
       obvDirection: 'bullish', obvConfirmingPrice: true,
       overallStrength: o.volumeStrength ?? 6,
     },

@@ -56,9 +56,10 @@ export function buildEvidence(
   )
 
   // VWAP
-  const side = vwap.above ? 'above' : vwap.below ? 'below' : 'at'
   lines.push(
-    `Price is ${side} VWAP by ${vwap.distancePercent.toFixed(2)}%; respecting VWAP=${vwap.respectingVWAP}`,
+    vwap.available
+      ? `Price is ${vwap.side} VWAP by ${vwap.distancePercent.toFixed(2)}%; respecting VWAP=${vwap.respectingVWAP}`
+      : `VWAP unavailable (${vwap.unavailable.code}): ${vwap.unavailable.detail}`,
   )
 
   // Overall strength

@@ -3,6 +3,7 @@ import { Card } from '../shared/Card'
 import { ProgressBar } from '../shared/ProgressBar'
 import { Badge } from '../shared/Badge'
 import { formatPrice, formatScore } from '../../utils/format'
+import { VWAP_NA, vwapDistanceLabel, vwapSideClass } from '../../utils/tradingLanguage'
 import { clsx } from 'clsx'
 import type { PipelineResult } from '../../types'
 
@@ -49,6 +50,7 @@ function IndicatorCard({ icon, title, children, unavailable }: IndicatorCardProp
 
 export function IndicatorsTab({ result }: IndicatorsTabProps) {
   const { indicators, analysis } = result
+  const vwap = analysis.volumeContext.vwap
   const { indicatorSummary, emaContext } = analysis
   const { rsi, macd, adx, bollinger, stochRsi } = indicatorSummary
 
@@ -250,24 +252,26 @@ export function IndicatorsTab({ result }: IndicatorsTabProps) {
       <IndicatorCard icon={<Droplets size={14} />} title="VWAP">
         <div className="space-y-2">
           <div className="flex items-baseline gap-2">
-            <span className="text-xl font-bold font-mono text-slate-100">{formatPrice(indicators.vwap)}</span>
-            <StatusBadge status={analysis.volumeContext.priceAboveVWAP ? 'above' : 'below'} />
+            <span className="text-xl font-bold font-mono text-slate-100">
+              {vwap.available ? formatPrice(vwap.value) : VWAP_NA}
+            </span>
+            {vwap.side !== null && vwap.side !== 'at' && <StatusBadge status={vwap.side} />}
           </div>
           <div className="flex justify-between text-xs">
             <span className="text-slate-500">Distance</span>
-            <span className={clsx('font-mono font-semibold', {
-              'text-emerald-400': analysis.volumeContext.priceAboveVWAP,
-              'text-red-400': !analysis.volumeContext.priceAboveVWAP,
-            })}>
-              {analysis.volumeContext.vwapDistancePercent.toFixed(2)}%
+            <span className={clsx('font-mono font-semibold', vwapSideClass(vwap.side))}>
+              {vwapDistanceLabel(vwap)}
             </span>
           </div>
           <div className="flex justify-between items-center pt-1 border-t border-border-subtle">
             <span className="text-[11px] text-slate-500">Respecting</span>
-            <span className={`text-xs font-semibold ${analysis.volumeContext.respectingVWAP ? 'text-emerald-400' : 'text-slate-500'}`}>
-              {analysis.volumeContext.respectingVWAP ? 'Yes' : 'No'}
+            <span className={`text-xs font-semibold ${vwap.respectingVWAP ? 'text-emerald-400' : 'text-slate-500'}`}>
+              {vwap.available ? (vwap.respectingVWAP ? 'Yes' : 'No') : VWAP_NA}
             </span>
           </div>
+          {!vwap.available && (
+            <p className="text-[10px] text-slate-500">{vwap.unavailable.detail}</p>
+          )}
         </div>
       </IndicatorCard>
 

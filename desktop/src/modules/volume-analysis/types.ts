@@ -1,3 +1,5 @@
+import type { Unavailable } from '../common/availability'
+
 export type VolumeClassification = 'very_low' | 'low' | 'normal' | 'high' | 'very_high'
 export type VolumeTrendDirection = 'increasing' | 'decreasing' | 'flat'
 export type DominantSide = 'buyers' | 'sellers' | 'balanced'
@@ -87,19 +89,44 @@ export interface OBVAnalysisResult {
   diverging: boolean
 }
 
-export interface VWAPAnalysisResult {
-  /** Current price is above the rolling VWAP */
-  above: boolean
-  /** Current price is below the rolling VWAP */
-  below: boolean
-  /** (currentPrice − vwap) / vwap × 100 */
-  distancePercent: number
-  /**
-   * Price has crossed VWAP recently (within last 5 candles) OR is within 0.5% of VWAP.
-   * Indicates price is using VWAP as a reference / mean-reversion level.
-   */
-  respectingVWAP: boolean
-}
+export type VwapSide = 'above' | 'below' | 'at'
+
+/**
+ * Price relative to the session VWAP.
+ *
+ * A discriminated union rather than a record of nullable fields, so that
+ * `distancePercent` is unreachable — at the type level — whenever there is no
+ * VWAP to measure from. The previous shape used a `boolean` pair where
+ * `above === false` was read by consumers as "below", which turned every
+ * unavailable VWAP into a bearish vote.
+ *
+ * `'at'` is a real third state (close exactly equal to VWAP), not a filler: the
+ * old if/else collapsed it into "below" too.
+ */
+export type VWAPAnalysisResult =
+  | {
+    available: true
+    unavailable: null
+    /** The session VWAP itself, so consumers need not re-derive it. */
+    value: number
+    side: VwapSide
+    /** (currentPrice − vwap) / vwap × 100 */
+    distancePercent: number
+    /**
+     * Price crossed the session VWAP within the last `VWAP_CROSS_LOOKBACK`
+     * candles, OR is within `vwapProximityPercent` of it. Indicates price is
+     * using VWAP as a reference / mean-reversion level.
+     */
+    respectingVWAP: boolean
+  }
+  | {
+    available: false
+    unavailable: Unavailable
+    value: null
+    side: null
+    distancePercent: null
+    respectingVWAP: null
+  }
 
 export interface VolumeAnalysisResult {
   volumeTrend: VolumeTrendResult

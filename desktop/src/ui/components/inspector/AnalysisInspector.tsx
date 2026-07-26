@@ -6,6 +6,7 @@ import {
 } from 'lucide-react'
 import { formatPrice, formatScore, formatMs, formatTimestamp, formatPercent } from '../../utils/format'
 import type { PipelineResult } from '../../types'
+import { VWAP_NA } from '../../utils/tradingLanguage'
 
 // ── Highlight Context ──────────────────────────────────────────────────────────
 
@@ -561,7 +562,7 @@ function IndicatorsSection({ d }: { d: PipelineResult }) {
         <span className="text-[10px] text-slate-600">N/A</span>
       )}
       <Divider />
-      <Row label="VWAP"><Val v={formatPrice(ind.vwap)} /></Row>
+      <Row label="VWAP"><Val v={ind.vwap.available ? formatPrice(ind.vwap.value) : VWAP_NA} /></Row>
       <Row label="OBV"><Val v={ind.obv.toFixed(0)} /></Row>
       <Divider />
       <span className="text-[9px] text-slate-600 font-semibold uppercase tracking-wide block mb-0.5">Stoch RSI</span>

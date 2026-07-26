@@ -11,9 +11,21 @@ import { analyzeMarket } from '../modules/pipeline/index'
 import { computeConfidence } from '../modules/confidence/index'
 import type { MarketAnalysisResult, EvidenceItem } from '../modules/analysis/types'
 import type { ValidationResult } from '../modules/validation/types'
+import type { VWAPAnalysisResult } from '../modules/volume-analysis/types'
 import { listHistory, getHistory, addHistory, deleteHistory } from './history-store'
 
 const HISTORY_ID_RE = /^\d{13}-[a-z0-9]{6}$/
+
+/**
+ * Shared by the mock's `volumeContext.vwap` and its `volumeAnalysis.vwapAnalysis`
+ * so the fixture satisfies the Module 12 consistency check that the two mirror
+ * each other. (The previous fixture had `below: true` with a POSITIVE
+ * distancePercent — a state the engine cannot produce.)
+ */
+const MOCK_VWAP_ANALYSIS: VWAPAnalysisResult = {
+  available: true, unavailable: null, value: 100,
+  side: 'below', distancePercent: -1.2, respectingVWAP: true,
+}
 
 function isValidHistoryId(id: string): boolean {
   return HISTORY_ID_RE.test(id)
@@ -174,8 +186,8 @@ export function createRouter(analyzeFn: AnalyzeFn): Router {
       volumeContext: {
         relativeVolume: 1.3, volumeClassification: 'high',
         confirmsCurrentMove: true, climaxSignal: 'none',
-        accDistState: 'distribution', priceAboveVWAP: false,
-        vwapDistancePercent: 1.2, respectingVWAP: true,
+        accDistState: 'distribution',
+        vwap: MOCK_VWAP_ANALYSIS,
         obvDirection: 'bearish', obvConfirmingPrice: true,
         overallStrength: 7,
       },
@@ -184,7 +196,8 @@ export function createRouter(analyzeFn: AnalyzeFn): Router {
         ema20: null, ema50: null, ema100: null, ema200: null,
         sma20: null, sma50: null, sma200: null,
         rsi: null, macd: null, atr: null, atrPercent: null, adx: null,
-        vwap: 0, bollingerBands: null, stochRsi: null,
+        vwap: { available: true, value: 100, unavailable: null, anchorTime: 0 },
+        bollingerBands: null, stochRsi: null,
         obv: 0, mfi: null, cci: null, volumeMA: null,
       },
       marketStructure: {
@@ -210,7 +223,7 @@ export function createRouter(analyzeFn: AnalyzeFn): Router {
         climax: { buyingClimax: false, sellingClimax: false, exhaustion: false },
         accumulationDistribution: { state: 'distribution', score: -3 },
         obvAnalysis: { direction: 'bearish', confirmingPrice: true, diverging: false },
-        vwapAnalysis: { above: false, below: true, distancePercent: 1.2, respectingVWAP: true },
+        vwapAnalysis: MOCK_VWAP_ANALYSIS,
         overallStrength: 7,
         evidence: [],
       },

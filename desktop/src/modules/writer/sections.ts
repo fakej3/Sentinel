@@ -421,9 +421,7 @@ export function buildVolumeSection(analysis: MarketAnalysisResult): string {
     confirmsCurrentMove,
     climaxSignal,
     accDistState,
-    priceAboveVWAP,
-    vwapDistancePercent,
-    respectingVWAP,
+    vwap,
     obvDirection,
     obvConfirmingPrice,
     overallStrength,
@@ -436,11 +434,17 @@ export function buildVolumeSection(analysis: MarketAnalysisResult): string {
       (confirmsCurrentMove ? ' Volume confirms the current move.' : ' Volume does not confirm the current move.'),
   )
 
-  const vwapAbove = priceAboveVWAP ? 'above' : 'below'
-  lines.push(
-    `Price is ${vwapAbove} VWAP by ${Math.abs(vwapDistancePercent).toFixed(2)}%.` +
-      (respectingVWAP ? ' Price is respecting VWAP.' : ''),
-  )
+  // When there is no session VWAP the report says so and says why, rather than
+  // asserting a side. Reporting "below VWAP by 0.00%" would be a statement about
+  // the market that no data supports.
+  if (!vwap.available) {
+    lines.push(`VWAP is unavailable on this timeframe: ${vwap.unavailable.detail}`)
+  } else {
+    const position = vwap.side === 'at'
+      ? 'Price is exactly at VWAP.'
+      : `Price is ${vwap.side} VWAP by ${Math.abs(vwap.distancePercent).toFixed(2)}%.`
+    lines.push(position + (vwap.respectingVWAP ? ' Price is respecting VWAP.' : ''))
+  }
 
   lines.push(`OBV direction is ${obvDirection}${obvConfirmingPrice ? ' and confirms price action' : ', diverging from price'}.`)
 

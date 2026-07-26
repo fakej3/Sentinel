@@ -1,9 +1,31 @@
 import type { MarketAnalysisResult } from '../../analysis/types'
+import type { VWAPAnalysisResult } from '../../volume-analysis/types'
 import type { ValidationIssue, ValidationConfig } from '../types'
 import { classifyRSI } from '../../analysis/compute/indicators'
 
 function critical(field: string, message: string, expected: string, actual: string): ValidationIssue {
   return { severity: 'critical', category: 'consistency', field, message, expected, actual }
+}
+
+/**
+ * Structural equality for the VWAP union. Written out rather than deep-equalled
+ * so that adding a field to VWAPAnalysisResult is a compile error here — a
+ * silently unchecked field is exactly the gap that let volumeContext drift from
+ * vwapAnalysis before.
+ */
+function vwapContextMatches(a: VWAPAnalysisResult, b: VWAPAnalysisResult): boolean {
+  if (a.available !== b.available) return false
+  if (a.available && b.available) {
+    return a.value === b.value
+      && a.side === b.side
+      && a.distancePercent === b.distancePercent
+      && a.respectingVWAP === b.respectingVWAP
+  }
+  if (!a.available && !b.available) {
+    return a.unavailable.code === b.unavailable.code
+      && a.unavailable.detail === b.unavailable.detail
+  }
+  return false
 }
 
 export function checkConsistency(
@@ -350,27 +372,16 @@ export function checkConsistency(
     ))
   }
 
-  if (vc.priceAboveVWAP !== va.vwapAnalysis.above) {
+  // volumeContext.vwap mirrors vwapAnalysis wholesale, so one structural
+  // comparison replaces the three field-by-field checks this used to run. It is
+  // also strictly stronger: the old checks could not detect a mismatch in
+  // `available` or in the unavailability reason, because neither field existed
+  // on volumeContext.
+  if (!vwapContextMatches(vc.vwap, va.vwapAnalysis)) {
     issues.push(critical(
-      'volumeContext.priceAboveVWAP',
-      `priceAboveVWAP is ${vc.priceAboveVWAP} but vwapAnalysis.above is ${va.vwapAnalysis.above}`,
-      String(va.vwapAnalysis.above), String(vc.priceAboveVWAP),
-    ))
-  }
-
-  if (vc.vwapDistancePercent !== va.vwapAnalysis.distancePercent) {
-    issues.push(critical(
-      'volumeContext.vwapDistancePercent',
-      `vwapDistancePercent is ${vc.vwapDistancePercent} but vwapAnalysis.distancePercent is ${va.vwapAnalysis.distancePercent}`,
-      String(va.vwapAnalysis.distancePercent), String(vc.vwapDistancePercent),
-    ))
-  }
-
-  if (vc.respectingVWAP !== va.vwapAnalysis.respectingVWAP) {
-    issues.push(critical(
-      'volumeContext.respectingVWAP',
-      `respectingVWAP is ${vc.respectingVWAP} but vwapAnalysis.respectingVWAP is ${va.vwapAnalysis.respectingVWAP}`,
-      String(va.vwapAnalysis.respectingVWAP), String(vc.respectingVWAP),
+      'volumeContext.vwap',
+      'volumeContext.vwap does not match vwapAnalysis',
+      JSON.stringify(va.vwapAnalysis), JSON.stringify(vc.vwap),
     ))
   }
 

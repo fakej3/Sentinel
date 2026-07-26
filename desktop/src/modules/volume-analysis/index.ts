@@ -43,7 +43,7 @@ export function computeVolumeAnalysis(
   )
   const climax = computeClimax(candles, relativeVolume.ratio, cfg)
   const obvAnalysis = computeOBVAnalysis(candles, cfg)
-  const vwapAnalysis = computeVWAPAnalysis(candles, indicators, cfg)
+  const vwapAnalysis = computeVWAPAnalysis(candles, cfg)
   const accumulationDistribution = computeAccumulationDistribution(
     marketStructure, supportResistance, buySellPressure, obvAnalysis, vwapAnalysis,
   )
@@ -85,4 +85,5 @@ export type {
   DominantSide,
   AccDistState,
   OBVDirection,
+  VwapSide,
 } from './types'

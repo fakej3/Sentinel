@@ -2,6 +2,7 @@
  * Translates internal engine field values into natural trading language for display.
  * Never changes data — only presentation strings.
  */
+import type { VWAPAnalysisResult, VwapSide } from '../../modules/volume-analysis/types'
 
 export function trendLabel(trend: string): string {
   switch (trend) {
@@ -41,11 +42,50 @@ export function volumeLabel(classification: string, relVol: number): string {
   }
 }
 
-export function vwapLabel(above: boolean, distPct: number): string {
-  const dist = distPct.toFixed(2)
-  return above
+/**
+ * Shown wherever a VWAP-derived number would go when there is no session VWAP.
+ * A single shared token so "unavailable" never renders as a plausible value.
+ */
+export const VWAP_NA = '—'
+
+export function vwapLabel(vwap: VWAPAnalysisResult): string {
+  if (!vwap.available) return `VWAP unavailable — ${vwap.unavailable.detail}`
+  if (vwap.side === 'at') return 'Price is exactly at VWAP'
+  // Math.abs: distancePercent is negative below VWAP, and the old code printed
+  // it raw, producing "-1.20% below VWAP" — a double negative.
+  const dist = Math.abs(vwap.distancePercent).toFixed(2)
+  return vwap.side === 'above'
     ? `Price is ${dist}% above VWAP — intraday bias is bullish`
     : `Price is ${dist}% below VWAP — intraday bias is bearish`
+}
+
+/**
+ * Text colour for a VWAP side. `'at'` and "no VWAP" both take the muted tone:
+ * neither is directional, and the previous `above ? green : red` binary painted
+ * both of them red, i.e. bearish.
+ */
+export function vwapSideClass(side: VwapSide | null): string {
+  if (side === 'above') return 'text-emerald-400'
+  if (side === 'below') return 'text-red-400'
+  return 'text-slate-500'
+}
+
+/** Dot fill matching `vwapSideClass`, for the summary bullet list. */
+export function vwapDotClass(side: VwapSide | null): string {
+  if (side === 'above') return 'bg-emerald-400'
+  if (side === 'below') return 'bg-red-400'
+  return 'bg-slate-500'
+}
+
+/** `distancePercent` formatted, or the unavailable token. */
+export function vwapDistanceLabel(vwap: VWAPAnalysisResult): string {
+  return vwap.available ? `${vwap.distancePercent.toFixed(2)}%` : VWAP_NA
+}
+
+/** One-word position label: Above / Below / At, or the unavailable token. */
+export function vwapPositionLabel(vwap: VWAPAnalysisResult): string {
+  if (!vwap.available) return VWAP_NA
+  return vwap.side === 'above' ? 'Above' : vwap.side === 'below' ? 'Below' : 'At'
 }
 
 export function emaAlignmentLabel(alignment: string): string {

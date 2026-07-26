@@ -80,7 +80,7 @@ function makeAnalysis(o: {
       confirmsCurrentMove: o.volumeConfirms ?? true,
       climaxSignal: 'none',
       accDistState: 'neutral',
-      priceAboveVWAP: true, vwapDistancePercent: 1.0, respectingVWAP: true,
+      vwap: { available: true, unavailable: null, value: 100, side: 'above', distancePercent: 1.0, respectingVWAP: true },
       obvDirection: 'bullish', obvConfirmingPrice: true,
       overallStrength: o.volumeStrength ?? 6,
     },

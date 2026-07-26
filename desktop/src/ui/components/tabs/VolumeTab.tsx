@@ -3,6 +3,7 @@ import { Card } from '../shared/Card'
 import { DualBar, ProgressBar } from '../shared/ProgressBar'
 import { Badge } from '../shared/Badge'
 import { formatVolume } from '../../utils/format'
+import { VWAP_NA, vwapDistanceLabel, vwapPositionLabel, vwapSideClass } from '../../utils/tradingLanguage'
 import { clsx } from 'clsx'
 import type { PipelineResult } from '../../types'
 
@@ -275,23 +276,26 @@ export function VolumeTab({ result }: VolumeTabProps) {
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <div>
             <p className="text-[10px] text-slate-500 mb-0.5">Position</p>
-            <p className={`text-sm font-semibold ${vwapAnalysis.above ? 'text-emerald-400' : 'text-red-400'}`}>
-              {vwapAnalysis.above ? 'Above' : 'Below'}
+            <p className={`text-sm font-semibold ${vwapSideClass(vwapAnalysis.side)}`}>
+              {vwapPositionLabel(vwapAnalysis)}
             </p>
           </div>
           <div>
             <p className="text-[10px] text-slate-500 mb-0.5">Distance</p>
-            <p className={`text-sm font-mono font-semibold ${vwapAnalysis.above ? 'text-emerald-400' : 'text-red-400'}`}>
-              {vwapAnalysis.distancePercent.toFixed(2)}%
+            <p className={`text-sm font-mono font-semibold ${vwapSideClass(vwapAnalysis.side)}`}>
+              {vwapDistanceLabel(vwapAnalysis)}
             </p>
           </div>
           <div>
             <p className="text-[10px] text-slate-500 mb-0.5">Respecting</p>
             <p className={`text-sm font-semibold ${vwapAnalysis.respectingVWAP ? 'text-emerald-400' : 'text-slate-400'}`}>
-              {vwapAnalysis.respectingVWAP ? 'Yes' : 'No'}
+              {vwapAnalysis.available ? (vwapAnalysis.respectingVWAP ? 'Yes' : 'No') : VWAP_NA}
             </p>
           </div>
         </div>
+        {!vwapAnalysis.available && (
+          <p className="text-[10px] text-slate-500 mt-3">{vwapAnalysis.unavailable.detail}</p>
+        )}
       </Card>
     </div>
   )

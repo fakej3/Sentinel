@@ -69,7 +69,7 @@ const EMPTY_VOLUME: VolumeAnalysisResult = {
   climax: { buyingClimax: false, sellingClimax: false, exhaustion: false },
   accumulationDistribution: { state: 'neutral', score: 0 },
   obvAnalysis: { direction: 'neutral', confirmingPrice: false, diverging: false },
-  vwapAnalysis: { above: true, below: false, distancePercent: 0.0, respectingVWAP: true },
+  vwapAnalysis: { available: true, unavailable: null, value: 100, side: 'above', distancePercent: 0.0, respectingVWAP: true },
   overallStrength: 3,
   evidence: [],
 }
@@ -78,7 +78,7 @@ const EMPTY_INDICATORS: IndicatorResult = {
   ema20: null, ema50: null, ema100: null, ema200: null,
   sma20: null, sma50: null, sma200: null,
   rsi: null, macd: null, atr: null, atrPercent: null, adx: null,
-  vwap: 0, bollingerBands: null, stochRsi: null,
+  vwap: { available: true, value: 100, unavailable: null, anchorTime: 0 }, bollingerBands: null, stochRsi: null,
   obv: 0, mfi: null, cci: null, volumeMA: null,
 }
 
@@ -123,8 +123,8 @@ const EMPTY_SR_CONTEXT: SRContextResult = {
 const EMPTY_VOLUME_CONTEXT: VolumeContextResult = {
   relativeVolume: 1.0, volumeClassification: 'normal',
   confirmsCurrentMove: false, climaxSignal: 'none',
-  accDistState: 'neutral', priceAboveVWAP: true,
-  vwapDistancePercent: 0.0, respectingVWAP: true,
+  accDistState: 'neutral',
+  vwap: { available: true, unavailable: null, value: 100, side: 'above', distancePercent: 0.0, respectingVWAP: true },
   obvDirection: 'neutral', obvConfirmingPrice: false,
   overallStrength: 3,
 }

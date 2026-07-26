@@ -87,7 +87,7 @@ export function indicators(overrides: Partial<IndicatorResult> = {}): IndicatorR
     atr: null,
     atrPercent: null,
     adx: null,
-    vwap: 0,
+    vwap: { available: true, value: 0, unavailable: null, anchorTime: 0 },
     bollingerBands: null,
     stochRsi: null,
     obv: 0,
@@ -257,7 +257,7 @@ export function emptyVolumeAnalysis(): VolumeAnalysisResult {
     climax: { buyingClimax: false, sellingClimax: false, exhaustion: false },
     accumulationDistribution: { state: 'neutral', score: 0 },
     obvAnalysis: { direction: 'neutral', confirmingPrice: false, diverging: false },
-    vwapAnalysis: { above: true, below: false, distancePercent: 0.2, respectingVWAP: true },
+    vwapAnalysis: { available: true, unavailable: null, value: 100, side: 'above', distancePercent: 0.2, respectingVWAP: true },
     overallStrength: 3,
     evidence: [],
   }

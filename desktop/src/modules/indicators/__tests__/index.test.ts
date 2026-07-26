@@ -29,7 +29,11 @@ describe('computeIndicators', () => {
     expect(result.rsi).toBeNull()
     expect(result.macd).toBeNull()
     expect(result.obv).toBe(0)
-    expect(result.vwap).toBe(0)
+    // VWAP is withheld rather than reported as 0. A 0 would make every price
+    // "above VWAP" for the rest of the pipeline.
+    expect(result.vwap.available).toBe(false)
+    expect(result.vwap.value).toBeNull()
+    expect(result.vwap.unavailable?.code).toBe('insufficient-history')
   })
 
   it('returns null for EMA200 when fewer than 200 candles are provided', () => {
@@ -65,10 +69,11 @@ describe('computeIndicators', () => {
     expect(result.volumeMA).not.toBeNull()
   })
 
-  it('OBV and VWAP are always numbers', () => {
+  it('OBV is always a number; VWAP is a number or an explicit reason', () => {
     const result = computeIndicators(makeCandles(5))
     expect(typeof result.obv).toBe('number')
-    expect(typeof result.vwap).toBe('number')
+    expect(result.vwap.available ? typeof result.vwap.value : typeof result.vwap.unavailable.code)
+      .toBe(result.vwap.available ? 'number' : 'string')
   })
 
   it('atrPercent equals (atr / lastClose) * 100', () => {
@@ -112,7 +117,7 @@ describe('computeIndicators', () => {
     const numericFields = [
       result.ema20, result.ema50, result.ema100, result.ema200,
       result.sma20, result.sma50, result.sma200, result.rsi,
-      result.atr, result.atrPercent, result.vwap, result.obv,
+      result.atr, result.atrPercent, result.vwap.value, result.obv,
       result.mfi, result.cci,
     ]
     for (const v of numericFields) {

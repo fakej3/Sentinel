@@ -7,6 +7,7 @@ import type {
   VolumeClassification,
   AccDistState,
   OBVDirection,
+  VWAPAnalysisResult,
 } from '../volume-analysis/types'
 
 // ─── Price Summary ────────────────────────────────────────────────────────────
@@ -229,9 +230,18 @@ export interface VolumeContextResult {
   confirmsCurrentMove: boolean
   climaxSignal: ClimaxSignalType
   accDistState: AccDistState
-  priceAboveVWAP: boolean
-  vwapDistancePercent: number
-  respectingVWAP: boolean
+  /**
+   * Session VWAP context, mirrored verbatim from Module 5.
+   *
+   * Carried as the whole discriminated union rather than flattened into
+   * `priceAboveVWAP` / `vwapDistancePercent` / `respectingVWAP`. Those three
+   * fields could not represent "no VWAP", so an unavailable VWAP arrived here
+   * as `above=false, distance=0`, which the evidence builder rendered as
+   * "Price is 0.00% below VWAP" — a fabricated bearish signal. Mirroring the
+   * union also collapses three field-by-field consistency checks in Module 12
+   * into one structural comparison.
+   */
+  vwap: VWAPAnalysisResult
   obvDirection: OBVDirection
   obvConfirmingPrice: boolean
   /** 0–10 composite volume strength from Module 5 */

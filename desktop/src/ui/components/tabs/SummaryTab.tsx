@@ -4,7 +4,7 @@ import { Card } from '../shared/Card'
 import { ConfidenceMeter } from '../shared/ConfidenceMeter'
 import { GradeBadge } from '../shared/Badge'
 import { formatPrice } from '../../utils/format'
-import { trendLabel, rsiLabel, vwapLabel, biasLabel, gradeLabel } from '../../utils/tradingLanguage'
+import { trendLabel, rsiLabel, vwapLabel, vwapDotClass, biasLabel, gradeLabel } from '../../utils/tradingLanguage'
 import { decisionColor, decisionBg, riskBadgeColor } from '../../utils/colors'
 import type { PipelineResult, ConfidenceBreakdown, TrustResult, AnalysisQuality, TraderReview, ContradictionIntelligence, ConfidenceExplanation, OpportunityAssessment, ConfidenceSanityResult } from '../../types'
 
@@ -834,9 +834,9 @@ export function SummaryTab({ result }: SummaryTabProps) {
             </p>
           </div>
           <div className="flex items-start gap-2">
-            <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 mt-1.5 ${volumeContext.priceAboveVWAP ? 'bg-emerald-400' : 'bg-red-400'}`} />
+            <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 mt-1.5 ${vwapDotClass(volumeContext.vwap.side)}`} />
             <p className="text-xs text-slate-300 leading-relaxed">
-              {vwapLabel(volumeContext.priceAboveVWAP, volumeContext.vwapDistancePercent)}
+              {vwapLabel(volumeContext.vwap)}
             </p>
           </div>
         </div>
