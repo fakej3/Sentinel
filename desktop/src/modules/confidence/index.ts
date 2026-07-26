@@ -7,6 +7,7 @@ import { scoreToGrade } from './compute/grade'
 import { computeBreakdown } from './compute/breakdown'
 import { computeAnalysisQuality } from './compute/quality'
 import { computeTrust } from './compute/trust'
+import { applyCeilingPenalty } from './compute/ceiling'
 
 /**
  * Module 8 — Confidence Engine.
@@ -132,31 +133,27 @@ export function computeConfidence(
     })
   }
 
-  // Trust-based overconfidence penalty (Module 32 Part 7).
-  // Only fires when score > overconfidenceThreshold (default 8.0) because lower
-  // scores already signal uncertainty. Empirically confirmed: without this, a market
-  // with only 3/7 trust factors (43%) still produces score 10.0.
-  if (score > cfg.overconfidenceThreshold) {
-    if (trust.level === 'low') {
-      const reduction = cfg.trustPenaltyLow
-      score = Math.max(0, score - reduction)
+  // ── Trust-based overconfidence penalty (Module 32 Part 7) ─────────────────
+  // Applied through the monotone ceiling helper: identical to the previous
+  // behaviour for scores at or above the threshold (all existing calibration
+  // preserved), and no longer discontinuous just below it.
+  if (trust.level === 'low' || trust.level === 'medium') {
+    const penalty  = trust.level === 'low' ? cfg.trustPenaltyLow : cfg.trustPenaltyMedium
+    const adjusted = applyCeilingPenalty(score, cfg.overconfidenceThreshold, penalty)
+    if (adjusted < score) {
+      const reduction = score - adjusted
+      score = adjusted
       penalties.push({
-        source: 'trust_low',
-        description: `Low data trust (${trust.score.toFixed(0)}% of quality checks passed) — score reduced by ${reduction.toFixed(2)} to prevent overstatement`,
+        source: trust.level === 'low' ? 'trust_low' : 'trust_medium',
+        description: `${trust.level === 'low' ? 'Low' : 'Medium'} data trust (${trust.score.toFixed(0)}% of quality checks passed) — score reduced by ${reduction.toFixed(2)} to prevent overstatement`,
         scoreReduction: reduction,
       })
-      warnings.push({
-        message: `Data trust is low (${trust.score.toFixed(0)}%) — fewer quality checks passed than expected; treat this score with caution`,
-        source: 'data_quality',
-      })
-    } else if (trust.level === 'medium') {
-      const reduction = cfg.trustPenaltyMedium
-      score = Math.max(0, score - reduction)
-      penalties.push({
-        source: 'trust_medium',
-        description: `Medium data trust (${trust.score.toFixed(0)}% of quality checks passed) — score reduced by ${reduction.toFixed(2)}`,
-        scoreReduction: reduction,
-      })
+      if (trust.level === 'low') {
+        warnings.push({
+          message: `Data trust is low (${trust.score.toFixed(0)}%) — fewer quality checks passed than expected; treat this score with caution`,
+          source: 'data_quality',
+        })
+      }
     }
   }
 
@@ -186,9 +183,13 @@ export function computeConfidence(
   // When ALL EMAs are unavailable the data is either a stub or very new — skip penalty.
   const hasSparseData =
     emaContext.priceVsEMA20 !== 'unavailable' && emaContext.priceVsEMA100 === 'unavailable'
-  if (hasSparseData && score > cfg.overconfidenceThreshold) {
-    const reduction = cfg.sparseDataPenalty
-    score = Math.max(0, score - reduction)
+  // Same monotone ceiling treatment as the trust penalty above.
+  const sparseAdjusted = hasSparseData
+    ? applyCeilingPenalty(score, cfg.overconfidenceThreshold, cfg.sparseDataPenalty)
+    : score
+  if (sparseAdjusted < score) {
+    const reduction = score - sparseAdjusted
+    score = sparseAdjusted
     penalties.push({
       source: 'sparse_data',
       description: `EMA100 unavailable — fewer than ~100 candles; score reduced by ${reduction.toFixed(2)} to reflect data immaturity`,

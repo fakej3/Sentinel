@@ -116,7 +116,7 @@ export function computeMarketStructure(
   const breakout = detectBreakout(candles, consolidation, cfg)
   const pullback = detectPullback(candles, labeledSwings, bosEvents)
   const confidence = computeConfidence(
-    trend, strength, labeledSwings, bosEvents, chochEvents, consolidation,
+    trend, strength, labeledSwings, bosEvents, chochEvents, consolidation, cfg,
   )
   const evidence = buildEvidence(
     trend, strength, labeledSwings, bosEvents, chochEvents,
