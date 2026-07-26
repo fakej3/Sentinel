@@ -1,3 +1,5 @@
+import type { Unavailable } from '../common/availability'
+
 export type FibDirection = 'bullish' | 'bearish'
 
 export interface FibLevel {
@@ -29,10 +31,15 @@ export interface FibResult {
   /** False when there are insufficient swings to compute anything */
   available: boolean
   /**
-   * When available=false, the specific reason levels were withheld.
+   * When available=false, the structured reason levels were withheld.
    * Fibonacci silence is a deliberate output ("no valid impulse exists"),
    * not a failure — this field makes the distinction diagnosable instead of
    * leaving an unexplained blank on the chart.
+   *
+   * Uses the shared `Unavailable` vocabulary rather than a free-form string so
+   * the reason is switchable by consumers and so a new Fibonacci failure mode
+   * has to be classified against every other subsystem's failure modes rather
+   * than described in prose only this module understands.
    */
-  unavailableReason?: string
+  unavailable: Unavailable | null
 }

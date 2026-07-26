@@ -2,6 +2,8 @@ import type { SwingPoint } from '../market-structure/types'
 import type { TrendDirection } from '../market-structure/types'
 import type { SupportResistanceResult } from '../support-resistance/types'
 import type { FibResult, FibLevel, FibDirection } from './types'
+import type { UnavailableCode } from '../common/availability'
+import { unavailable } from '../common/availability'
 
 const RETRACEMENT_RATIOS = [0.236, 0.382, 0.500, 0.618, 0.650, 0.786, 1.000]
 const EXTENSION_RATIOS   = [1.272, 1.618, 2.000]
@@ -107,32 +109,38 @@ export function computeFibonacci(
   sr: SupportResistanceResult,
   atr: number | null,
 ): FibResult {
-  const unavailable = (reason: string): FibResult => ({
+  const withhold = (code: UnavailableCode, detail: string): FibResult => ({
     swingHigh: { price: 0, timestamp: 0 },
     swingLow:  { price: 0, timestamp: 0 },
     direction: 'bullish',
     levels: [],
     available: false,
-    unavailableReason: reason,
+    unavailable: unavailable(code, detail),
   })
 
+  // 'not-applicable': the data is fine and the computation would produce
+  // numbers; a retracement of a move that never happened is just meaningless.
   if (trend === 'ranging') {
-    return unavailable('ranging market — no directional impulse to measure')
+    return withhold('not-applicable', 'Ranging market — no directional impulse to measure.')
   }
 
+  // 'insufficient-structure': more history would not necessarily help. The
+  // market has to print the impulse leg first.
   const pair = findDominantPair(swings, trend)
   if (!pair) {
-    return unavailable(`no confirmed ${trend === 'bullish' ? 'HH+HL' : 'LL+LH'} impulse leg in recent swings`)
+    return withhold('insufficient-structure',
+      `No confirmed ${trend === 'bullish' ? 'HH+HL' : 'LL+LH'} impulse leg in recent swings.`)
   }
 
   const { high, low } = pair
   const range     = high.price - low.price
-  if (range <= 0) return unavailable('degenerate impulse (non-positive range)')
+  // 'malformed-input': a swing high at or below its swing low violates an
+  // invariant the range arithmetic depends on.
+  if (range <= 0) return withhold('malformed-input', 'Degenerate impulse (non-positive range).')
 
   if (atr !== null && range < MIN_IMPULSE_ATR_MULT * atr) {
-    return unavailable(
-      `impulse of ${range.toFixed(2)} is below ${MIN_IMPULSE_ATR_MULT}× ATR (${atr.toFixed(2)}) — leg is within noise range`,
-    )
+    return withhold('not-applicable',
+      `Impulse of ${range.toFixed(2)} is below ${MIN_IMPULSE_ATR_MULT}× ATR (${atr.toFixed(2)}) — leg is within noise range.`)
   }
 
   const direction = inferDirection(high, low)
@@ -169,5 +177,6 @@ export function computeFibonacci(
     direction,
     levels,
     available: true,
+    unavailable: null,
   }
 }

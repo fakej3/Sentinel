@@ -167,7 +167,8 @@ describe('computeFibonacci — ATR impulse floor', () => {
     // Impulse range = 5, ATR = 20 → leg is well inside single-bar noise
     const result = computeFibonacci(impulse(100, 105), 'bullish', emptySR, 20)
     expect(result.available).toBe(false)
-    expect(result.unavailableReason).toMatch(/ATR/)
+    expect(result.unavailable?.code).toBe('not-applicable')
+    expect(result.unavailable?.detail).toMatch(/ATR/)
   })
 
   it('accepts an impulse of at least 1× ATR', () => {
@@ -193,15 +194,21 @@ describe('computeFibonacci — availability reasons and direction authority', ()
     const swings = [swing(0, 100, 'low', 'HL'), swing(10, 200, 'high', 'HH')]
     const result = computeFibonacci(swings, 'ranging', emptySR, null)
     expect(result.available).toBe(false)
-    expect(result.unavailableReason).toMatch(/ranging/)
+    // A ranging market is 'not-applicable', not 'insufficient-*': the data is
+    // complete and the computation would produce numbers — they would just
+    // describe a retracement of a move that never happened.
+    expect(result.unavailable?.code).toBe('not-applicable')
+    expect(result.unavailable?.detail).toMatch(/[Rr]anging/)
   })
 
   it('missing impulse leg reports which pattern was required', () => {
     const swings = [swing(0, 100, 'low', 'LL'), swing(10, 200, 'high', 'LH')]
     const bullish = computeFibonacci(swings, 'bullish', emptySR, null)
-    expect(bullish.unavailableReason).toMatch(/HH\+HL/)
+    expect(bullish.unavailable?.code).toBe('insufficient-structure')
+    expect(bullish.unavailable?.detail).toMatch(/HH\+HL/)
     const bearish = computeFibonacci(swings, 'bearish', emptySR, null)
-    expect(bearish.unavailableReason).toMatch(/LL\+LH/)
+    expect(bearish.unavailable?.code).toBe('insufficient-structure')
+    expect(bearish.unavailable?.detail).toMatch(/LL\+LH/)
   })
 })
 
