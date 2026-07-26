@@ -13,7 +13,7 @@ function colorForLevel(level: FibLevel): string {
   if (level.ratio === 0.786) return level.confluence ? '#ffb340' : '#f97316'
   if (level.ratio === 0.650) return level.confluence ? '#ffd740' : '#eab308'
   if (level.ratio === 0.618) return level.confluence ? '#ffd740' : '#eab308'
-  if (level.ratio === 0.500) return level.confluence ? '#c8e0ff' : '#94a3b8'
+  if (level.ratio === 0.500) return level.confluence ? '#a8b8cc' : '#7a8fa8'
   if (level.ratio === 0.382) return level.confluence ? '#60a5fa' : '#3b82f6'
   if (level.ratio === 0.236) return level.confluence ? '#94a3b8' : '#64748b'
   return '#94a3b8'
