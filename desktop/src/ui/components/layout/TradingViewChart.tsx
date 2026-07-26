@@ -285,7 +285,7 @@ function TradingViewChart({ symbol, interval, data, candles: controlledCandles }
       <div
         ref={hudRef}
         style={{ display: 'none' }}
-        className="absolute top-2 left-2 pointer-events-none z-10 flex items-center gap-1.5 px-2.5 py-1 rounded bg-[#0c0f18]/92 border border-white/[0.05] text-[11px] font-mono"
+        className="absolute top-2 left-2 pointer-events-none z-10 flex items-center gap-1.5 px-2.5 py-1 rounded bg-[#0c0f18]/95 border border-white/[0.08] text-[11px] font-mono"
       >
         <span ref={hudTimeRef} className="text-slate-400 tabular-nums" />
         <span className="text-white/10 select-none">│</span>

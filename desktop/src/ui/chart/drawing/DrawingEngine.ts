@@ -540,7 +540,7 @@ export class DrawingEngine {
         fontSize:   11,
       },
       grid: {
-        vertLines: { color: '#111827' },
+        vertLines: { color: '#1a2234' },
         horzLines: { color: '#1a2234' },
       },
       crosshair: {

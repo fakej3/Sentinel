@@ -19,9 +19,9 @@ function trendLabel(trend: TrendDirection, strength: TrendStrength): string {
 }
 
 function trendColor(trend: TrendDirection): string {
-  if (trend === 'bullish') return 'rgba(34, 197, 94, 0.28)'
-  if (trend === 'bearish') return 'rgba(239, 83, 80, 0.28)'
-  return 'rgba(148, 163, 184, 0.22)'
+  if (trend === 'bullish') return 'rgba(34, 197, 94, 0.50)'
+  if (trend === 'bearish') return 'rgba(239, 83, 80, 0.50)'
+  return 'rgba(148, 163, 184, 0.40)'
 }
 
 type SwingLabel = 'HH' | 'HL' | 'LH' | 'LL' | 'EH' | 'EL'
