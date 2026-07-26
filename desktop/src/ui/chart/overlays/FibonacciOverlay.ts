@@ -115,11 +115,43 @@ export class FibonacciOverlay implements IAnalysisOverlay {
       })
     }
 
-    // Determine which retrace labels are visible (priority order, collision-aware)
+    // Determine which retrace labels are visible (priority order, collision-aware).
+    // Pre-seed usedCoords with pixel positions of axis labels from other overlays
+    // so Fibonacci labels never stack on BOS, CHoCH, S/R, SL, Entry, or TP labels.
+    const usedCoords: number[] = []
+
+    const sr = this.lastData!.supportResistance
+    for (const zone of [sr.nearestSupport, sr.nearestResistance]) {
+      if (!zone) continue
+      const c = this.engine?.priceToCoordinate(zone.center) ?? null
+      if (c !== null) usedCoords.push(c)
+    }
+
+    const ms = this.lastData!.marketStructure
+    const lastBos   = ms.bos.events[ms.bos.events.length - 1]
+    const lastChoch = ms.choch.events[ms.choch.events.length - 1]
+    if (lastBos)   { const c = this.engine?.priceToCoordinate(lastBos.level)   ?? null; if (c !== null) usedCoords.push(c) }
+    if (lastChoch) { const c = this.engine?.priceToCoordinate(lastChoch.level) ?? null; if (c !== null) usedCoords.push(c) }
+
+    const plan = this.lastData!.tradePlan
+    if (plan?.actionable) {
+      if (plan.invalidationLevel !== null) {
+        const c = this.engine?.priceToCoordinate(plan.invalidationLevel) ?? null
+        if (c !== null) usedCoords.push(c)
+      }
+      if (plan.entryZone) {
+        const c = this.engine?.priceToCoordinate((plan.entryZone.lower + plan.entryZone.upper) / 2) ?? null
+        if (c !== null) usedCoords.push(c)
+      }
+      if (plan.targetLevel !== null) {
+        const c = this.engine?.priceToCoordinate(plan.targetLevel) ?? null
+        if (c !== null) usedCoords.push(c)
+      }
+    }
+
     const retraceByPriority = fib.levels
       .filter(l => !l.isExtension)
       .sort((a, b) => (PRIORITY[a.ratio] ?? 99) - (PRIORITY[b.ratio] ?? 99))
-    const usedCoords: number[] = []
     const hiddenLabels = new Set<FibLevel>()
     for (const level of retraceByPriority) {
       const coord = this.engine?.priceToCoordinate(level.price) ?? null

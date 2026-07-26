@@ -184,8 +184,14 @@ export class MarketStructureOverlay implements IAnalysisOverlay {
       const isMostRecent = i === bosEvents.length - 1
       const litLine      = key === 'ms:all' || key === `ms:bos:${e.timestamp}`
       const coord        = this.engine?.priceToCoordinate(e.level) ?? null
-      const tooClose     = coord !== null && bosUsedCoords.some(c => Math.abs(c - coord) < 14)
 
+      // Skip the BOS line entirely when it is pixel-obscured by a CHoCH line.
+      // CHoCH (trend reversal) takes priority at that price level.
+      // Exception: always render when the user is actively highlighting this BOS.
+      const obscuredByChoch = !litLine && coord !== null && chochCoords.some(c => Math.abs(c - coord) < 8)
+      if (obscuredByChoch) continue
+
+      const tooClose = coord !== null && bosUsedCoords.some(c => Math.abs(c - coord) < 14)
       if (coord !== null && !tooClose) bosUsedCoords.push(coord)
 
       instructions.push({

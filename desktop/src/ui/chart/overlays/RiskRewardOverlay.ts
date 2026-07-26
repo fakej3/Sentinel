@@ -84,6 +84,17 @@ export class RiskRewardOverlay implements IAnalysisOverlay {
     const rewardColor  = lit ? REWARD_LIT      : REWARD_DIM
     const rewardEdge   = lit ? REWARD_EDGE_LIT : REWARD_EDGE_DIM
 
+    // Show "RR X.XX" axis label only when the reward zone is tall enough to read.
+    // axisLabelVisible: false in LW Charts hides both the axis box and the title
+    // text, so this doubles as a zoom-adaptive label: it silences itself when the
+    // trader is zoomed too far out for the number to be legible anyway.
+    const tpCoord        = this.engine?.priceToCoordinate(tp) ?? null
+    const entryEdgeCoord = this.engine?.priceToCoordinate(bullish ? entryHigh : entryLow) ?? null
+    const rewardPx       = tpCoord !== null && entryEdgeCoord !== null
+      ? Math.abs(tpCoord - entryEdgeCoord)
+      : 999
+    const rrLabelVisible = rewardPx >= 24
+
     return [
       {
         kind: 'zone',
@@ -114,7 +125,7 @@ export class RiskRewardOverlay implements IAnalysisOverlay {
         color:            'rgba(0,0,0,0)',
         lineWidth:        1,
         lineStyle:        LineStyle.Dotted,
-        axisLabelVisible: false,
+        axisLabelVisible: rrLabelVisible,
         title:            `RR ${rr}`,
         visible:          this.visible,
       },
