@@ -153,6 +153,37 @@ export function syntheticSeries(spec: SyntheticSpec): Series {
 export type RegimeSegment =
   | { readonly kind: 'drift'; readonly bars: number; readonly drift: number; readonly sigma: number }
   | { readonly kind: 'revert'; readonly bars: number; readonly theta: number; readonly sigma: number }
+  /**
+   * AR(1) log returns: r_t = φ·r_{t−1} + σ·√(1−φ²)·z_t.
+   *
+   * THE PROCESS A TREND-FOLLOWING ENGINE EXISTS FOR, and the one the Phase 2
+   * study never contained. `drift` is not it: geometric Brownian motion with
+   * drift has ZERO return autocorrelation — the trend is a deterministic mean
+   * shift, not persistence. A momentum rule cannot exploit a deterministic
+   * shift any better than a coin flip weighted the same way, which is why the
+   * engine's failure to beat always-long there was a weaker result than it
+   * looked.
+   *
+   * Here φ > 0 means a move genuinely raises the odds of the next move going
+   * the same way. The √(1−φ²) scaling keeps the stationary standard deviation
+   * at σ regardless of φ, so momentum strength varies without volatility
+   * varying with it — otherwise a φ sweep would confound the two.
+   *
+   * φ < 0 gives bar-to-bar mean reversion, which is a different (and faster)
+   * process than the OU `revert` segment: OU reverts the LEVEL toward an
+   * anchor, AR(1) with φ < 0 reverts each RETURN. Both are ranges; they punish
+   * different things.
+   */
+  | { readonly kind: 'momentum'; readonly bars: number; readonly phi: number; readonly sigma: number }
+  /**
+   * A jump superimposed on a random walk: with probability `rate` per bar, a
+   * log-return shock of ±`jump` sigma is added.
+   *
+   * Stands in for news. It is the only segment with a heavy tail; every other
+   * process here has Gaussian returns, which is one of the standing
+   * limitations of the whole synthetic study.
+   */
+  | { readonly kind: 'shock'; readonly bars: number; readonly rate: number; readonly jumpSigmas: number; readonly sigma: number }
 
 export interface RegimeSpec {
   readonly symbol: string
@@ -186,12 +217,39 @@ export function syntheticRegimeSeries(spec: RegimeSpec): Series {
     if (seg.kind === 'revert' && !(seg.theta > 0 && seg.theta < 1)) {
       throw new Error(`revert theta must be in (0, 1), got ${seg.theta}`)
     }
+    if (seg.kind === 'momentum' && !(seg.phi > -1 && seg.phi < 1)) {
+      throw new Error(`momentum phi must be in (-1, 1) for stationarity, got ${seg.phi}`)
+    }
+    if (seg.kind === 'shock' && !(seg.rate >= 0 && seg.rate <= 1)) {
+      throw new Error(`shock rate must be in [0, 1], got ${seg.rate}`)
+    }
     const anchor = logP
+    // AR(1) state. Carried within a segment only: a regime boundary resets
+    // momentum, which is the point of a boundary.
+    let prevReturn = 0
     for (let i = 0; i < seg.bars; i++) {
       const openLog = logP
-      logP = seg.kind === 'drift'
-        ? logP + seg.drift + seg.sigma * z()
-        : logP - seg.theta * (logP - anchor) + seg.sigma * z()
+      let step: number
+      switch (seg.kind) {
+        case 'drift':
+          step = seg.drift + seg.sigma * z()
+          break
+        case 'revert':
+          step = -seg.theta * (logP - anchor) + seg.sigma * z()
+          break
+        case 'momentum': {
+          // Scaling by sqrt(1 - phi^2) fixes the stationary variance at sigma^2.
+          step = seg.phi * prevReturn + seg.sigma * Math.sqrt(1 - seg.phi * seg.phi) * z()
+          prevReturn = step
+          break
+        }
+        case 'shock': {
+          const jump = r() < seg.rate ? (r() < 0.5 ? -1 : 1) * seg.jumpSigmas * seg.sigma : 0
+          step = seg.sigma * z() + jump
+          break
+        }
+      }
+      logP += step
       const open = Math.exp(openLog)
       const close = Math.exp(logP)
       const wick = seg.sigma * Math.abs(z())

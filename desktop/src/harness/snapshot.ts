@@ -20,7 +20,22 @@ import { computeAnalysis } from '../modules/analysis/index'
 import { validateAnalysis } from '../modules/validation/index'
 import { computeConfidence } from '../modules/confidence/index'
 import { computeTradePlan } from '../modules/pipeline/compute/trade-plan'
+import type { ConfidenceConfig } from '../modules/confidence/types'
 import type { PipelineSnapshot } from './features'
+
+/**
+ * Engine configuration overrides, for ablation studies.
+ *
+ * The confidence engine already exposes `factorWeights` as a fully overridable
+ * map with compiler-enforced exhaustiveness — `confidence/provenance.ts` calls
+ * this the calibration seam and states it needs no code change to use. Threading
+ * it through here lets an ablation zero out a whole subsystem's evidence weights
+ * WITHOUT editing engine source, which is what keeps an ablation a measurement
+ * rather than a modification.
+ */
+export interface EngineOverrides {
+  readonly confidence?: Partial<ConfidenceConfig>
+}
 
 const MS_PER_DAY = 86_400_000
 
@@ -140,6 +155,7 @@ export function analyseWindow(
   symbol: string,
   timeframe: Timeframe,
   window: readonly Candle[],
+  overrides?: EngineOverrides,
 ): PipelineSnapshot {
   // Stated here rather than surfacing three modules down as
   // "Cannot read properties of undefined (reading 'volume')".
@@ -157,7 +173,7 @@ export function analyseWindow(
     volumeAnalysis,
   )
   const validation = validateAnalysis(analysis)
-  const confidence = computeConfidence(analysis, validation)
+  const confidence = computeConfidence(analysis, validation, overrides?.confidence)
   const tradePlan = computeTradePlan(analysis, supportResistance, confidence, validation, undefined, marketStructure)
   return { indicators, marketStructure, supportResistance, analysis, validation, confidence, tradePlan }
 }

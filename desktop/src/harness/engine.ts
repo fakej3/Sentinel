@@ -25,7 +25,7 @@
  * catch a leak through a shared mutable buffer.
  */
 import type { Candle } from '../modules/market/types'
-import { analyseWindow } from './snapshot'
+import { analyseWindow, type EngineOverrides } from './snapshot'
 import { extractCategorical, extractFeatures } from './features'
 import { computeOutcomes } from './outcomes'
 import { assertWellFormedSeries } from './validate'
@@ -68,7 +68,11 @@ function lastEvaluableBar(n: number, horizons: readonly number[]): number {
   return n - shortest - 1
 }
 
-export function runSeries(series: Series, config: Partial<RunConfig> = {}): RunResult {
+export function runSeries(
+  series: Series,
+  config: Partial<RunConfig> = {},
+  overrides?: EngineOverrides,
+): RunResult {
   const cfg = resolve(config)
   // Before anything else: a malformed series does not fail downstream, it
   // produces plausible numbers. See `validate.ts`.
@@ -84,7 +88,7 @@ export function runSeries(series: Series, config: Partial<RunConfig> = {}): RunR
   for (let i = first; i <= last; i += cfg.stride) {
     // ── PAST ────────────────────────────────────────────────────────────────
     const window = candles.slice(i - cfg.lookbackBars + 1, i + 1)
-    const snapshot = analyseWindow(series.symbol, series.timeframe, window)
+    const snapshot = analyseWindow(series.symbol, series.timeframe, window, overrides)
 
     const price = candles[i].close
     if (!Number.isFinite(price) || price <= 0) { skip('no-price'); continue }
@@ -128,9 +132,10 @@ export function runSeries(series: Series, config: Partial<RunConfig> = {}): RunR
 export async function runSource(
   source: CandleSource,
   config: Partial<RunConfig> = {},
+  overrides?: EngineOverrides,
 ): Promise<readonly RunResult[]> {
   const series = await source.list()
-  return series.map(s => runSeries(s, config))
+  return series.map(s => runSeries(s, config, overrides))
 }
 
 /** Total observations across runs — the honest sample size before dedup. */
