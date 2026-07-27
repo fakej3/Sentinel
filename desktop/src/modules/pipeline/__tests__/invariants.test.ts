@@ -145,6 +145,32 @@ describe('pipeline invariants — prefix stability (no repainting, no look-ahead
   })
 })
 
+describe('pipeline invariants — swing structural properties', () => {
+  // Phase 2 replaced fixed-lookback pivots with ATR-thresholded zigzag detection
+  // and claimed strict alternation and index ordering held "by construction".
+  // Claiming is not proving; these assert them over the regime sweep.
+  it.each(REGIMES)('swings strictly alternate high/low and advance in index (drift=%s vol=%s n=%s)',
+    (drift, vol, n) => {
+      const { swings } = computeMarketStructure(market(drift, vol, n, 8080))
+      for (let i = 1; i < swings.length; i++) {
+        expect(swings[i].type, `swing ${i} repeats type ${swings[i].type}`)
+          .not.toBe(swings[i - 1].type)
+        expect(swings[i].index).toBeGreaterThan(swings[i - 1].index)
+      }
+    })
+
+  it.each(REGIMES)('every swing reports its own bar\'s extreme and timestamp (drift=%s vol=%s n=%s)',
+    (drift, vol, n) => {
+      const candles = market(drift, vol, n, 8080)
+      const { swings } = computeMarketStructure(candles)
+      for (const s of swings) {
+        const bar = candles[s.index]
+        expect(s.price).toBe(s.type === 'high' ? bar.high : bar.low)
+        expect(s.timestamp).toBe(bar.openTime)
+      }
+    })
+})
+
 describe('pipeline invariants — boundedness of 0–10 scores', () => {
   it.each(REGIMES)('every published score stays within its declared range (drift=%s vol=%s n=%s)',
     (drift, vol, n) => {
