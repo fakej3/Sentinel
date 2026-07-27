@@ -21,6 +21,7 @@ import { readFile, readdir } from 'node:fs/promises'
 import path from 'node:path'
 import type { Candle, Timeframe } from '../modules/market/types'
 import type { CandleSource, Series } from './types'
+import { assertWellFormedSeries } from './validate'
 
 const TIMEFRAME_MS: Record<Timeframe, number> = {
   '1m': 60_000, '3m': 180_000, '5m': 300_000, '15m': 900_000, '30m': 1_800_000,
@@ -79,6 +80,13 @@ export interface SyntheticSpec {
  * simulated as a bridge. That understates true intrabar range slightly, which
  * is fine: MFE/MAE are compared against the same generator, not against a
  * theoretical value.
+ *
+ * Wicks are applied in LOG space (`× exp(±w)`), not as `× (1 ± w)`. The linear
+ * form drives `low` to zero or below once `w >= 1`, which a large `sigma`
+ * reaches easily — `sigma = 0.5` needs only |z| > 2. That would have been a
+ * generator that silently produced impossible candles in exactly the
+ * high-volatility regime a stress test would reach for. The log form is also
+ * the one consistent with the process: the path itself is multiplicative.
  */
 export function syntheticSeries(spec: SyntheticSpec): Series {
   const { symbol, timeframe, bars, seed } = spec
@@ -97,8 +105,8 @@ export function syntheticSeries(spec: SyntheticSpec): Series {
     const open = price
     const close = open * Math.exp(drift + sigma * z())
     const wick = sigma * Math.abs(z())
-    const high = Math.max(open, close) * (1 + wick)
-    const low = Math.min(open, close) * (1 - wick)
+    const high = Math.max(open, close) * Math.exp(wick)
+    const low = Math.min(open, close) * Math.exp(-wick)
     const volume = 1000 * Math.exp(0.3 * z())
     const buyShare = 0.5 + 0.1 * z()
     const takerBuyVolume = volume * Math.min(0.99, Math.max(0.01, buyShare))
@@ -177,12 +185,17 @@ export function parseSeriesFile(file: string, text: string): Series {
     if (!isCandle(c)) throw new Error(`${file}: candle ${i} is malformed`)
     candles.push(c)
   })
-  for (let i = 1; i < candles.length; i++) {
-    if (candles[i].openTime <= candles[i - 1].openTime) {
-      throw new Error(`${file}: candles are not strictly increasing in openTime at index ${i}`)
-    }
+
+  const series: Series = { symbol: o.symbol, timeframe: o.timeframe as Timeframe, candles }
+  // The shape check above establishes only that the fields are numbers. What
+  // makes a series USABLE — ordering, positivity, high >= low — has one
+  // definition, in `validate.ts`, and this is not a second copy of it.
+  try {
+    assertWellFormedSeries(series)
+  } catch (e) {
+    throw new Error(`${file}: ${(e as Error).message}`)
   }
-  return { symbol: o.symbol, timeframe: o.timeframe as Timeframe, candles }
+  return series
 }
 
 /**

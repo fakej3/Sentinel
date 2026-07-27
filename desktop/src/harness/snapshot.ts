@@ -141,6 +141,9 @@ export function analyseWindow(
   timeframe: Timeframe,
   window: readonly Candle[],
 ): PipelineSnapshot {
+  // Stated here rather than surfacing three modules down as
+  // "Cannot read properties of undefined (reading 'volume')".
+  if (window.length === 0) throw new Error('analyseWindow: window must not be empty')
   const candles = [...window]
   const indicators = computeIndicators(candles)
   const marketStructure = computeMarketStructure(candles)

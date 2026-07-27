@@ -89,13 +89,25 @@ binomial standard error is valid. Overlapping windows would inflate the
 effective sample size — the same false-precision trap that produced a spurious
 `z = 8.9` in an earlier coverage experiment.
 
-Measured at authoring time (max |z| over all cells with n ≥ 100):
+Measured over the full sweep — every horizon × every category value with
+n ≥ 100:
 
-| conditioning | max abs z |
-|---|---|
-| unconditional base rate | 1.20 |
-| `direction` (long / short / null) | 1.22 |
-| confidence, split at the median | < 4 |
+| conditioning | cells | max abs z |
+|---|---|---|
+| unconditional base rate | 4 | 1.20 |
+| `direction` (long / short / null) | 12 | 2.61 |
+| `trend` | 18 | 2.61 |
+| `grade` | 16 | 1.89 |
+| `setup_quality` | 12 | 2.61 |
+| confidence, split at the median | 8 | 2.07 |
+
+**On the 2.61.** About 58 cells are tested. The expected maximum of 58 draws
+from N(0,1) is ≈ 2.7, so a max |z| of 2.61 is what pure noise looks like at
+this multiplicity, not a trace of signal. (The cells are not independent —
+horizons and partitions reuse the same observations — so 58 is an upper bound
+on the effective multiplicity, which makes 2.61 if anything less surprising.)
+The 4σ bound is set above this on purpose: it is a defect detector, not a
+significance test.
 
 The test also runs the counter-experiment: the same statistic on a series with
 `drift = 0.002` **breaches** the same 4σ bound. Without it, the null result
@@ -178,5 +190,20 @@ A run is a pure function of `(source, config)`.
   side by side, so any number in a later report resolves back to a source, a
   config and a sample size.
 
-Runtime: ~700 pipeline invocations/second at `lookbackBars = 200` on this
-machine.
+Runtime: ~2,300 pipeline invocations/second at `lookbackBars = 200` on this
+machine (997 observations over a 1,200-bar series in 423 ms, warm).
+
+## Input validation
+
+`validate.ts` is the single definition of a well-formed series, checked by both
+`parseSeriesFile` and `runSeries`. It was originally enforced only at file
+load, so a series arriving by any other route bypassed it — and a misordered
+series does not fail downstream, it produces plausible numbers. Swapping two
+candles 100 bars apart yielded 237 entirely ordinary-looking observations.
+
+Rejected: non-finite or non-positive prices, `high < low`, negative volume,
+non-increasing `openTime`. Deliberately *not* rejected, with reasons stated in
+the file: `high >= max(open, close)` (real feeds violate it on auction prints),
+uniform bar spacing (halts are real, and VWAP already detects gaps), and
+`takerBuy + takerSell === volume` (not every source populates the split). An
+empty series is well-formed — "nothing to measure" is not "corrupt".

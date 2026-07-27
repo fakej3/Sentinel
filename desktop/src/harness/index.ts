@@ -25,5 +25,6 @@ export {
   syntheticSource, syntheticSeries, inMemorySource, jsonFileSource, parseSeriesFile, rng,
 } from './sources'
 export type { SyntheticSpec } from './sources'
+export { assertWellFormedSeries } from './validate'
 export { toCsv, toJsonl, buildManifest, writeRun } from './export'
 export type { RunManifest } from './export'

@@ -28,6 +28,7 @@ import type { Candle } from '../modules/market/types'
 import { analyseWindow } from './snapshot'
 import { extractCategorical, extractFeatures } from './features'
 import { computeOutcomes } from './outcomes'
+import { assertWellFormedSeries } from './validate'
 import { DEFAULT_RUN_CONFIG } from './types'
 import type { CandleSource, Observation, RunConfig, RunResult, Series } from './types'
 
@@ -69,6 +70,9 @@ function lastEvaluableBar(n: number, horizons: readonly number[]): number {
 
 export function runSeries(series: Series, config: Partial<RunConfig> = {}): RunResult {
   const cfg = resolve(config)
+  // Before anything else: a malformed series does not fail downstream, it
+  // produces plausible numbers. See `validate.ts`.
+  assertWellFormedSeries(series)
   const candles: readonly Candle[] = series.candles
   const observations: Observation[] = []
   const skipped: Record<string, number> = {}
