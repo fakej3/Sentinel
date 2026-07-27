@@ -470,3 +470,145 @@ describe('computeTradePlan — MTF agreement', () => {
     expect(withUndefined.setupQuality).toBe(withoutArg.setupQuality)
   })
 })
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Hostile audit: explanation/state consistency and ladder coherence
+// ─────────────────────────────────────────────────────────────────────────────
+
+/** Full zone with independently controllable boundaries. */
+function fullZone(
+  id: string, lower: number, upper: number, type: 'support' | 'resistance',
+): NonNullable<SupportResistanceResult['nearestSupport']> {
+  return {
+    id, type, origin: 'swing-high', state: 'active', center: (lower + upper) / 2,
+    upper, lower, width: upper - lower, touchCount: 3, successfulReactions: 2,
+    failedReactions: 0, broken: false, retested: false, firstDetectedIndex: 0,
+    lastInteractionIndex: 10, age: 10, strength: 7, confidence: 7, evidence: [],
+  }
+}
+
+function analysisWithAtr(trend: string, price: number, atrPercent: number | null): MarketAnalysisResult {
+  const a = makeAnalysis(trend, price)
+  return { ...a, price: { ...a.price, atrPercent } }
+}
+
+describe('trade plan — the patience message must match the actual reason', () => {
+  it('does not claim ATR is unavailable when no_setup was caused by LOW ATR', () => {
+    // near-zero-ATR is a distinct no_setup cause from "no S/R and no ATR".
+    // The message is the only explanation a trader sees.
+    const sr = makeSR({ lower: 95, upper: 96, center: 95.5 }, { lower: 105, upper: 106, center: 105.5 })
+    const plan = computeTradePlan(analysisWithAtr('strong bullish', 100, 0.05), sr, makeConfidence())
+    expect(plan.setupQuality).toBe('no_setup')
+    expect(plan.setupQualityReason).toMatch(/below the 0.2% minimum/)
+    expect(plan.patienceMessage).not.toMatch(/ATR is unavailable/)
+    expect(plan.patienceMessage).toMatch(/volatility|stablecoin|peg/i)
+  })
+
+  it('explains an excessive-RR downgrade as target distance, not as data quality', () => {
+    // RR > 6 downgrades to 'poor'. The patience message fell through to
+    // "Data quality is insufficient — wait for more price history", which
+    // describes a completely different condition.
+    const sr = makeSR({ lower: 99, upper: 99.5, center: 99.25 }, { lower: 120, upper: 121, center: 120.5 })
+    const plan = computeTradePlan(analysisWithAtr('strong bullish', 100, 1.0), sr, makeConfidence())
+    expect(plan.setupQuality).toBe('poor')
+    expect(plan.riskRewardRatio as number).toBeGreaterThan(6)
+    expect(plan.patienceMessage).not.toMatch(/more price history/)
+    expect(plan.patienceMessage).toMatch(/target|distant|closer/i)
+  })
+
+  it('explains a low-trust downgrade as trust, not as data volume', () => {
+    const sr = makeSR({ lower: 97, upper: 98, center: 97.5 }, { lower: 103, upper: 104, center: 103.5 })
+    const lowTrust = { score: 7.5, grade: 'strong', trust: { score: 20, level: 'low', factors: [], reductions: [] } } as unknown as ConfidenceResult
+    const plan = computeTradePlan(analysisWithAtr('strong bullish', 100, 1.0), sr, lowTrust)
+    expect(plan.setupQuality).toBe('poor')
+    expect(plan.setupQualityReason).toMatch(/trust/i)
+    expect(plan.patienceMessage).not.toMatch(/more price history/)
+    expect(plan.patienceMessage).toMatch(/trust/i)
+  })
+})
+
+describe('trade plan — target ladder coherence', () => {
+  it('is strictly monotonic in the trade direction for a long', () => {
+    // activeResistance is sorted by CENTRE, but the ladder pushes BOUNDARIES,
+    // and the filter compared each candidate against targets[0] rather than the
+    // last pushed target. A wide high-centre zone can therefore contribute a
+    // boundary below an already-pushed one, producing T1 < T2 > T3.
+    const near = fullZone('r1', 105, 106, 'resistance')   // centre 105.5
+    const mid = fullZone('r2', 130, 131, 'resistance')    // centre 130.5
+    const wide = fullZone('r3', 120, 145, 'resistance')   // centre 132.5, lower 120
+    const sr = {
+      ...makeSR({ lower: 95, upper: 96, center: 95.5 }),
+      nearestResistance: near,
+      activeResistance: [near, mid, wide],
+      activeSupport: [fullZone('s1', 95, 96, 'support')],
+    } as SupportResistanceResult
+    const plan = computeTradePlan(analysisWithAtr('strong bullish', 100, 1.0), sr, makeConfidence())
+    for (let i = 1; i < plan.targets.length; i++) {
+      expect(plan.targets[i], `target ${i} (${plan.targets[i]}) must exceed target ${i - 1} (${plan.targets[i - 1]})`)
+        .toBeGreaterThan(plan.targets[i - 1])
+    }
+  })
+
+  it('is strictly monotonic in the trade direction for a short', () => {
+    const near = fullZone('s1', 94, 95, 'support')        // centre 94.5
+    const mid = fullZone('s2', 70, 71, 'support')         // centre 70.5
+    const wide = fullZone('s3', 55, 80, 'support')        // centre 67.5, upper 80
+    const sr = {
+      ...makeSR(null, { lower: 104, upper: 105, center: 104.5 }),
+      nearestSupport: near,
+      activeSupport: [near, mid, wide],
+      activeResistance: [fullZone('r1', 104, 105, 'resistance')],
+    } as SupportResistanceResult
+    const plan = computeTradePlan(analysisWithAtr('strong bearish', 100, 1.0), sr, makeConfidence())
+    for (let i = 1; i < plan.targets.length; i++) {
+      expect(plan.targets[i], `target ${i} (${plan.targets[i]}) must be below target ${i - 1} (${plan.targets[i - 1]})`)
+        .toBeLessThan(plan.targets[i - 1])
+    }
+  })
+})
+
+describe('trade plan — every non-actionable tier explains its own cause', () => {
+  it('a ranging market is explained as having no direction, not as missing ATR', () => {
+    // 'no_levels' fires for a ranging trend even when ATR is healthy, because
+    // the ATR fallback is gated on a directional bias.
+    const sr = makeSR({ lower: 95, upper: 96, center: 95.5 }, { lower: 105, upper: 106, center: 105.5 })
+    const plan = computeTradePlan(analysisWithAtr('ranging', 100, 2.0), sr, makeConfidence())
+    expect(plan.setupQuality).toBe('no_setup')
+    expect(plan.patienceMessage).toMatch(/ranging|directional/i)
+    expect(plan.patienceMessage).not.toMatch(/no usable ATR/)
+  })
+
+  it('an MTF-conflict downgrade to poor is explained as a timeframe conflict', () => {
+    // Reachable through the API even though the pipeline does not yet supply
+    // MTF agreement. Without its own cause this fell to the generic fallback.
+    const sr = makeSR({ lower: 97, upper: 98, center: 97.5 }, { lower: 103, upper: 104, center: 103.5 })
+    const conflict = {
+      agreement: 'strong_conflict', conflictingCount: 2,
+    } as unknown as MultiTimeframeAgreement
+    const plan = computeTradePlan(
+      analysisWithAtr('strong bullish', 100, 1.0), sr, makeConfidence(4.5), undefined, conflict,
+    )
+    expect(plan.setupQuality).toBe('poor')
+    expect(plan.patienceMessage).toMatch(/timeframe/i)
+    expect(plan.patienceMessage).not.toMatch(/more price history/)
+  })
+
+  it('no non-actionable plan ever claims a condition the classifier did not find', () => {
+    // Property sweep: the patience message must never mention "price history"
+    // unless the classifier actually cited a data-volume problem.
+    const cases: Array<[string, number, number | null, number, number]> = [
+      ['strong bullish', 100, 0.05, 7.5, 100],  // near-zero ATR
+      ['ranging', 100, 2.0, 7.5, 100],           // no direction
+      ['strong bullish', 100, 1.0, 7.5, 20],     // low trust
+      ['strong bullish', 100, 1.0, 2.0, 100],    // low confidence
+    ]
+    for (const [trend, price, atr, score, trust] of cases) {
+      const sr = makeSR({ lower: 97, upper: 98, center: 97.5 }, { lower: 103, upper: 104, center: 103.5 })
+      const c = { score, grade: 'strong', trust: { score: trust, level: 'high', factors: [], reductions: [] } } as unknown as ConfidenceResult
+      const plan = computeTradePlan(analysisWithAtr(trend, price, atr), sr, c)
+      if (plan.actionable) continue
+      expect(plan.patienceMessage, `${trend}/atr=${atr}/conf=${score}/trust=${trust}`)
+        .not.toMatch(/more price history/)
+    }
+  })
+})

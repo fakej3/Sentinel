@@ -199,7 +199,7 @@ export function computeTradePlan(
     : { score: 50, label: 'developing' as const, components: { momentum: 10, volume: 10, trend: 10, structure: 10, confidence: 10 }, primaryConcern: null }
 
   // ── Setup quality ─────────────────────────────────────────────────────────
-  const { setupQuality, setupQualityReason } = classifySetupQuality(
+  const { setupQuality, setupQualityReason, cause } = classifySetupQuality(
     entryZone, invalidationLevel, targetLevel,
     geometryValid, riskRewardRatio,
     confidence, validation, mtfAgreement, trend, maturity.score, atrBased,
@@ -220,10 +220,19 @@ export function computeTradePlan(
     const ladderZones = direction === 'long'
       ? supportResistance.activeResistance
       : supportResistance.activeSupport
+    // Each rung must be further along the trade than the PREVIOUS rung, not
+    // merely further than the first. `ladderZones` is sorted by zone CENTRE
+    // while the ladder pushes zone BOUNDARIES, and those two orderings differ
+    // whenever zone widths differ (merged zones are wider by construction).
+    // Comparing against targetLevel therefore admitted a wide high-centre zone
+    // whose near boundary sat below an already-pushed rung, producing a ladder
+    // that went 105 → 130 → 120 for a long. A target sequence that reverses
+    // direction is not a plan a trader can act on.
     for (const zone of ladderZones) {
       if (targets.length >= 3) break
       const price = direction === 'long' ? zone.lower : zone.upper
-      if (direction === 'long' ? price > targetLevel : price < targetLevel) {
+      const last = targets[targets.length - 1]
+      if (direction === 'long' ? price > last : price < last) {
         targets.push(price)
       }
     }
@@ -231,7 +240,7 @@ export function computeTradePlan(
 
   // ── Patience message ──────────────────────────────────────────────────────
   const patienceMessage = buildPatienceMessage(
-    setupQuality, trend, confidence, srContext, riskRewardRatio, validation,
+    setupQuality, cause, setupQualityReason, trend, confidence, srContext, riskRewardRatio,
     entryZone, invalidationLevel, targetLevel, maturity, atrBased,
   )
 
@@ -255,6 +264,38 @@ export function computeTradePlan(
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
+/**
+ * Why `classifySetupQuality` returned the tier it did.
+ *
+ * This exists because `buildPatienceMessage` used to RE-DERIVE the reason from
+ * the same raw inputs, testing a partial copy of the chain below: it checked
+ * criticalCount, confidence < 4 and maturity < 30, but not trust < 50 and not
+ * RR > 6. Any setup downgraded by one of the two it did not check fell through
+ * to a default message — "Data quality is insufficient; wait for more price
+ * history" — describing a condition that was not the reason and, for RR > 6,
+ * was not true at all. The near-zero-ATR path likewise reported "ATR is
+ * unavailable" when ATR was present and merely small.
+ *
+ * Duplicated decision logic was the defect; deleting the duplicate is the fix.
+ * The cause travels with the tier so the explanation cannot diverge from the
+ * decision, and the switch over it is exhaustive so a new tier cannot be added
+ * without giving it a message.
+ */
+type SetupQualityCause =
+  | 'near_zero_atr'
+  | 'no_levels'
+  | 'invalid_geometry'
+  | 'rr_below_min'
+  | 'rr_above_max'
+  | 'critical_validation'
+  | 'low_confidence'
+  | 'low_trust'
+  | 'immature'
+  | 'atr_based'
+  | 'mtf_conflict'
+  /** Passed every gate — the tier is driven by RR/confidence, not by a fault. */
+  | 'qualified'
+
 function classifySetupQuality(
   entryZone: TradePlan['entryZone'],
   invalidationLevel: number | null,
@@ -268,7 +309,7 @@ function classifySetupQuality(
   maturityScore?: number,
   atrBased?: boolean,
   atrPercent?: number | null,
-): { setupQuality: TradeSetupQuality; setupQualityReason: string } {
+): { setupQuality: TradeSetupQuality; setupQualityReason: string; cause: SetupQualityCause } {
   // Weak trend (weak bullish / weak bearish / ranging) reduces setup reliability.
   // Evidence: 8/10 synthetic validation losses had weak trend labels despite high
   // confidence scores — weak-trend excellent scored 83.3% WR vs 96.6% for strong/moderate.
@@ -280,6 +321,7 @@ function classifySetupQuality(
     return {
       setupQuality: 'no_setup',
       setupQualityReason: `ATR of ${atrPercent.toFixed(3)}% is below the 0.2% minimum — market has insufficient volatility (stablecoin or peg); no reliable trade setup`,
+      cause: 'near_zero_atr',
     }
   }
 
@@ -288,6 +330,7 @@ function classifySetupQuality(
     return {
       setupQuality: 'no_setup',
       setupQualityReason: 'Insufficient support/resistance data to establish trade levels',
+      cause: 'no_levels',
     }
   }
 
@@ -296,6 +339,7 @@ function classifySetupQuality(
     return {
       setupQuality: 'avoid',
       setupQualityReason: 'Trade geometry is invalid — stop, entry, and target are not in the correct order',
+      cause: 'invalid_geometry',
     }
   }
 
@@ -305,6 +349,7 @@ function classifySetupQuality(
     return {
       setupQuality: 'avoid',
       setupQualityReason: `Risk/reward of ${rrStr} is below the minimum threshold of 1.5`,
+      cause: 'rr_below_min',
     }
   }
 
@@ -316,6 +361,7 @@ function classifySetupQuality(
     return {
       setupQuality: 'poor',
       setupQualityReason: `RR of ${riskRewardRatio.toFixed(2)} exceeds the 6.0 maximum — target level is likely too distant; consider a closer target or skip`,
+      cause: 'rr_above_max',
     }
   }
 
@@ -324,18 +370,21 @@ function classifySetupQuality(
     return {
       setupQuality: 'poor',
       setupQualityReason: `${validation.criticalCount} critical data quality issue(s) undermine the analysis`,
+      cause: 'critical_validation',
     }
   }
   if (confidence.score < 4.0) {
     return {
       setupQuality: 'poor',
       setupQualityReason: `Confidence score of ${confidence.score.toFixed(1)} is too low for a reliable setup`,
+      cause: 'low_confidence',
     }
   }
   if (confidence.trust.score < 50) {
     return {
       setupQuality: 'poor',
       setupQualityReason: `Data trust of ${confidence.trust.score}% is below the 50% reliability threshold`,
+      cause: 'low_trust',
     }
   }
 
@@ -346,21 +395,21 @@ function classifySetupQuality(
     return {
       setupQuality: 'poor',
       setupQualityReason: `Trade maturity ${maturityScore}/100 (Immature) — market conditions are not ready; wait for momentum, volume, and structure to align`,
+      cause: 'immature',
     }
   }
 
   // ATR-based setups are capped at 'average' — levels are volatility-derived, not
   // anchored to key market structure, so confidence in exact price reactions is lower.
   if (atrBased) {
-    if (validation.criticalCount > 0 || confidence.score < 4.0) {
-      return {
-        setupQuality: 'poor',
-        setupQualityReason: `ATR-based levels — ${validation.criticalCount > 0 ? 'critical data quality issues' : `confidence ${confidence.score.toFixed(1)} too low`}; no key S/R structure found`,
-      }
-    }
+    // The guard that used to sit here — `validation.criticalCount > 0 ||
+    // confidence.score < 4.0` — was unreachable: both conditions return 'poor'
+    // in step 4 above, before control can arrive here. Removed rather than
+    // left as reassuring-looking dead code.
     return {
       setupQuality: 'average',
-      setupQualityReason: `ATR-based levels (no key S/R structure) — RR ${riskRewardRatio?.toFixed(2) ?? 'N/A'}, confidence ${confidence.score.toFixed(1)}; use reduced size`,
+      setupQualityReason: `ATR-based levels (no key S/R structure) — RR ${riskRewardRatio.toFixed(2)}, confidence ${confidence.score.toFixed(1)}; use reduced size`,
+      cause: 'atr_based',
     }
   }
 
@@ -376,17 +425,20 @@ function classifySetupQuality(
       return {
         setupQuality: 'good',
         setupQualityReason: `Setup downgraded: RR ${riskRewardRatio.toFixed(2)}, confidence ${confidence.score.toFixed(1)}${weakTrendNote}${mtfNote}`,
+      cause: 'qualified',
       }
     }
     if (mtfConflict) {
       return {
         setupQuality: 'good',
         setupQualityReason: `Excellent setup degraded by multi-timeframe conflict: RR ${riskRewardRatio.toFixed(2)}, confidence ${confidence.score.toFixed(1)}${mtfNote}`,
+      cause: 'qualified',
       }
     }
     return {
       setupQuality: 'excellent',
       setupQualityReason: `Excellent setup: RR ${riskRewardRatio.toFixed(2)}, confidence ${confidence.score.toFixed(1)}, trust ${confidence.trust.score}%`,
+      cause: 'qualified',
     }
   }
 
@@ -396,17 +448,20 @@ function classifySetupQuality(
       return {
         setupQuality: 'average',
         setupQualityReason: `Setup downgraded: RR ${riskRewardRatio.toFixed(2)}, confidence ${confidence.score.toFixed(1)}${weakTrendNote}${mtfNote}`,
+      cause: 'qualified',
       }
     }
     if (mtfConflict) {
       return {
         setupQuality: 'average',
         setupQualityReason: `Good setup degraded by multi-timeframe conflict: RR ${riskRewardRatio.toFixed(2)}, confidence ${confidence.score.toFixed(1)}${mtfNote}`,
+      cause: 'qualified',
       }
     }
     return {
       setupQuality: 'good',
       setupQualityReason: `Good setup: RR ${riskRewardRatio.toFixed(2)}, confidence ${confidence.score.toFixed(1)}`,
+      cause: 'qualified',
     }
   }
 
@@ -415,11 +470,13 @@ function classifySetupQuality(
     return {
       setupQuality: 'poor',
       setupQualityReason: `Marginal setup degraded by multi-timeframe conflict: RR ${riskRewardRatio.toFixed(2)}, confidence ${confidence.score.toFixed(1)}${mtfNote}`,
+      cause: 'mtf_conflict',
     }
   }
   return {
     setupQuality: 'average',
     setupQualityReason: `Marginal setup: RR ${riskRewardRatio.toFixed(2)} meets threshold but confidence ${confidence.score.toFixed(1)} is below optimal`,
+      cause: 'qualified',
   }
 }
 
@@ -432,23 +489,38 @@ function fmtPrice(price: number): string {
 
 function buildPatienceMessage(
   setupQuality: TradeSetupQuality,
+  cause: SetupQualityCause,
+  setupQualityReason: string,
   trend: string,
   confidence: ConfidenceResult,
   srContext: MarketAnalysisResult['srContext'],
   riskRewardRatio: number | null,
-  validation: ValidationResult,
   entryZone: TradePlan['entryZone'],
   invalidationLevel: number | null,
   targetLevel: number | null,
   maturity: TradeMaturityResult,
   atrBased?: boolean,
 ): string {
+  // Every non-actionable tier is explained from the CAUSE the classifier
+  // returned, never from a re-test of the classifier's inputs. Re-testing is
+  // what allowed the explanation to describe a different condition from the
+  // decision. `validation` is no longer a parameter here for exactly that
+  // reason: this function must not be able to form its own opinion.
   switch (setupQuality) {
     case 'no_setup':
-      return 'No trade setup available — price is mid-range with no nearby S/R structure and ATR is unavailable; wait for structure to form or a pullback to a key level'
+      if (cause === 'near_zero_atr') {
+        return 'Market volatility is far below the tradeable minimum — this looks like a stablecoin or pegged asset; no technical level is meaningful at this ATR'
+      }
+      // 'no_levels' has two distinct causes and the message must not assert the
+      // wrong one: a non-directional trend suppresses the ATR fallback entirely
+      // (ATR is often present and healthy), whereas a directional trend reaching
+      // here genuinely had neither structure nor a usable ATR.
+      return trend === 'ranging' || (!trend.includes('bullish') && !trend.includes('bearish'))
+        ? 'No directional bias — trend is ranging, so there is no side to plan a trade on; wait for a break of structure'
+        : 'No trade setup available — no nearby S/R structure and no usable ATR fallback; wait for structure to form or a pullback to a key level'
 
     case 'avoid':
-      if (riskRewardRatio !== null && riskRewardRatio < 1.5) {
+      if (cause === 'rr_below_min' && riskRewardRatio !== null) {
         return confidence.score >= 6.0
           ? `Confidence is high but risk/reward is ${riskRewardRatio.toFixed(2)}:1 (minimum 1.5:1) — wait for a better entry zone`
           : `Risk/reward is ${riskRewardRatio.toFixed(2)}:1 — below minimum 1.5:1; wait for price to approach a higher-probability zone`
@@ -456,17 +528,29 @@ function buildPatienceMessage(
       return 'Trade geometry is invalid — stop, entry, and target are not in the correct order; wait for structure to clarify'
 
     case 'poor':
-      if (validation.criticalCount > 0) {
-        return 'Critical data quality issues are present — avoid trading until the analysis clears'
+      switch (cause) {
+        case 'critical_validation':
+          return 'Critical data quality issues are present — avoid trading until the analysis clears'
+        case 'low_confidence':
+          return `Signal confidence is ${confidence.score.toFixed(1)}/10 — too low for a reliable setup; wait for a clearer directional move`
+        case 'low_trust':
+          return `Data trust is ${confidence.trust.score}% — below the 50% reliability threshold; the inputs behind this setup are not dependable enough to act on`
+        case 'immature': {
+          const concern = maturity.primaryConcern ?? 'momentum, volume, and structure not yet aligned'
+          return `Setup maturity ${maturity.score}/100 (Immature) — ${concern}; wait for conditions to mature before entering`
+        }
+        case 'rr_above_max':
+          return riskRewardRatio !== null
+            ? `Risk/reward of ${riskRewardRatio.toFixed(2)}:1 is implausibly high — the target sits beyond meaningful structure and price is unlikely to reach it before invalidating; take a closer target or skip`
+            : 'The target sits beyond meaningful structure — take a closer target or skip'
+        case 'mtf_conflict':
+          return 'Higher timeframes disagree with this setup — wait for the conflicting timeframe to align before entering'
+        default:
+          // Any cause/tier pairing the classifier does not currently produce.
+          // Echoing its own reason is the only fallback that cannot contradict
+          // the decision; inventing prose here is what caused the defects above.
+          return `${setupQualityReason} — no trade`
       }
-      if (confidence.score < 4.0) {
-        return `Signal confidence is ${confidence.score.toFixed(1)}/10 — too low for a reliable setup; wait for a clearer directional move`
-      }
-      if (maturity.score < 30) {
-        const concern = maturity.primaryConcern ?? 'momentum, volume, and structure not yet aligned'
-        return `Setup maturity ${maturity.score}/100 (Immature) — ${concern}; wait for conditions to mature before entering`
-      }
-      return 'Data quality is insufficient for a reliable setup — wait for more price history to accumulate'
 
     case 'excellent': {
       const earlyNote = maturity.score < 45 && maturity.primaryConcern
