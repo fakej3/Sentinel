@@ -158,11 +158,24 @@ describe('attributeRecords — loss classification', () => {
     expect(ar.lossReasons).toContain('weak_ema')
   })
 
-  it('assigns weak_structure when strength=weak and confidence<40', () => {
+  it('assigns weak_structure when strength=weak and structural confidence is low', () => {
+    // msConfidence is on the 0–10 scale the structure engine emits. The old
+    // fixture passed 30, a 0–100 value, which is why nobody noticed the
+    // predicate compared against 40 and was therefore always true.
     const [ar] = attributeRecords([
-      makeRecord({ result: 'sl_hit', msStrength: 'weak', msConfidence: 30 }),
+      makeRecord({ result: 'sl_hit', msStrength: 'weak', msConfidence: 3 }),
     ])
     expect(ar.lossReasons).toContain('weak_structure')
+  })
+
+  it('does NOT assign weak_structure when structural confidence is high', () => {
+    // The regression guard for the always-true predicate: under `< 40` this
+    // case produced weak_structure too, so the confidence half of the test
+    // contributed nothing.
+    const [ar] = attributeRecords([
+      makeRecord({ result: 'sl_hit', msStrength: 'weak', msConfidence: 8 }),
+    ])
+    expect(ar.lossReasons).not.toContain('weak_structure')
   })
 
   it('assigns false_breakout when breakout confirmed and barsToOutcome<=8', () => {

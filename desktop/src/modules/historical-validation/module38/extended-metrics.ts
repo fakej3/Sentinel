@@ -148,15 +148,6 @@ export interface RegimeStats {
   winRate: number | null
 }
 
-export interface MtfBin {
-  symbol: string
-  positionBin: number // 0-9 (decile)
-  directions: Array<'bullish' | 'bearish' | 'neutral'>
-  grades: Array<MTFTimeframeInput['grade']>
-  scores: number[]
-  outcomes: Array<'tp_hit' | 'sl_hit' | 'neither' | 'no_trade'>
-}
-
 export interface MtfAgreementStats {
   agreement: string
   count: number

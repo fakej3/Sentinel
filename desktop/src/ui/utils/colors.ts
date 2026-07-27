@@ -1,11 +1,5 @@
 import type { ConfidenceGrade } from '../types'
-import type { EvidenceDirection, EvidenceImpact, FullTrendLabel } from '../types'
-
-export function directionColor(dir: EvidenceDirection | 'bullish' | 'bearish' | 'neutral' | string): string {
-  if (dir === 'bullish') return 'text-emerald-400'
-  if (dir === 'bearish') return 'text-red-400'
-  return 'text-slate-400'
-}
+import type { EvidenceImpact, FullTrendLabel } from '../types'
 
 export function directionBg(dir: string): string {
   if (dir === 'bullish') return 'bg-emerald-400/10 text-emerald-400 border-emerald-400/20'

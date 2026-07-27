@@ -53,16 +53,6 @@ export interface TradeMaturityResult {
   primaryConcern: string | null
 }
 
-// ── Labels ────────────────────────────────────────────────────────────────────
-
-export const MATURITY_LABEL_DISPLAY: Record<MaturityLabel, string> = {
-  immature:   'Immature',
-  early:      'Early',
-  developing: 'Developing',
-  mature:     'Mature',
-  peak:       'Peak',
-}
-
 // ── Computation ───────────────────────────────────────────────────────────────
 
 /**

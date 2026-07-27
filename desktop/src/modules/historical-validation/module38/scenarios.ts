@@ -14,8 +14,6 @@ export const SYMBOLS = [
   'ADAUSDT', 'DOGEUSDT', 'LINKUSDT', 'AVAXUSDT', 'SUIUSDT',
 ] as const
 
-export type SymbolName = typeof SYMBOLS[number]
-
 export const TIMEFRAMES: Timeframe[] = ['15m', '1h', '4h']
 
 export type MarketRegime =

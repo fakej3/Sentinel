@@ -13,7 +13,6 @@ export const INDICATORS = [
 ] as const
 
 export type IndicatorId    = typeof INDICATORS[number]['id']
-export type IndicatorGroup = typeof INDICATORS[number]['group']
 
 const ROW1 = INDICATORS.slice(0, 5)
 const ROW2 = INDICATORS.slice(5)

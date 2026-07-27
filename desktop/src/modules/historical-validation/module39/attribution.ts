@@ -74,7 +74,11 @@ function classifyLoss(record: ValidationRecord): LossReason[] {
 
   // ── Structure ──────────────────────────────────────────────────────────────
 
-  if (marketStructure.strength === 'weak' && marketStructure.confidence < 40) {
+  // marketStructure.confidence is a 0–10 score, not 0–100. The original `< 40`
+  // was therefore ALWAYS true, silently reducing this test to `strength ===
+  // 'weak'`. 4 is the same intent expressed in the correct units, not a new
+  // threshold.
+  if (marketStructure.strength === 'weak' && marketStructure.confidence < 4) {
     reasons.push('weak_structure')
   }
 

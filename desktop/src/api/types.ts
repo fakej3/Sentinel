@@ -8,11 +8,3 @@ export interface AnalyzeRequest {
   candleLimit?: number
   config?: Record<string, unknown>
 }
-
-export interface ApiErrorBody {
-  error: {
-    code: string
-    message: string
-    module?: string
-  }
-}
