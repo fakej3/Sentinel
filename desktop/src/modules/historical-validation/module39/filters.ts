@@ -79,7 +79,13 @@ export const FILTERS: FilterDef[] = [
     description: 'Exclude trades where market structure strength is weak with low confidence',
     keep: ar => {
       const ms = ar.record.snapshot.pipeline.marketStructure
-      return !(ms.strength === 'weak' && ms.confidence < 40)
+      // marketStructure.confidence is a 0–10 score, not 0–100. `< 40` was
+      // therefore always true and this filter silently reduced to
+      // `strength === 'weak'`, discarding every weak-structure trade rather
+      // than only the low-confidence ones the description promises. 4 is the
+      // same intent in the correct units, matching the identical correction
+      // made in module39/attribution.ts.
+      return !(ms.strength === 'weak' && ms.confidence < 4)
     },
   },
   {

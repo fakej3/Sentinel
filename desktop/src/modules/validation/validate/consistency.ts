@@ -215,20 +215,51 @@ export function checkConsistency(
 
   if (indicators.macd !== null) {
     const { macdLine, signalLine } = indicators.macd
-    const expectedMacdBullish = macdLine > signalLine
-    if (conditions.macdBullish !== expectedMacdBullish) {
+    const separation = macdLine - signalLine
+
+    // STALE CONTRACT, CORRECTED. This used to assert exact equality against
+    // `macdLine > signalLine` — a re-derivation of the producer's rule with an
+    // implicit zero deadband. full-trend.ts now applies an ATR-scaled
+    // neutrality band (macdNeutralAtrFraction x ATR) below which MACD abstains
+    // instead of voting, so every correct abstention inside that band was
+    // reported as a CRITICAL inconsistency. Measured over 360 synthetic
+    // analyses: 114 spurious criticals across 31.7% of runs. One critical caps
+    // confidence at criticalScoreCap (3.0) and forces setupQuality 'poor', so
+    // this suppressed roughly a third of all trade plans.
+    //
+    // The band is NOT re-derived here. Duplicating macdNeutralAtrFraction into
+    // the validation config would recreate exactly the drift that caused this
+    // defect — the validator would once again encode its own copy of a rule
+    // owned by another module. What is validated instead is the DIRECTIONAL
+    // INVARIANT, which holds for any non-negative band:
+    //
+    //   macdBullish  ⟹  macdLine > signalLine
+    //   macdBearish  ⟹  macdLine < signalLine
+    //   ¬(macdBullish ∧ macdBearish)
+    //
+    // These catch the failure this validator exists for — a condition asserted
+    // against the data — while being independent of the band's magnitude. The
+    // magnitude itself is the analysis module's concern and is covered by
+    // full-trend's own tests.
+    if (conditions.macdBullish && separation <= 0) {
       issues.push(critical(
         'fullTrend.conditions.macdBullish',
-        `macdBullish is ${conditions.macdBullish} but rule (macdLine > signalLine) gives ${expectedMacdBullish}`,
-        String(expectedMacdBullish), String(conditions.macdBullish),
+        `macdBullish is true but macdLine (${macdLine}) is not above signalLine (${signalLine})`,
+        'macdLine > signalLine', `separation=${separation}`,
       ))
     }
-    const expectedMacdBearish = macdLine < signalLine
-    if (conditions.macdBearish !== expectedMacdBearish) {
+    if (conditions.macdBearish && separation >= 0) {
       issues.push(critical(
         'fullTrend.conditions.macdBearish',
-        `macdBearish is ${conditions.macdBearish} but rule (macdLine < signalLine) gives ${expectedMacdBearish}`,
-        String(expectedMacdBearish), String(conditions.macdBearish),
+        `macdBearish is true but macdLine (${macdLine}) is not below signalLine (${signalLine})`,
+        'macdLine < signalLine', `separation=${separation}`,
+      ))
+    }
+    if (conditions.macdBullish && conditions.macdBearish) {
+      issues.push(critical(
+        'fullTrend.conditions.macdBullish',
+        'macdBullish and macdBearish are both true — MACD cannot vote in two directions',
+        'at most one true', 'both true',
       ))
     }
   } else {

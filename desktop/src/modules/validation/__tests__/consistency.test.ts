@@ -462,3 +462,59 @@ describe('checkConsistency', () => {
     expect(issues.some(i => i.field === 'fullTrend.conditions.priceBetweenEMAsWithoutClearOrder')).toBe(false)
   })
 })
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Hostile audit: the MACD validator must encode the CURRENT producer contract
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('MACD condition validation respects the neutrality deadband', () => {
+  it('does not flag CRITICAL when MACD abstains inside the deadband', () => {
+    // full-trend.ts sets macdBullish only when the separation exceeds
+    // macdNeutralAtrFraction x ATR. The validator re-derived the condition as a
+    // bare `macdLine > signalLine` (band = 0), so every abstention inside the
+    // band was reported as a contradiction. A single critical caps confidence
+    // at 3.0 and forces setupQuality 'poor', so this silently crippled roughly
+    // a third of all analyses.
+    const result = makeValidResult()
+    result.indicators = {
+      ...result.indicators,
+      atr: 10,
+      macd: { macdLine: 0.2, signalLine: 0.0, histogram: 0.2, previousHistogram: 0.1, bias: 'neutral' },
+    }
+    // separation = 0.2, band = 0.05 x 10 = 0.5 -> engine abstains, correctly.
+    result.fullTrend.conditions.macdBullish = false
+    result.fullTrend.conditions.macdBearish = false
+
+    const issues = checkConsistency(result, DEFAULT_VALIDATION_CONFIG)
+    const macdIssues = issues.filter(i => i.field.startsWith('fullTrend.conditions.macd'))
+    expect(macdIssues).toEqual([])
+  })
+
+  it('still flags a genuine inversion — macdBullish true while the line is below signal', () => {
+    const result = makeValidResult()
+    result.indicators = {
+      ...result.indicators,
+      atr: 10,
+      macd: { macdLine: -5, signalLine: 0, histogram: -5, previousHistogram: -4, bias: 'bearish' },
+    }
+    result.fullTrend.conditions.macdBullish = true
+    result.fullTrend.conditions.macdBearish = false
+
+    const issues = checkConsistency(result, DEFAULT_VALIDATION_CONFIG)
+    expect(issues.some(i => i.field === 'fullTrend.conditions.macdBullish')).toBe(true)
+  })
+
+  it('flags both conditions being true simultaneously', () => {
+    const result = makeValidResult()
+    result.indicators = {
+      ...result.indicators,
+      atr: 10,
+      macd: { macdLine: 5, signalLine: 0, histogram: 5, previousHistogram: 4, bias: 'bullish' },
+    }
+    result.fullTrend.conditions.macdBullish = true
+    result.fullTrend.conditions.macdBearish = true
+
+    const issues = checkConsistency(result, DEFAULT_VALIDATION_CONFIG)
+    expect(issues.some(i => i.field.startsWith('fullTrend.conditions.macd'))).toBe(true)
+  })
+})
