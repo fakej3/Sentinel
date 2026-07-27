@@ -186,6 +186,66 @@ describe('computeVwapSeries', () => {
     expect(s.unavailable?.code).toBe('insufficient-history')
   })
 
+  it('withholds when candles are missing from the MIDDLE of the session', () => {
+    // REGRESSION (A4). The session's 00:00 opening bar is present, then ten
+    // hours are missing. The previous implementation checked only the opening
+    // bar, so it published a "complete" session VWAP built from 2 bars out of
+    // 11. A volume-weighted mean is not robust to missing weight: the result
+    // was not noisy, it was wrong, and it was marked available.
+    const candles = [
+      bar(DAY * 20, HOUR, 100),
+      bar(DAY * 20 + 10 * HOUR, HOUR, 200),
+      bar(DAY * 20 + 11 * HOUR, HOUR, 200),
+    ]
+    const r = computeVwap(candles)
+    expect(r.available).toBe(false)
+    expect(r.unavailable?.code).toBe('insufficient-history')
+    expect(r.unavailable?.detail).toMatch(/missing from the middle/)
+  })
+
+  it('distinguishes a mid-session gap from a mid-session window start', () => {
+    const windowStart = computeVwap(series(DAY * 20 + 6 * HOUR, HOUR, 4, () => 100))
+    expect(windowStart.unavailable?.detail).toMatch(/began before the first available candle/)
+  })
+
+  it('does not treat a whole missing SESSION as a gap in the next one', () => {
+    // Day 20 present, day 21 entirely absent, day 22 intact from its anchor.
+    // Day 22's own accumulation is complete and must be published.
+    const candles = [
+      ...series(DAY * 20, HOUR, 24, () => 100),
+      ...series(DAY * 22, HOUR, 5, () => 200),
+    ]
+    const r = computeVwap(candles)
+    expect(r.available).toBe(true)
+    expect(r.anchorTime).toBe(DAY * 22)
+    expect(r.value).toBeCloseTo(200, 6)
+  })
+
+  it('keeps a session incomplete for the remainder once a gap is seen', () => {
+    // The missing volume can never be recovered, so every later bar in that
+    // session is understated and must stay null.
+    const candles = [
+      bar(DAY * 20, HOUR, 100),
+      bar(DAY * 20 + 5 * HOUR, HOUR, 200),
+      bar(DAY * 20 + 6 * HOUR, HOUR, 200),
+      bar(DAY * 20 + 7 * HOUR, HOUR, 200),
+    ]
+    const s = computeVwapSeries(candles)
+    expect(s.values).toEqual([100, null, null, null])
+  })
+
+  it('places the gap boundary strictly between 1x and 2x the bar duration', () => {
+    // Exactly 1x spacing is normal succession; exactly 2x is one missing bar.
+    // Those are the only two values well-formed data can produce, so the
+    // classifier must separate them and nothing else.
+    const consecutive = [bar(DAY * 20, HOUR, 100), bar(DAY * 20 + HOUR, HOUR, 100)]
+    expect(computeVwap(consecutive).available).toBe(true)
+
+    const oneMissing = [bar(DAY * 20, HOUR, 100), bar(DAY * 20 + 2 * HOUR, HOUR, 100)]
+    expect(computeVwap(oneMissing).available).toBe(false)
+    expect(computeVwap(oneMissing).unavailable?.detail).toMatch(/missing from the middle/)
+  })
+
   it('is deterministic', () => {
     const candles = series(DAY, HOUR, 20, i => 100 + Math.sin(i) * 5, i => 50 + i)
     expect(computeVwapSeries(candles)).toEqual(computeVwapSeries(candles))
@@ -214,6 +274,21 @@ describe('bar-duration inference', () => {
   it('falls back to the spacing between opens when closeTime is unusable', () => {
     const candles = series(0, DAY, 3, () => 100).map(c => ({ ...c, closeTime: 0 }))
     expect(computeVwap(candles).unavailable?.code).toBe('undefined-at-timeframe')
+  })
+
+  it('infers duration from the MINIMUM open spacing, so a trailing gap cannot skew it', () => {
+    // SELF-REVIEW FIX. The fallback used to measure only the final pair of
+    // opens. With an unusable closeTime and a gap immediately before the last
+    // bar, that inferred 2x the true duration — and therefore depended on
+    // where the window happened to end, breaking prefix stability on the
+    // fallback path. The minimum spacing is gap-immune: gaps only ever make a
+    // spacing larger.
+    const raw = series(DAY * 20, HOUR, 6, () => 100).map(c => ({ ...c, closeTime: 0 }))
+    const withTrailingGap = [...raw.slice(0, 5), { ...raw[5], openTime: raw[5].openTime + HOUR }]
+    // True duration is 1h. A final-pair estimator would read 2h here.
+    const s = computeVwapSeries(withTrailingGap)
+    expect(s.unavailable?.code).toBe('insufficient-history')
+    expect(s.unavailable?.detail).toMatch(/missing from the middle/)
   })
 
   it('reports malformed-input when timestamps describe no positive duration', () => {

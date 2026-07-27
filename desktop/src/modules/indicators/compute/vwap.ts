@@ -100,10 +100,31 @@ export interface VwapSeries {
   unavailable: Unavailable | null
 }
 
-/** UTC midnight at or before `t`. `Math.floor` keeps this correct for t < 0. */
-function sessionStartOf(t: number): number {
+/**
+ * UTC midnight at or before `t`. `Math.floor` keeps this correct for t < 0.
+ *
+ * Exported because the VWAP series is only piecewise-continuous — it resets at
+ * every session boundary — so any consumer reasoning about the SHAPE of the
+ * series (rather than a single value) has to know where the pieces end. See the
+ * cross-detection note in volume-analysis/compute/vwap-analysis.ts.
+ */
+export function sessionStartOf(t: number): number {
   return Math.floor(t / MS_PER_DAY) * MS_PER_DAY
 }
+
+/**
+ * Multiple of the bar duration at which a spacing between consecutive opens is
+ * classified as a data gap rather than as normal succession.
+ *
+ * DERIVED, not tuned. Bars are discrete: for well-formed uniform data the ratio
+ * Δopen / barDuration is exactly 1, and a single missing bar makes it exactly 2.
+ * There is no third possibility. 1.5 is the midpoint of the only two reachable
+ * values, i.e. the decision boundary maximally far from both — the standard
+ * discriminator between adjacent integers under timestamp jitter. Any threshold
+ * in the open interval (1, 2) is equally correct on exact data; the midpoint is
+ * the one that tolerates the most jitter in either direction.
+ */
+const GAP_RATIO = 1.5
 
 /**
  * Bar duration in ms, derived from the candles themselves.
@@ -124,10 +145,21 @@ function inferBarDuration(candles: Candle[]): number | null {
   const last = candles[candles.length - 1]
   const fromClose = last.closeTime - last.openTime + 1
   if (Number.isFinite(fromClose) && fromClose > 1) return fromClose
-  if (candles.length >= 2) {
-    const fromOpens = last.openTime - candles[candles.length - 2].openTime
-    if (Number.isFinite(fromOpens) && fromOpens > 0) return fromOpens
+
+  // Fallback: the MINIMUM positive spacing over the last few opens, not the
+  // spacing of the final pair. A gap only ever makes a spacing larger, so the
+  // minimum is the gap-immune estimator — and it has to be, because using the
+  // final pair alone would infer 2x the true duration whenever the window
+  // happens to end just after a missing bar, which would make the result
+  // depend on where the window ends rather than on the data. Bounded to a few
+  // bars so this stays O(1).
+  const SPACING_SAMPLES = 5
+  let fromOpens = Infinity
+  for (let i = candles.length - 1; i > 0 && i > candles.length - 1 - SPACING_SAMPLES; i--) {
+    const d = candles[i].openTime - candles[i - 1].openTime
+    if (Number.isFinite(d) && d > 0 && d < fromOpens) fromOpens = d
   }
+  if (fromOpens !== Infinity) return fromOpens
   // `fromClose === 1` means closeTime === openTime — degenerate but finite, and
   // the only remaining signal. Accepting it keeps single-candle inputs usable.
   return Number.isFinite(fromClose) && fromClose > 0 ? fromClose : null
@@ -179,14 +211,36 @@ export function computeVwapSeries(candles: Candle[]): VwapSeries {
 
   const values: (number | null)[] = new Array(n).fill(null)
 
-  let session = sessionStartOf(candles[0].openTime)
-  // A session's accumulation is complete only if we hold its opening bar. Bars
-  // are treated as opening a session when they start within one bar duration of
-  // the session boundary — exact equality for an aligned provider, and tolerant
-  // of a provider whose bars are offset, while still rejecting the case that
-  // matters: an entire missing bar (or the window simply beginning mid-session),
-  // where the first bar we hold opens a full bar-duration or more into the day.
-  let complete = candles[0].openTime - session < barDuration
+  // A session's accumulation is COMPLETE when every bar from its anchor up to
+  // and including the current one is present in the window. Two ways to lose it —
+  //
+  //   1. the session's OPENING bar is outside the window (the window began
+  //      mid-session). Detected by the bar's offset from the session boundary:
+  //      an opening bar starts within one bar duration of it. The tolerance
+  //      rather than exact equality keeps this correct for a provider whose
+  //      bars are not aligned to midnight, while still rejecting an entire
+  //      missing bar.
+  //   2. a bar is missing from the MIDDLE of the session. The earlier version of
+  //      this function only performed check (1), so a session holding its 00:00
+  //      bar and then nothing until 10:00 was reported as a complete session
+  //      VWAP built from two bars out of eleven. Volume-weighted means are not
+  //      robust to missing weight: the answer is not noisy, it is wrong, and it
+  //      was being published as available.
+  //
+  // Once a session is incomplete it stays incomplete for the rest of that
+  // session — the missing volume can never be recovered — and resets at the
+  // next session boundary.
+  /** Why the current session's accumulation is incomplete; null when it is not. */
+  type Incompleteness = 'window-start' | 'gap'
+  let incomplete: Incompleteness | null = null
+
+  // −Infinity is a session start no real (or NaN) timestamp can produce, so the
+  // first iteration always takes the session-transition branch. That keeps the
+  // "does this bar open its session?" test written exactly once instead of
+  // duplicated before the loop, and makes the gap branch unreachable at i = 0
+  // without needing an index guard to say so.
+  let session = -Infinity
+  let prevOpen = 0
   let tpv = 0
   let vol = 0
 
@@ -195,29 +249,40 @@ export function computeVwapSeries(candles: Candle[]): VwapSeries {
     const s = sessionStartOf(c.openTime)
     if (s !== session) {
       session = s
-      complete = c.openTime - s < barDuration
+      incomplete = c.openTime - s >= barDuration ? 'window-start' : null
       tpv = 0
       vol = 0
+    } else if (incomplete === null && c.openTime - prevOpen >= GAP_RATIO * barDuration) {
+      incomplete = 'gap'
     }
+    prevOpen = c.openTime
     tpv += ((c.high + c.low + c.close) / 3) * c.volume
     vol += c.volume
-    if (complete && vol > 0) {
+    if (incomplete === null && vol > 0) {
       const v = tpv / vol
       if (Number.isFinite(v)) values[i] = v
     }
   }
 
   if (values[n - 1] === null) {
-    // `complete`, `vol` and `tpv` still hold the final session's state, so the
+    // `incomplete`, `vol` and `tpv` still hold the final session's state, so the
     // reason can be reported precisely rather than as a generic failure.
-    const reason: Unavailable = !complete
-      ? unavailable(
+    let reason: Unavailable
+    if (incomplete === 'window-start') {
+      reason = unavailable(
         'insufficient-history',
         'The current UTC session began before the first available candle, so its volume accumulation is incomplete.',
       )
-      : vol > 0
-        ? unavailable('malformed-input', 'Session prices or volumes are not finite.')
-        : unavailable('no-volume', 'Zero volume traded in the current UTC session.')
+    } else if (incomplete === 'gap') {
+      reason = unavailable(
+        'insufficient-history',
+        'Candles are missing from the middle of the current UTC session, so its volume accumulation is incomplete.',
+      )
+    } else if (vol > 0) {
+      reason = unavailable('malformed-input', 'Session prices or volumes are not finite.')
+    } else {
+      reason = unavailable('no-volume', 'Zero volume traded in the current UTC session.')
+    }
     return { values, anchorTime: null, unavailable: reason }
   }
 

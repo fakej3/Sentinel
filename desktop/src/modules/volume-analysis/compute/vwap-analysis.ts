@@ -1,6 +1,6 @@
 import type { Candle } from '../../market/types'
 import type { VWAPAnalysisResult, VolumeAnalysisConfig, VwapSide } from '../types'
-import { computeVwapSeries } from '../../indicators/compute/vwap'
+import { computeVwapSeries, sessionStartOf } from '../../indicators/compute/vwap'
 
 /**
  * Bars searched for a VWAP cross.
@@ -82,12 +82,24 @@ export function computeVWAPAnalysis(
   // Carrying the last non-zero sign gets both right: (−5, 0, +5) is a cross,
   // (0, +5, +10) is not.
   //
-  // Bars whose session accumulation is incomplete carry a null VWAP and are
-  // skipped, so a cross is never inferred across a session boundary the window
-  // does not fully contain.
+  // SESSION CONFINEMENT. The window stops at the current session's anchor. A
+  // session VWAP is only piecewise-continuous: at 00:00 UTC it jumps from
+  // yesterday's whole-day average to today's first typical price. That jump is
+  // a discontinuity in the reference level, not a movement of price through it,
+  // so a sign change spanning the boundary is an artifact — price can be above
+  // yesterday's average and below today's without ever having crossed
+  // anything. Comparing bars against two different anchors is the same error
+  // the original implementation made by comparing every bar against the latest
+  // VWAP; restricting the window to one anchor is what actually fixes it.
+  //
+  // Consequence: early in a session there are few bars to search and no cross
+  // is reported. That is correct — there has not yet been an opportunity to
+  // cross today's VWAP.
   let hasCross = false
   let lastSign = 0
+  const anchor = series.anchorTime
   for (let i = Math.max(0, n - VWAP_CROSS_LOOKBACK); i < n; i++) {
+    if (sessionStartOf(candles[i].openTime) !== anchor) continue
     const barVwap = series.values[i]
     if (barVwap === null) continue
     const sign = Math.sign(candles[i].close - barVwap)

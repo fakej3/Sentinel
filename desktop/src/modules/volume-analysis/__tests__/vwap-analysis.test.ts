@@ -120,6 +120,35 @@ describe('computeVWAPAnalysis — respectingVWAP', () => {
     expect(r.respectingVWAP).toBe(false)
   })
 
+  it('does not report a cross spanning the 00:00 UTC reset', () => {
+    // REGRESSION (A11). The session VWAP series is only piecewise-continuous:
+    // at the boundary it jumps from yesterday's whole-day average to today's
+    // first typical price. Price here is ABOVE yesterday's average on its last
+    // bars and BELOW today's running average — a sign change with no traversal,
+    // because the two signs are measured against different reference levels.
+    //
+    // Yesterday rises 100 -> 192 (day VWAP 146, closes above it). Today opens
+    // at 120 and drops to 100, well below today's VWAP of 110.
+    const yesterday = Array.from({ length: 24 }, (_, i) => bar(i, 100 + i * 4, 100, -1))
+    const today = [bar(0, 120), bar(1, 100)]
+    const candles = [...yesterday, ...today]
+
+    // Pin the premise: the signs really do differ across the boundary, so a
+    // boundary-blind detector WOULD see a sign change here.
+    const vwaps = computeVwapSeries(candles).values
+    const n = candles.length
+    expect(Math.sign(candles[n - 3].close - (vwaps[n - 3] as number))).toBe(1)
+    expect(Math.sign(candles[n - 1].close - (vwaps[n - 1] as number))).toBe(-1)
+
+    const r = computeVWAPAnalysis(candles, DEFAULT_CONFIG)
+    // ~9% from today's VWAP, so proximity cannot be what decides this.
+    expect(Math.abs(r.distancePercent as number))
+      .toBeGreaterThan(DEFAULT_CONFIG.vwapProximityPercent)
+    // Inside today's session the sign never changes: skip (bar 0 sits on VWAP),
+    // then negative. No traversal happened, so none may be reported.
+    expect(r.respectingVWAP).toBe(false)
+  })
+
   it('does not infer a cross across a session boundary it cannot see', () => {
     // Bars from a partial previous session carry a null VWAP and are skipped
     // rather than compared against a value that was never determined.
