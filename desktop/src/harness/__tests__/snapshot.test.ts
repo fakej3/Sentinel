@@ -98,6 +98,17 @@ describe('analyseWindow', () => {
     ])
   })
 
+  it('names absence rather than stringifying it', () => {
+    // `String(null)` yields "null", which then appears in a report as a
+    // category literally called "null" — indistinguishable at a glance from a
+    // rendering failure, and it was showing up that way in the Markdown output.
+    const seen = new Set<string>()
+    for (let end = 210; end <= 260; end += 5) {
+      for (const v of Object.values(extractCategorical(analyseWindow('A', '1h', w.slice(0, end))))) seen.add(v)
+    }
+    for (const bad of ['null', 'undefined', 'NaN', '']) expect(seen.has(bad)).toBe(false)
+  })
+
   it('emits no raw price as a feature', () => {
     // Scaling every price by 1000 must not move a scale-free feature. Any
     // feature that changes is carrying price level and would let a model

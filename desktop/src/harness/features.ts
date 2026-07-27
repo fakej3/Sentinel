@@ -127,19 +127,51 @@ export function extractFeatures(s: PipelineSnapshot, price: number): Record<stri
   put(f, 'maturity', s.tradePlan.maturityScore)
   put(f, 'actionable', s.tradePlan.actionable ? 1 : 0)
 
+  // ── Trade-plan geometry, in ATR units ──────────────────────────────────────
+  // Needed to express outcomes as R multiples: R = (return in ATR) / (risk in
+  // ATR). Without the engine's OWN stop distance, an R multiple would have to
+  // assume a risk unit, and every trading metric would then be measuring the
+  // assumption rather than the engine. Absent when the plan has no stop, and
+  // the metrics layer reports how many trades that excluded.
+  const plan = s.tradePlan
+  if (atr !== null && atr > 0) {
+    const entryMid = plan.entryZone !== null ? (plan.entryZone.lower + plan.entryZone.upper) / 2 : null
+    if (entryMid !== null && plan.invalidationLevel !== null) {
+      put(f, 'stop_distance_atr', Math.abs(entryMid - plan.invalidationLevel) / atr)
+    }
+    if (entryMid !== null && plan.targetLevel !== null) {
+      put(f, 'target_distance_atr', Math.abs(plan.targetLevel - entryMid) / atr)
+    }
+    // How far the decision-bar close sits from the planned entry. A large value
+    // means the recorded outcome (measured from the close) is not the outcome
+    // the plan would have had.
+    if (entryMid !== null) put(f, 'entry_offset_atr', (price - entryMid) / atr)
+  }
+
   return f
 }
 
+/**
+ * Categorical engine outputs.
+ *
+ * ABSENCE IS NAMED, NOT STRINGIFIED. `String(null)` yields the string
+ * `"null"`, which then appears in a report as a category called "null" — a
+ * stringified absence masquerading as a value, indistinguishable at a glance
+ * from a rendering failure. Every optional field is mapped to a token that
+ * says what it means.
+ */
 export function extractCategorical(s: PipelineSnapshot): Record<string, string> {
   return {
     trend: s.analysis.fullTrend.trend,
     grade: s.confidence.grade,
     setup_quality: s.tradePlan.setupQuality,
-    direction: String(s.tradePlan.direction),
+    /** 'none' = the engine named no tradeable direction. */
+    direction: s.tradePlan.direction ?? 'none',
     ms_trend: s.marketStructure.trend,
     ms_strength: s.marketStructure.strength,
     ema_alignment: s.analysis.emaContext.emaAlignment,
-    vwap_side: String(s.analysis.volumeContext.vwap.side),
+    /** 'unavailable' = VWAP could not be computed for this bar. */
+    vwap_side: s.analysis.volumeContext.vwap.side ?? 'unavailable',
   }
 }
 
