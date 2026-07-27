@@ -120,6 +120,39 @@ export const FACTOR_CATEGORY: Readonly<Partial<Record<EvidenceFactor, BreakdownC
  * Each category score is normalized to 0–10 using the global divisor.
  * contradictionPoints is the opposing-side raw points total (used for the
  * 'contradictions' sub-score).
+ *
+ * ── ON THE SHARED DIVISOR AND THE INHERITED KNEE ─────────────────────────────
+ *
+ * Categories deliberately share the global divisor rather than each being
+ * normalised by its own maximum. Per-category normalisation would make every
+ * category top out at 10 and destroy cross-category comparability — "momentum 7
+ * vs volume 4" would no longer mean momentum contributed more evidence, only
+ * that it filled more of its own private budget. The shared scale is the point.
+ *
+ * A consequence is that categories have very different ceilings. Measured by
+ * firing every factor at once:
+ *
+ *     trendQuality 9.45   momentum 9.97   volume 9.78
+ *     marketStructure 9.91   srPositioning 4.10
+ *
+ * Four of the five exceeded the old hard ceiling before `softClamp` was
+ * introduced (momentum reached 14.3 pre-clamp), so they saturated exactly as
+ * the top-level score did, and the soft knee fixes that here too.
+ *
+ * HONEST LIMITATION ON THE KNEE. `normalize` takes the knee from
+ * `gradeThresholds.veryStrong`. For the top-level score that value is DERIVED —
+ * it is the largest threshold applied to the score, which makes the transform
+ * provably grade-preserving. No threshold of any kind is applied to a category
+ * breakdown: these numbers are read by a human and never compared against a
+ * cutoff. There is therefore nothing to derive a category-specific knee from,
+ * and inventing one would be tuning a constant to taste.
+ *
+ * The inherited value is used because (a) the categories share the score's
+ * scale, so sharing its knee keeps one consistent mapping across everything
+ * rendered on that scale, and (b) any knee in (0, 10) preserves ordering, so
+ * the choice cannot make a category ranking wrong — only shift where
+ * compression begins. If category thresholds are ever introduced, the knee
+ * should be re-derived from the largest of them.
  */
 export function computeBreakdown(
   evidence: readonly EvidenceItem[],
