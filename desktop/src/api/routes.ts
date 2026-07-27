@@ -174,7 +174,7 @@ export function createRouter(analyzeFn: AnalyzeFn): Router {
         rsi: { value: 38, classification: 'weak_bearish' },
         macd: { histogram: -120, bias: 'bearish' },
         adx: { adx: 28, trendStrength: 'strong', dominantDirection: 'bearish' },
-        bollinger: { bandwidth: 0.04, bandwidthState: 'normal', priceRelativeToBands: 'inside' },
+        bollinger: { bandwidthPercent: 4, bandwidthState: 'normal', priceRelativeToBands: 'inside' },
         stochRsi: { k: 0.15, d: 0.20, zone: 'oversold' },
       },
       srContext: {

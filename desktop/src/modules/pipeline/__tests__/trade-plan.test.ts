@@ -35,7 +35,7 @@ function makeAnalysis(
     price: { current: currentPrice, change24hPercent: 0, high24h: 110, low24h: 90, atrPercent: null },
     fullTrend: { trend: trend as MarketAnalysisResult['fullTrend']['trend'], bullishConditionsMet: 3, bearishConditionsMet: 0, neutralConditionsMet: 0, conditions: {} as never },
     emaContext: { priceVsEMA20: 'above', priceVsEMA50: 'above', priceVsEMA100: 'above', priceVsEMA200: 'above', emaAlignment: 'bullish_stack', confluenceZones: [] },
-    indicatorSummary: { rsi: { value: 60, classification: 'healthy_bullish' }, macd: { histogram: 0.5, bias: 'bullish' }, adx: { adx: 30, trendStrength: 'strong', dominantDirection: 'bullish' }, bollinger: { bandwidth: 2, bandwidthState: 'normal', priceRelativeToBands: 'above_upper' }, stochRsi: { k: 60, d: 55, zone: 'neutral' } },
+    indicatorSummary: { rsi: { value: 60, classification: 'healthy_bullish' }, macd: { histogram: 0.5, bias: 'bullish' }, adx: { adx: 30, trendStrength: 'strong', dominantDirection: 'bullish' }, bollinger: { bandwidthPercent: 2, bandwidthState: 'normal', priceRelativeToBands: 'above_upper' }, stochRsi: { k: 60, d: 55, zone: 'neutral' } },
     srContext: { nearestSupportDistance: -2, nearestResistanceDistance: 5, insideSupport: false, insideResistance: false, approachingSupport: false, approachingResistance: false, strongestActiveSupport: null, strongestActiveResistance: null },
     volumeContext: { relativeVolume: 1.5, volumeClassification: 'normal', confirmsCurrentMove: true, climaxSignal: 'none', accDistState: 'neutral', vwap: { available: true, unavailable: null, value: 100, side: 'above', distancePercent: 1.0, respectingVWAP: true }, obvDirection: 'bullish', obvConfirmingPrice: true, overallStrength: 7 },
     evidence: [],

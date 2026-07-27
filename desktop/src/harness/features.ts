@@ -65,14 +65,13 @@ export function extractFeatures(s: PipelineSnapshot, price: number): Record<stri
     put(f, 'adx', ind.adx.adx)
     put(f, 'adx_di_spread', ind.adx.diPlus - ind.adx.diMinus)
   }
-  // Sentinel's `BollingerResult.bandwidth` is the RAW width `upper - lower`,
-  // in price units — not the conventional normalised Bollinger Bandwidth.
-  // Recording it as-is would have smuggled price level into the design matrix
-  // (a 1000x rescale moved it by exactly 1000x). Normalise by the middle band,
-  // which is the standard definition: BBW = (upper - lower) / middle.
-  if (ind.bollingerBands !== null && ind.bollingerBands.middle > 0) {
-    put(f, 'bb_bandwidth', ind.bollingerBands.bandwidth / ind.bollingerBands.middle)
-  }
+  // NOT `ind.bollingerBands.bandwidth` — that is the RAW width `upper - lower`
+  // in price units, and recording it would smuggle price level into the design
+  // matrix (a 1000x rescale moved it by exactly 1000x). The interpretation
+  // layer's `bandwidthPercent` is the scale-free quantity, and it is the same
+  // number the engine classifies `bandwidthState` from, so Phase 3 measures
+  // what the engine actually reasons about.
+  put(f, 'bb_bandwidth_pct', s.analysis.indicatorSummary.bollinger.bandwidthPercent)
   if (ind.stochRsi !== null) { put(f, 'stoch_k', ind.stochRsi.k); put(f, 'stoch_d', ind.stochRsi.d) }
   put(f, 'mfi', ind.mfi)
   put(f, 'cci', ind.cci)

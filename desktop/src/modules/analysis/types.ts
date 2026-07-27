@@ -167,7 +167,17 @@ export type BollingerBandwidthState = 'squeeze' | 'normal' | 'expansion'
 export type PriceVsBands = 'above_upper' | 'inside' | 'below_lower'
 
 export interface BollingerInterpretation {
-  bandwidth: number | null
+  /**
+   * Band width as a PERCENTAGE of price: (upper − lower) / price × 100.
+   *
+   * Not the raw width. `IndicatorResult.bollingerBands.bandwidth` is the raw
+   * price-unit width and stays that way; this is the interpretation layer, and
+   * its job is to expose the scale-free quantity that `bandwidthState` is
+   * classified from — so a percentage and a state can never disagree.
+   *
+   * null when the bands are unavailable or price is non-positive.
+   */
+  bandwidthPercent: number | null
   bandwidthState: BollingerBandwidthState | 'unavailable'
   priceRelativeToBands: PriceVsBands | 'unavailable'
 }

@@ -63,7 +63,7 @@ function makePipeline(
         rsi:  { value: 60, classification: 'healthy_bullish' },
         macd: { histogram: 0.5, bias: 'bullish' },
         adx:  { adx: 28, trendStrength: 'strong', dominantDirection: 'bullish' },
-        bollinger: { bandwidth: 2, bandwidthState: 'normal', priceRelativeToBands: 'inside' },
+        bollinger: { bandwidthPercent: 2, bandwidthState: 'normal', priceRelativeToBands: 'inside' },
         stochRsi: { k: 0.6, d: 0.55, zone: 'neutral' },
       },
       volumeContext: {

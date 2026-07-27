@@ -66,7 +66,7 @@ function makeAnalysis(overrides: Partial<{
         dominantDirection: 'bullish' as never,
       },
       bollinger: {
-        bandwidth: 2,
+        bandwidthPercent: 2,
         bandwidthState: (o.bandwidthState ?? 'normal') as 'expansion' | 'squeeze' | 'normal',
         priceRelativeToBands: 'inside' as never,
       },

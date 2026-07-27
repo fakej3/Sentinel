@@ -57,7 +57,7 @@ export function computeDecisionQuality(
   }
   if (macd.histogram === null)                                signalCleanliness -= 1
   if (adx.trendStrength === 'unavailable')                    signalCleanliness -= 1
-  if (indicatorSummary.bollinger.bandwidth === null)          signalCleanliness -= 1
+  if (indicatorSummary.bollinger.bandwidthPercent === null)   signalCleanliness -= 1
   signalCleanliness = round1(Math.max(0, signalCleanliness))
 
   // ── Composite score ──────────────────────────────────────────────────────────

@@ -228,7 +228,7 @@ export function makeValidResult(overrides: Partial<MarketAnalysisResult> = {}): 
       rsi: { value: 65, classification: 'healthy_bullish' },
       macd: { histogram: 2, bias: 'bullish' },
       adx: { adx: 30, trendStrength: 'strong', dominantDirection: 'bullish' },
-      bollinger: { bandwidth: 20, bandwidthState: 'normal', priceRelativeToBands: 'inside' },
+      bollinger: { bandwidthPercent: 20, bandwidthState: 'normal', priceRelativeToBands: 'inside' },
       stochRsi: { k: 0.65, d: 0.60, zone: 'neutral' },
     },
     srContext: {

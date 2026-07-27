@@ -64,7 +64,7 @@ function makeAnalysis(o: {
       },
       macd: { histogram: 0.5, bias: 'bullish' },
       adx: { adx: 30, trendStrength: 'strong', dominantDirection: 'bullish' },
-      bollinger: { bandwidth: 2, bandwidthState: 'normal', priceRelativeToBands: 'inside' },
+      bollinger: { bandwidthPercent: 2, bandwidthState: 'normal', priceRelativeToBands: 'inside' },
       stochRsi: { k: 60, d: 55, zone: 'neutral' },
     },
     srContext: {

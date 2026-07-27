@@ -109,7 +109,7 @@ const EMPTY_INDICATOR_SUMMARY: IndicatorSummaryResult = {
   rsi: { value: null, classification: 'unavailable' },
   macd: { histogram: null, bias: 'unavailable' },
   adx: { adx: null, trendStrength: 'unavailable', dominantDirection: 'unavailable' },
-  bollinger: { bandwidth: null, bandwidthState: 'unavailable', priceRelativeToBands: 'unavailable' },
+  bollinger: { bandwidthPercent: null, bandwidthState: 'unavailable', priceRelativeToBands: 'unavailable' },
   stochRsi: { k: null, d: null, zone: 'unavailable' },
 }
 

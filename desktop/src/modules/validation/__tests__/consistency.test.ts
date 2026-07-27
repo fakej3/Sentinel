@@ -159,7 +159,7 @@ describe('checkConsistency', () => {
         rsi: { value: 40, classification: 'weak_bearish' },
         macd: { histogram: 2, bias: 'bullish' },
         adx: { adx: 30, trendStrength: 'strong', dominantDirection: 'bullish' },
-        bollinger: { bandwidth: 20, bandwidthState: 'normal', priceRelativeToBands: 'inside' },
+        bollinger: { bandwidthPercent: 20, bandwidthState: 'normal', priceRelativeToBands: 'inside' },
         stochRsi: { k: 65, d: 60, zone: 'neutral' },
       },
       fullTrend: makeFullTrend({
@@ -179,7 +179,7 @@ describe('checkConsistency', () => {
         rsi: { value: null, classification: 'unavailable' },
         macd: { histogram: 2, bias: 'bullish' },
         adx: { adx: 30, trendStrength: 'strong', dominantDirection: 'bullish' },
-        bollinger: { bandwidth: 20, bandwidthState: 'normal', priceRelativeToBands: 'inside' },
+        bollinger: { bandwidthPercent: 20, bandwidthState: 'normal', priceRelativeToBands: 'inside' },
         stochRsi: { k: 65, d: 60, zone: 'neutral' },
       },
       fullTrend: makeFullTrend({
@@ -200,7 +200,7 @@ describe('checkConsistency', () => {
         rsi: { value: 65, classification: 'healthy_bullish' },
         macd: { histogram: -2, bias: 'bearish' },
         adx: { adx: 30, trendStrength: 'strong', dominantDirection: 'bullish' },
-        bollinger: { bandwidth: 20, bandwidthState: 'normal', priceRelativeToBands: 'inside' },
+        bollinger: { bandwidthPercent: 20, bandwidthState: 'normal', priceRelativeToBands: 'inside' },
         stochRsi: { k: 65, d: 60, zone: 'neutral' },
       },
       fullTrend: makeFullTrend({
@@ -220,7 +220,7 @@ describe('checkConsistency', () => {
         rsi: { value: 65, classification: 'healthy_bullish' },
         macd: { histogram: null, bias: 'unavailable' },
         adx: { adx: 30, trendStrength: 'strong', dominantDirection: 'bullish' },
-        bollinger: { bandwidth: 20, bandwidthState: 'normal', priceRelativeToBands: 'inside' },
+        bollinger: { bandwidthPercent: 20, bandwidthState: 'normal', priceRelativeToBands: 'inside' },
         stochRsi: { k: 65, d: 60, zone: 'neutral' },
       },
       fullTrend: makeFullTrend({
@@ -254,7 +254,7 @@ describe('checkConsistency', () => {
         rsi: { value: 50, classification: 'neutral' },
         macd: { histogram: 2, bias: 'bullish' },
         adx: { adx: 30, trendStrength: 'strong', dominantDirection: 'bullish' },
-        bollinger: { bandwidth: 20, bandwidthState: 'normal', priceRelativeToBands: 'inside' },
+        bollinger: { bandwidthPercent: 20, bandwidthState: 'normal', priceRelativeToBands: 'inside' },
         stochRsi: { k: 65, d: 60, zone: 'neutral' },
       },
       fullTrend: makeFullTrend({
@@ -277,7 +277,7 @@ describe('checkConsistency', () => {
         rsi: { value: 80, classification: 'neutral' }, // wrong
         macd: { histogram: 2, bias: 'bullish' },
         adx: { adx: 30, trendStrength: 'strong', dominantDirection: 'bullish' },
-        bollinger: { bandwidth: 20, bandwidthState: 'normal', priceRelativeToBands: 'inside' },
+        bollinger: { bandwidthPercent: 20, bandwidthState: 'normal', priceRelativeToBands: 'inside' },
         stochRsi: { k: 65, d: 60, zone: 'neutral' },
       },
       fullTrend: makeFullTrend({
@@ -295,7 +295,7 @@ describe('checkConsistency', () => {
         rsi: { value: 65, classification: 'healthy_bullish' },
         macd: { histogram: 2, bias: 'bearish' }, // wrong
         adx: { adx: 30, trendStrength: 'strong', dominantDirection: 'bullish' },
-        bollinger: { bandwidth: 20, bandwidthState: 'normal', priceRelativeToBands: 'inside' },
+        bollinger: { bandwidthPercent: 20, bandwidthState: 'normal', priceRelativeToBands: 'inside' },
         stochRsi: { k: 65, d: 60, zone: 'neutral' },
       },
     })

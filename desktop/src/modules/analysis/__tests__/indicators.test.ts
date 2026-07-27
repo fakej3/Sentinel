@@ -192,3 +192,52 @@ describe('interpretIndicators', () => {
     })
   })
 })
+
+// ── Regression: the exposed bandwidth must be the quantity it is named for ───
+//
+// `interpretIndicators` computed `(upper - lower) / price * 100` to classify
+// the band state and then exposed the RAW price-unit width under the name
+// `bandwidth`. Three consumers each read it differently: the writer printed it
+// with a `%` suffix, the API mock supplied a fraction (0.04), and the
+// evaluation harness recorded it as a scale-free feature. On BTC at 100,000
+// the writer's line read "bandwidth 4000.00%".
+//
+// The field now states its unit, and its value is the same number the
+// classifier uses — so a state and a percentage can never disagree.
+describe('bandwidthPercent is scale-free and agrees with the classifier', () => {
+  it('is (upper - lower) / price * 100, not the raw price-unit width', () => {
+    const r = interpretIndicators(100, indicators({ bollingerBands: bollinger(103, 100, 97) }), cfg)
+    expect(r.bollinger.bandwidthPercent).toBeCloseTo(6, 12)
+  })
+
+  it('is unchanged when every price is scaled by 1000', () => {
+    const small = interpretIndicators(100, indicators({ bollingerBands: bollinger(103, 100, 97) }), cfg)
+    const large = interpretIndicators(100_000, indicators({ bollingerBands: bollinger(103_000, 100_000, 97_000) }), cfg)
+    expect(large.bollinger.bandwidthPercent).toBeCloseTo(small.bollinger.bandwidthPercent!, 9)
+    expect(large.bollinger.bandwidthState).toBe(small.bollinger.bandwidthState)
+  })
+
+  it('never contradicts bandwidthState — both come from one computation', () => {
+    for (const [upper, lower, state] of [
+      [102, 99, 'squeeze'], [103, 97, 'normal'], [104.5, 95.5, 'expansion'],
+    ] as const) {
+      const r = interpretIndicators(100, indicators({ bollingerBands: bollinger(upper, 100, lower) }), cfg)
+      const p = r.bollinger.bandwidthPercent!
+      const expected = p < cfg.bollingerTightThreshold ? 'squeeze' : p > cfg.bollingerWideThreshold ? 'expansion' : 'normal'
+      expect(r.bollinger.bandwidthState).toBe(state)
+      expect(r.bollinger.bandwidthState).toBe(expected)
+    }
+  })
+
+  it('is null, with state unavailable, when the bands are absent', () => {
+    const r = interpretIndicators(100, indicators(), cfg)
+    expect(r.bollinger.bandwidthPercent).toBeNull()
+    expect(r.bollinger.bandwidthState).toBe('unavailable')
+  })
+
+  it('is null rather than Infinity when price is zero', () => {
+    const r = interpretIndicators(0, indicators({ bollingerBands: bollinger(103, 100, 97) }), cfg)
+    expect(r.bollinger.bandwidthPercent).toBeNull()
+    expect(r.bollinger.bandwidthState).toBe('unavailable')
+  })
+})

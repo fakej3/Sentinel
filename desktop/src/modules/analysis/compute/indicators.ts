@@ -25,8 +25,16 @@ function classifyADXStrength(adx: number): ADXTrendStrength {
   return 'extreme'
 }
 
-function classifyBandwidth(bandwidth: number, price: number, cfg: AnalysisConfig): BollingerBandwidthState {
-  const bwPercent = (bandwidth / price) * 100
+/**
+ * Classifies an ALREADY-NORMALISED bandwidth percentage.
+ *
+ * Takes the percentage rather than recomputing it, so the state and the
+ * exposed `bandwidthPercent` are guaranteed to come from one number. The
+ * previous version computed the percentage here, classified from it, and threw
+ * it away — leaving the raw price-unit width to be exposed under a name every
+ * consumer read as a percentage.
+ */
+function classifyBandwidth(bwPercent: number, cfg: AnalysisConfig): BollingerBandwidthState {
   if (bwPercent < cfg.bollingerTightThreshold) return 'squeeze'
   if (bwPercent > cfg.bollingerWideThreshold) return 'expansion'
   return 'normal'
@@ -62,11 +70,13 @@ export function interpretIndicators(
   }
 
   // Bollinger Bands
+  let bandwidthPercent: number | null = null
   let bandwidthState: 'squeeze' | 'normal' | 'expansion' | 'unavailable' = 'unavailable'
   let priceRelativeToBands: PriceVsBands | 'unavailable' = 'unavailable'
-  if (indicators.bollingerBands !== null) {
+  if (indicators.bollingerBands !== null && price > 0) {
     const { upper, lower, bandwidth } = indicators.bollingerBands
-    bandwidthState = classifyBandwidth(bandwidth, price, cfg)
+    bandwidthPercent = (bandwidth / price) * 100
+    bandwidthState = classifyBandwidth(bandwidthPercent, cfg)
     if (price > upper) priceRelativeToBands = 'above_upper'
     else if (price < lower) priceRelativeToBands = 'below_lower'
     else priceRelativeToBands = 'inside'
@@ -96,7 +106,7 @@ export function interpretIndicators(
       dominantDirection: adxDominantDirection,
     },
     bollinger: {
-      bandwidth: indicators.bollingerBands?.bandwidth ?? null,
+      bandwidthPercent,
       bandwidthState,
       priceRelativeToBands,
     },

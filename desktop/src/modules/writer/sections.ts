@@ -279,9 +279,9 @@ export function buildIndicatorSection(analysis: MarketAnalysisResult): string {
   }
 
   // Bollinger
-  if (bollinger.bandwidth !== null) {
+  if (bollinger.bandwidthPercent !== null) {
     lines.push(
-      `Bollinger Bands are ${bandwidthStateLabel(bollinger.bandwidthState)} (bandwidth ${bollinger.bandwidth.toFixed(2)}%).` +
+      `Bollinger Bands are ${bandwidthStateLabel(bollinger.bandwidthState)} (bandwidth ${bollinger.bandwidthPercent.toFixed(2)}%).` +
         (bollinger.priceRelativeToBands !== 'unavailable'
           ? ` Price is ${bollinger.priceRelativeToBands.replace(/_/g, ' ')}.`
           : ''),
