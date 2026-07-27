@@ -24,7 +24,8 @@ export type { SplitConfig } from './splits'
 export {
   syntheticSource, syntheticSeries, inMemorySource, jsonFileSource, parseSeriesFile, rng,
 } from './sources'
-export type { SyntheticSpec } from './sources'
+export type { SyntheticSpec, RegimeSpec, RegimeSegment } from './sources'
+export { syntheticRegimeSeries, regimeSource } from './sources'
 export { assertWellFormedSeries } from './validate'
 export { toCsv, toJsonl, buildManifest, writeRun } from './export'
 export type { RunManifest } from './export'

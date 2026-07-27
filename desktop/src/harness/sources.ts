@@ -129,6 +129,97 @@ export function syntheticSeries(spec: SyntheticSpec): Series {
   return { symbol, timeframe, candles }
 }
 
+/**
+ * One segment of a multi-regime path.
+ *
+ * `drift` is geometric Brownian motion: a trend when the drift is non-zero, a
+ * random walk when it is zero.
+ *
+ * `revert` is an Ornstein–Uhlenbeck process in LOG price,
+ *
+ *     d(log P) = −θ·(log P − log μ)·dt + σ·dW
+ *
+ * which is what a range actually is: price pulled back toward a level, rather
+ * than merely drifting nowhere. The distinction matters for this engine
+ * specifically. A zero-drift random walk is unpredictable but has no structure
+ * to be wrong about; a mean-reverting range actively punishes trend-following,
+ * because every breakout is retraced. Testing only against a random walk would
+ * miss the regime where a momentum engine loses money rather than just failing
+ * to make it.
+ *
+ * `theta` is the pull per bar toward `anchor` (0 < θ < 1); the half-life of a
+ * deviation is ln(2)/θ bars.
+ */
+export type RegimeSegment =
+  | { readonly kind: 'drift'; readonly bars: number; readonly drift: number; readonly sigma: number }
+  | { readonly kind: 'revert'; readonly bars: number; readonly theta: number; readonly sigma: number }
+
+export interface RegimeSpec {
+  readonly symbol: string
+  readonly timeframe: Timeframe
+  readonly seed: number
+  readonly segments: readonly RegimeSegment[]
+  readonly startPrice?: number
+}
+
+/**
+ * A continuous path stitched from regime segments.
+ *
+ * Continuity is exact: each segment starts from the previous segment's last
+ * close, so there is no artificial gap at a regime boundary that the engine
+ * could detect as a signal rather than as a change of character.
+ *
+ * The reversion anchor for a `revert` segment is the log price at the moment
+ * the segment begins — a range forms around wherever price happened to be, not
+ * around a level fixed in advance.
+ */
+export function syntheticRegimeSeries(spec: RegimeSpec): Series {
+  const dur = TIMEFRAME_MS[spec.timeframe]
+  const r = rng(spec.seed)
+  const z = gaussian(r)
+  let logP = Math.log(spec.startPrice ?? 100)
+  let openTime = 0
+  const candles: Candle[] = []
+
+  for (const seg of spec.segments) {
+    if (!Number.isInteger(seg.bars) || seg.bars < 1) throw new Error(`segment bars must be a positive integer, got ${seg.bars}`)
+    if (seg.kind === 'revert' && !(seg.theta > 0 && seg.theta < 1)) {
+      throw new Error(`revert theta must be in (0, 1), got ${seg.theta}`)
+    }
+    const anchor = logP
+    for (let i = 0; i < seg.bars; i++) {
+      const openLog = logP
+      logP = seg.kind === 'drift'
+        ? logP + seg.drift + seg.sigma * z()
+        : logP - seg.theta * (logP - anchor) + seg.sigma * z()
+      const open = Math.exp(openLog)
+      const close = Math.exp(logP)
+      const wick = seg.sigma * Math.abs(z())
+      const volume = 1000 * Math.exp(0.3 * z())
+      const buyShare = Math.min(0.99, Math.max(0.01, 0.5 + 0.1 * z()))
+      candles.push({
+        openTime,
+        closeTime: openTime + dur - 1,
+        open,
+        high: Math.max(open, close) * Math.exp(wick),
+        low: Math.min(open, close) * Math.exp(-wick),
+        close,
+        volume,
+        quoteVolume: close * volume,
+        trades: 100,
+        takerBuyVolume: volume * buyShare,
+        takerSellVolume: volume * (1 - buyShare),
+      })
+      openTime += dur
+    }
+  }
+  return { symbol: spec.symbol, timeframe: spec.timeframe, candles }
+}
+
+export function regimeSource(specs: readonly RegimeSpec[], name: string): CandleSource {
+  return { name, async list() { return specs.map(syntheticRegimeSeries) } }
+}
+
 /** A source over synthetic specs. `name` records the parameters, so runs are self-describing. */
 export function syntheticSource(specs: readonly SyntheticSpec[]): CandleSource {
   return {
