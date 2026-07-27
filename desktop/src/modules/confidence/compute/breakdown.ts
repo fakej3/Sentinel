@@ -143,11 +143,11 @@ export function computeBreakdown(
   }
 
   return {
-    trendQuality:    normalize(raw.trendQuality,    cfg.normalizationDivisor),
-    momentum:        normalize(raw.momentum,        cfg.normalizationDivisor),
-    volume:          normalize(raw.volume,          cfg.normalizationDivisor),
-    marketStructure: normalize(raw.marketStructure, cfg.normalizationDivisor),
-    srPositioning:   normalize(raw.srPositioning,   cfg.normalizationDivisor),
-    contradictions:  normalize(contradictionPoints,  cfg.normalizationDivisor),
+    trendQuality:    normalize(raw.trendQuality,    cfg.normalizationDivisor, cfg.gradeThresholds.veryStrong),
+    momentum:        normalize(raw.momentum,        cfg.normalizationDivisor, cfg.gradeThresholds.veryStrong),
+    volume:          normalize(raw.volume,          cfg.normalizationDivisor, cfg.gradeThresholds.veryStrong),
+    marketStructure: normalize(raw.marketStructure, cfg.normalizationDivisor, cfg.gradeThresholds.veryStrong),
+    srPositioning:   normalize(raw.srPositioning,   cfg.normalizationDivisor, cfg.gradeThresholds.veryStrong),
+    contradictions:  normalize(contradictionPoints,  cfg.normalizationDivisor, cfg.gradeThresholds.veryStrong),
   }
 }

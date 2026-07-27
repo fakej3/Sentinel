@@ -253,10 +253,31 @@ describe('computeConfidence — core scoring', () => {
       ev('StochRSI oversold', 'bullish'),          // +5
     ])
     const result = computeConfidence(analysis, cleanValidation())
-    expect(result.score).toBeCloseTo(9.25)
+    // 138 raw points → 13.8 pre-clamp. The old hard clamp pinned this to
+    // exactly 10, making it indistinguishable from any other setup above 100
+    // points; softClamp maps it to 9.956 — below the ceiling but still inside
+    // the veryStrong band, and now ordered against its neighbours.
+    expect(result.score).toBeCloseTo(9.956 - 0.75, 2)
+    expect(result.score).toBeLessThan(10)
     const trustPenalty = result.penalties.find(p => p.source === 'trust_medium')
     expect(trustPenalty).toBeDefined()
     expect(trustPenalty?.scoreReduction).toBeCloseTo(0.75)
+  })
+
+  it('orders two saturating setups that the hard clamp reported as identical', () => {
+    // Both exceed 100 raw points. Under min(10, x) both scored exactly 10.
+    const base = [
+      ev('Price above EMA200', 'bullish'), ev('EMA bullish alignment', 'bullish'),
+      ev('Higher High confirmed', 'bullish'), ev('Higher Low confirmed', 'bullish'),
+      ev('MACD bullish bias', 'bullish'), ev('Accumulation detected', 'bullish'),
+      ev('Bullish BOS', 'bullish'), ev('RSI in 55–70 range', 'bullish'),
+    ]
+    const stronger = [...base, ev('Price above EMA50', 'bullish'), ev('Bullish OBV trend', 'bullish')]
+    const a = computeConfidence(makeAnalysis(base), cleanValidation()).score
+    const b = computeConfidence(makeAnalysis(stronger), cleanValidation()).score
+    expect(b).toBeGreaterThan(a)
+    expect(a).toBeLessThan(10)
+    expect(b).toBeLessThan(10)
   })
 
   it('produces grade that matches score', () => {

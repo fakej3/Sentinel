@@ -72,10 +72,10 @@ export function computeConfidence(
   }
 
   const penalizedPoints = Math.max(0, directedPoints - contradictionPoints * penaltyFactor)
-  let score = normalize(penalizedPoints, cfg.normalizationDivisor)
+  let score = normalize(penalizedPoints, cfg.normalizationDivisor, cfg.gradeThresholds.veryStrong)
 
-  const bullishConfidence = normalize(bullishRawPoints, cfg.normalizationDivisor)
-  const bearishConfidence = normalize(bearishRawPoints, cfg.normalizationDivisor)
+  const bullishConfidence = normalize(bullishRawPoints, cfg.normalizationDivisor, cfg.gradeThresholds.veryStrong)
+  const bearishConfidence = normalize(bearishRawPoints, cfg.normalizationDivisor, cfg.gradeThresholds.veryStrong)
 
   // ── Step 3: Compute trust (before penalties so we can use trust level) ────
 
@@ -89,7 +89,7 @@ export function computeConfidence(
   // Contradiction penalty (directional markets only)
   if (contradictionPoints > 0 && (trend.includes('bullish') || trend.includes('bearish'))) {
     const reductionAmount = contradictionPoints * penaltyFactor
-    const scoreReduction = normalize(reductionAmount, cfg.normalizationDivisor)
+    const scoreReduction = normalize(reductionAmount, cfg.normalizationDivisor, cfg.gradeThresholds.veryStrong)
     if (scoreReduction > 0.01) {
       const side = trend.includes('bullish') ? 'bearish' : 'bullish'
       penalties.push({

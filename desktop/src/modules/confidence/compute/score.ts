@@ -1,5 +1,6 @@
 import type { EvidenceItem } from '../../analysis/types'
 import type { ConfidenceConfig, ConfidenceReason } from '../types'
+import { softClamp } from './saturation'
 
 export interface ScoreBreakdown {
   /** Sum of all matched positive and negative weights */
@@ -52,6 +53,18 @@ export function scoreEvidence(
   return { rawPoints, bullishRawPoints, bearishRawPoints, neutralContribution, reasons }
 }
 
-export function normalize(rawPoints: number, divisor: number): number {
-  return Math.min(10, Math.max(0, rawPoints / divisor))
+/**
+ * Maps a raw evidence-point total onto the 0–10 confidence scale.
+ *
+ * The hard `min(10, …)` this used to apply discarded all ordering above the
+ * ceiling — measured at 32.5% of runs. `softClamp` is identity up to `knee` and
+ * strictly increasing above it, so no two distinct evidence totals collapse to
+ * the same score. See compute/saturation.ts for the derivation and for why the
+ * alternatives (logistic, tanh, Bayesian) were rejected.
+ *
+ * `knee` is the caller's veryStrong grade threshold, which makes the transform
+ * grade-preserving for every input.
+ */
+export function normalize(rawPoints: number, divisor: number, knee: number): number {
+  return softClamp(rawPoints / divisor, knee)
 }
