@@ -88,6 +88,12 @@ time. **Sentinel's conditional call is less accurate than the marginal**, and th
 gap widens with horizon. Its counter-trend calls in a trend cost more than its
 with-trend calls gain.
 
+*"Always long" is not a deployable strategy* — it requires knowing in advance
+which way the regime drifts, which is the whole problem. It is the majority-class
+baseline, and beating it is the minimum bar for a classifier to be carrying any
+information at all. Failing it is the finding; it is not a recommendation to hold
+a fixed side.
+
 The one place this reverses is the `switch` regime, where no fixed direction
 works:
 
@@ -150,11 +156,24 @@ A genuinely mean-reverting market is labelled `ranging` 20.2% of the time,
 against 17.5% for a pure random walk. **That 2.7-point separation is the whole
 of the engine's range detection.** Mean ADX differs by 2.6 points.
 
-And the abstain decision is a *pure function* of that one label — in all five
-regimes, bars labelled `ranging` take a direction 0.0% of the time and every
-other bar takes one 100.0% of the time. There is no second gate. So the engine
-enters directional trades on ~80% of the bars of a market that is structurally
-hostile to directional trades.
+And the abstain decision is a *pure function* of that one label. The corpus shows
+bars labelled `ranging` taking a direction 0.0% of the time and every other bar
+100.0% of the time, in all five regimes — but that measurement is a tautology,
+and saying it in the language of a finding overstates it. It is a code fact,
+`compute/trade-plan.ts:216`:
+
+```ts
+const direction = isBullish ? 'long' : isBearish ? 'short' : null
+```
+
+`isBullish`/`isBearish` are substring tests on `fullTrend.trend`. Nothing else
+participates — not confidence, not validation, not structure, not S/R quality.
+There is no second gate.
+
+The consequence is what matters: because range detection is 20.2% vs 17.5%
+(above), the engine enters directional trades on ~80% of the bars of a market
+that is structurally hostile to directional trades, and no downstream signal can
+stop it.
 
 ---
 
@@ -216,9 +235,13 @@ horizons in strong trends: `up` h=48 gives 0.172 (z = 4.38), `down` h=48 gives
 
 ---
 
-## 6. Structural facts about the engine (data-independent)
+## 6. Structural facts about the engine
 
-Across all 3,780 observations:
+Across all 3,780 observations. **These are distributional, so they are measured
+on synthetic data like everything else** — an earlier draft of this section
+called them "data-independent", which was wrong. Real markets could shift them.
+The one genuinely data-independent fact in this report is the direction rule
+quoted in §4, which is read off the source.
 
 | | |
 |---|---|
@@ -298,7 +321,9 @@ real timeframes behave alike.
    17.5% `ranging` labels).
 5. The confidence score, read as a probability, has negative Brier skill in
    every one of 20 cells, and in a range it ranks trades in reverse.
-6. The abstain decision is a pure function of one label, with no second gate.
+6. The abstain decision is a pure function of one label
+   (`compute/trade-plan.ts:216`), with no second gate — a code fact, not a
+   measurement.
 7. The stop is a fixed 2-ATR fallback in 57% of plans; the score is graded
    `very_strong` on 45% of all bars.
 
