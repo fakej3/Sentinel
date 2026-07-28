@@ -1,0 +1,140 @@
+{
+  "baselineRankIc": -0.0061668283783243094,
+  "rows": [
+    {
+      "removed": "ema_distance",
+      "rankIc": -0.0026862869023438593,
+      "rankIcLower": -0.020400306728959008,
+      "rankIcUpper": 0.015834872149314706,
+      "brier": 0.25202037460597504,
+      "coverage": 1,
+      "delta": 0.00348054147598045
+    },
+    {
+      "removed": "ema_slope",
+      "rankIc": -0.005253737818858123,
+      "rankIcLower": -0.022418772203784656,
+      "rankIcUpper": 0.01199732208753465,
+      "brier": 0.25261978890226666,
+      "coverage": 1,
+      "delta": 0.0009130905594661861
+    },
+    {
+      "removed": "ema_separation",
+      "rankIc": -0.004910346308294044,
+      "rankIcLower": -0.022223670630194654,
+      "rankIcUpper": 0.012294968520007186,
+      "brier": 0.2526583840697004,
+      "coverage": 1,
+      "delta": 0.0012564820700302652
+    },
+    {
+      "removed": "rsi_normalized",
+      "rankIc": -0.005411740758187446,
+      "rankIcLower": -0.023401555201920957,
+      "rankIcUpper": 0.012391854526638144,
+      "brier": 0.2529207926560845,
+      "coverage": 1,
+      "delta": 0.0007550876201368635
+    },
+    {
+      "removed": "macd_histogram_normalized",
+      "rankIc": -0.0008713288997659142,
+      "rankIcLower": -0.018091532481253007,
+      "rankIcUpper": 0.01672718352847705,
+      "brier": 0.2525765273195172,
+      "coverage": 1,
+      "delta": 0.0052954994785583956
+    },
+    {
+      "removed": "adx_normalized",
+      "rankIc": -0.00667527641731645,
+      "rankIcLower": -0.024232747487704435,
+      "rankIcUpper": 0.011035197728322179,
+      "brier": 0.25283885418384183,
+      "coverage": 1,
+      "delta": -0.0005084480389921401
+    },
+    {
+      "removed": "atr_percentile",
+      "rankIc": -0.012384882611896254,
+      "rankIcLower": -0.032329596855114745,
+      "rankIcUpper": 0.008512972644931055,
+      "brier": 0.2520312077828958,
+      "coverage": 0.9989301727350315,
+      "delta": -0.0062180542335719445
+    },
+    {
+      "removed": "bollinger_position",
+      "rankIc": -0.005851656137795311,
+      "rankIcLower": -0.023405145997507336,
+      "rankIcUpper": 0.011824798162178138,
+      "brier": 0.25277082300567194,
+      "coverage": 0.9997716099097258,
+      "delta": 0.0003151722405289985
+    },
+    {
+      "removed": "bollinger_width",
+      "rankIc": -0.005145152783332229,
+      "rankIcLower": -0.02273669613180747,
+      "rankIcUpper": 0.012655643698589894,
+      "brier": 0.25275924566698527,
+      "coverage": 1,
+      "delta": 0.0010216755949920804
+    },
+    {
+      "removed": "sr_distance",
+      "rankIc": -0.006235328944963068,
+      "rankIcLower": -0.024090699337773604,
+      "rankIcUpper": 0.01144820783129818,
+      "brier": 0.25278656436188807,
+      "coverage": 1,
+      "delta": -0.00006850056663875847
+    },
+    {
+      "removed": "swing_strength",
+      "rankIc": -0.0063559637797510875,
+      "rankIcLower": -0.023515964012885426,
+      "rankIcUpper": 0.011087531894300614,
+      "brier": 0.2526981943152754,
+      "coverage": 1,
+      "delta": -0.0001891354014267781
+    },
+    {
+      "removed": "volume_anomaly",
+      "rankIc": -0.004974318873845344,
+      "rankIcLower": -0.022942717420870323,
+      "rankIcUpper": 0.012936047059849324,
+      "brier": 0.2524714923941141,
+      "coverage": 1,
+      "delta": 0.0011925095044789651
+    },
+    {
+      "removed": "volatility_regime",
+      "rankIc": -0.009222643260524738,
+      "rankIcLower": -0.02863095946707973,
+      "rankIcUpper": 0.009115440083722217,
+      "brier": 0.2523604077969728,
+      "coverage": 0.9996393840679881,
+      "delta": -0.0030558148822004286
+    },
+    {
+      "removed": "trend_persistence",
+      "rankIc": -0.005315604935578361,
+      "rankIcLower": -0.023300509464471087,
+      "rankIcUpper": 0.012488451003662979,
+      "brier": 0.2526940695473336,
+      "coverage": 1,
+      "delta": 0.0008512234427459483
+    },
+    {
+      "removed": "market_efficiency_ratio",
+      "rankIc": -0.00587262360009636,
+      "rankIcLower": -0.02349963698440773,
+      "rankIcUpper": 0.011829877587141211,
+      "brier": 0.25280226453816595,
+      "coverage": 1,
+      "delta": 0.00029420477822794926
+    }
+  ]
+}

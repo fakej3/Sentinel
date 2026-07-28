@@ -1,0 +1,2338 @@
+[
+  {
+    "fold": 0,
+    "trainStart": 451,
+    "trainEnd": 703,
+    "testStart": 723,
+    "testEnd": 786,
+    "chosen": {
+      "window": 126,
+      "ridge": 1,
+      "calibration": "platt",
+      "innerBrier": 0.24980528843376237
+    },
+    "searched": [
+      {
+        "window": 63,
+        "ridge": 0.1,
+        "calibration": "isotonic",
+        "brier": 0.2503116645760698,
+        "covered": 24199
+      },
+      {
+        "window": 63,
+        "ridge": 0.1,
+        "calibration": "platt",
+        "brier": 0.2499288874987975,
+        "covered": 24216
+      },
+      {
+        "window": 63,
+        "ridge": 0.1,
+        "calibration": "none",
+        "brier": 0.2527052954998314,
+        "covered": 24368
+      },
+      {
+        "window": 63,
+        "ridge": 1,
+        "calibration": "isotonic",
+        "brier": 0.25030344538338456,
+        "covered": 24211
+      },
+      {
+        "window": 63,
+        "ridge": 1,
+        "calibration": "platt",
+        "brier": 0.24992807603534237,
+        "covered": 24216
+      },
+      {
+        "window": 63,
+        "ridge": 1,
+        "calibration": "none",
+        "brier": 0.2526956098457999,
+        "covered": 24368
+      },
+      {
+        "window": 63,
+        "ridge": 10,
+        "calibration": "isotonic",
+        "brier": 0.25027491050213924,
+        "covered": 24229
+      },
+      {
+        "window": 63,
+        "ridge": 10,
+        "calibration": "platt",
+        "brier": 0.24991695166969044,
+        "covered": 24216
+      },
+      {
+        "window": 63,
+        "ridge": 10,
+        "calibration": "none",
+        "brier": 0.25260259856445944,
+        "covered": 24368
+      },
+      {
+        "window": 63,
+        "ridge": 100,
+        "calibration": "isotonic",
+        "brier": 0.2503002293110474,
+        "covered": 24245
+      },
+      {
+        "window": 63,
+        "ridge": 100,
+        "calibration": "platt",
+        "brier": 0.24990866227504976,
+        "covered": 24218
+      },
+      {
+        "window": 63,
+        "ridge": 100,
+        "calibration": "none",
+        "brier": 0.2519344433182041,
+        "covered": 24368
+      },
+      {
+        "window": 126,
+        "ridge": 0.1,
+        "calibration": "isotonic",
+        "brier": 0.2500145465198473,
+        "covered": 24171
+      },
+      {
+        "window": 126,
+        "ridge": 0.1,
+        "calibration": "platt",
+        "brier": 0.24980616579536036,
+        "covered": 24312
+      },
+      {
+        "window": 126,
+        "ridge": 0.1,
+        "calibration": "none",
+        "brier": 0.2519566978128603,
+        "covered": 24368
+      },
+      {
+        "window": 126,
+        "ridge": 1,
+        "calibration": "isotonic",
+        "brier": 0.25001867557453744,
+        "covered": 24176
+      },
+      {
+        "window": 126,
+        "ridge": 1,
+        "calibration": "platt",
+        "brier": 0.24980528843376237,
+        "covered": 24312
+      },
+      {
+        "window": 126,
+        "ridge": 1,
+        "calibration": "none",
+        "brier": 0.2519493375635217,
+        "covered": 24368
+      },
+      {
+        "window": 126,
+        "ridge": 10,
+        "calibration": "isotonic",
+        "brier": 0.24998562909672797,
+        "covered": 24153
+      },
+      {
+        "window": 126,
+        "ridge": 10,
+        "calibration": "platt",
+        "brier": 0.249895243610956,
+        "covered": 24072
+      },
+      {
+        "window": 126,
+        "ridge": 10,
+        "calibration": "none",
+        "brier": 0.2518785437370523,
+        "covered": 24368
+      },
+      {
+        "window": 126,
+        "ridge": 100,
+        "calibration": "isotonic",
+        "brier": 0.24988687445573263,
+        "covered": 24227
+      },
+      {
+        "window": 126,
+        "ridge": 100,
+        "calibration": "platt",
+        "brier": 0.24985370431532705,
+        "covered": 24076
+      },
+      {
+        "window": 126,
+        "ridge": 100,
+        "calibration": "none",
+        "brier": 0.2513559481889053,
+        "covered": 24368
+      },
+      {
+        "window": 252,
+        "ridge": 0.1,
+        "calibration": "isotonic",
+        "brier": 0.24994637972578307,
+        "covered": 24316
+      },
+      {
+        "window": 252,
+        "ridge": 0.1,
+        "calibration": "platt",
+        "brier": 0.24985868742005174,
+        "covered": 24252
+      },
+      {
+        "window": 252,
+        "ridge": 0.1,
+        "calibration": "none",
+        "brier": 0.253117999707192,
+        "covered": 24389
+      },
+      {
+        "window": 252,
+        "ridge": 1,
+        "calibration": "isotonic",
+        "brier": 0.24993635936794556,
+        "covered": 24330
+      },
+      {
+        "window": 252,
+        "ridge": 1,
+        "calibration": "platt",
+        "brier": 0.24985780560408105,
+        "covered": 24252
+      },
+      {
+        "window": 252,
+        "ridge": 1,
+        "calibration": "none",
+        "brier": 0.2531087339730739,
+        "covered": 24389
+      },
+      {
+        "window": 252,
+        "ridge": 10,
+        "calibration": "isotonic",
+        "brier": 0.24993880234485652,
+        "covered": 24297
+      },
+      {
+        "window": 252,
+        "ridge": 10,
+        "calibration": "platt",
+        "brier": 0.24985692092252457,
+        "covered": 24259
+      },
+      {
+        "window": 252,
+        "ridge": 10,
+        "calibration": "none",
+        "brier": 0.2530201341010574,
+        "covered": 24389
+      },
+      {
+        "window": 252,
+        "ridge": 100,
+        "calibration": "isotonic",
+        "brier": 0.2498201094247888,
+        "covered": 24363
+      },
+      {
+        "window": 252,
+        "ridge": 100,
+        "calibration": "platt",
+        "brier": 0.24983636793753478,
+        "covered": 24270
+      },
+      {
+        "window": 252,
+        "ridge": 100,
+        "calibration": "none",
+        "brier": 0.252381316754226,
+        "covered": 24389
+      }
+    ],
+    "trainRows": 81992,
+    "calibrationRows": 30770,
+    "testRows": 30805,
+    "calibratorName": "platt",
+    "intercept": 0.052403907137613004,
+    "coefficients": {
+      "ema_distance": -0.0974702231975115,
+      "ema_slope": 0.04516518068604826,
+      "ema_separation": -0.025945567906241532,
+      "rsi_normalized": 0.11825228572626285,
+      "macd_histogram_normalized": -0.1940923353095677,
+      "adx_normalized": -0.028114160507642913,
+      "atr_percentile": 0.19404841328064767,
+      "bollinger_position": -0.053567525997133054,
+      "bollinger_width": -0.06419456516211526,
+      "sr_distance": -0.025356302946945013,
+      "swing_strength": -0.021369515097325997,
+      "volume_anomaly": 0.05202940687806409,
+      "volatility_regime": -0.04758313854617552,
+      "trend_persistence": -0.037762816488236,
+      "market_efficiency_ratio": 0.007910169890552547
+    },
+    "dropped": [],
+    "converged": true,
+    "eventsPerVariable": 2663.133333333333
+  },
+  {
+    "fold": 1,
+    "trainStart": 514,
+    "trainEnd": 766,
+    "testStart": 786,
+    "testEnd": 849,
+    "chosen": {
+      "window": 126,
+      "ridge": 100,
+      "calibration": "none",
+      "innerBrier": 0.2513337611356673
+    },
+    "searched": [
+      {
+        "window": 63,
+        "ridge": 0.1,
+        "calibration": "isotonic",
+        "brier": 0.26179508783589817,
+        "covered": 24270
+      },
+      {
+        "window": 63,
+        "ridge": 0.1,
+        "calibration": "platt",
+        "brier": 0.26157746362993556,
+        "covered": 24356
+      },
+      {
+        "window": 63,
+        "ridge": 0.1,
+        "calibration": "none",
+        "brier": 0.2529165539404032,
+        "covered": 24424
+      },
+      {
+        "window": 63,
+        "ridge": 1,
+        "calibration": "isotonic",
+        "brier": 0.26179548835001865,
+        "covered": 24121
+      },
+      {
+        "window": 63,
+        "ridge": 1,
+        "calibration": "platt",
+        "brier": 0.2615819014069772,
+        "covered": 24357
+      },
+      {
+        "window": 63,
+        "ridge": 1,
+        "calibration": "none",
+        "brier": 0.25291257106489984,
+        "covered": 24424
+      },
+      {
+        "window": 63,
+        "ridge": 10,
+        "calibration": "isotonic",
+        "brier": 0.261938034313954,
+        "covered": 24322
+      },
+      {
+        "window": 63,
+        "ridge": 10,
+        "calibration": "platt",
+        "brier": 0.2617440478871393,
+        "covered": 24360
+      },
+      {
+        "window": 63,
+        "ridge": 10,
+        "calibration": "none",
+        "brier": 0.25287514406178874,
+        "covered": 24424
+      },
+      {
+        "window": 63,
+        "ridge": 100,
+        "calibration": "isotonic",
+        "brier": 0.2624070141550959,
+        "covered": 24230
+      },
+      {
+        "window": 63,
+        "ridge": 100,
+        "calibration": "platt",
+        "brier": 0.262598113532181,
+        "covered": 24347
+      },
+      {
+        "window": 63,
+        "ridge": 100,
+        "calibration": "none",
+        "brier": 0.2526323692979171,
+        "covered": 24424
+      },
+      {
+        "window": 126,
+        "ridge": 0.1,
+        "calibration": "isotonic",
+        "brier": 0.25999345722206285,
+        "covered": 24144
+      },
+      {
+        "window": 126,
+        "ridge": 0.1,
+        "calibration": "platt",
+        "brier": 0.2603662499779668,
+        "covered": 24284
+      },
+      {
+        "window": 126,
+        "ridge": 0.1,
+        "calibration": "none",
+        "brier": 0.25151464053718675,
+        "covered": 24424
+      },
+      {
+        "window": 126,
+        "ridge": 1,
+        "calibration": "isotonic",
+        "brier": 0.25983135389089584,
+        "covered": 23969
+      },
+      {
+        "window": 126,
+        "ridge": 1,
+        "calibration": "platt",
+        "brier": 0.260359832666743,
+        "covered": 24286
+      },
+      {
+        "window": 126,
+        "ridge": 1,
+        "calibration": "none",
+        "brier": 0.2515119110470092,
+        "covered": 24424
+      },
+      {
+        "window": 126,
+        "ridge": 10,
+        "calibration": "isotonic",
+        "brier": 0.25978946376275386,
+        "covered": 24227
+      },
+      {
+        "window": 126,
+        "ridge": 10,
+        "calibration": "platt",
+        "brier": 0.26046437092290486,
+        "covered": 24283
+      },
+      {
+        "window": 126,
+        "ridge": 10,
+        "calibration": "none",
+        "brier": 0.2514865853799586,
+        "covered": 24424
+      },
+      {
+        "window": 126,
+        "ridge": 100,
+        "calibration": "isotonic",
+        "brier": 0.260390729577684,
+        "covered": 24182
+      },
+      {
+        "window": 126,
+        "ridge": 100,
+        "calibration": "platt",
+        "brier": 0.260888345117926,
+        "covered": 24291
+      },
+      {
+        "window": 126,
+        "ridge": 100,
+        "calibration": "none",
+        "brier": 0.2513337611356673,
+        "covered": 24424
+      },
+      {
+        "window": 252,
+        "ridge": 0.1,
+        "calibration": "isotonic",
+        "brier": 0.2618582400293534,
+        "covered": 24316
+      },
+      {
+        "window": 252,
+        "ridge": 0.1,
+        "calibration": "platt",
+        "brier": 0.2617878450697625,
+        "covered": 24395
+      },
+      {
+        "window": 252,
+        "ridge": 0.1,
+        "calibration": "none",
+        "brier": 0.2527158229943858,
+        "covered": 24424
+      },
+      {
+        "window": 252,
+        "ridge": 1,
+        "calibration": "isotonic",
+        "brier": 0.26189886988420763,
+        "covered": 24274
+      },
+      {
+        "window": 252,
+        "ridge": 1,
+        "calibration": "platt",
+        "brier": 0.2618017527664698,
+        "covered": 24395
+      },
+      {
+        "window": 252,
+        "ridge": 1,
+        "calibration": "none",
+        "brier": 0.25271185430588833,
+        "covered": 24424
+      },
+      {
+        "window": 252,
+        "ridge": 10,
+        "calibration": "isotonic",
+        "brier": 0.26176574818632,
+        "covered": 24218
+      },
+      {
+        "window": 252,
+        "ridge": 10,
+        "calibration": "platt",
+        "brier": 0.26191653354015304,
+        "covered": 24382
+      },
+      {
+        "window": 252,
+        "ridge": 10,
+        "calibration": "none",
+        "brier": 0.25267462625623477,
+        "covered": 24424
+      },
+      {
+        "window": 252,
+        "ridge": 100,
+        "calibration": "isotonic",
+        "brier": 0.26256823890756303,
+        "covered": 24245
+      },
+      {
+        "window": 252,
+        "ridge": 100,
+        "calibration": "platt",
+        "brier": 0.2625364119462067,
+        "covered": 24375
+      },
+      {
+        "window": 252,
+        "ridge": 100,
+        "calibration": "none",
+        "brier": 0.25242800077399297,
+        "covered": 24424
+      }
+    ],
+    "trainRows": 82266,
+    "calibrationRows": 0,
+    "testRows": 30950,
+    "calibratorName": "none",
+    "intercept": 0.01850719033922214,
+    "coefficients": {
+      "ema_distance": -0.18721892748552785,
+      "ema_slope": 0.03694674919731419,
+      "ema_separation": 0.052434940110164883,
+      "rsi_normalized": 0.11488749763877751,
+      "macd_histogram_normalized": -0.15538331211511136,
+      "adx_normalized": -0.04102481239681563,
+      "atr_percentile": 0.16077705145396723,
+      "bollinger_position": -0.04642918398348169,
+      "bollinger_width": 0.08946343754002246,
+      "sr_distance": -0.0377102087888503,
+      "swing_strength": -0.0059634446370523606,
+      "volume_anomaly": 0.04513035497225045,
+      "volatility_regime": -0.21315630225777324,
+      "trend_persistence": -0.028332236298676816,
+      "market_efficiency_ratio": -0.042990680827523525
+    },
+    "dropped": [],
+    "converged": true,
+    "eventsPerVariable": 2717.5333333333333
+  },
+  {
+    "fold": 2,
+    "trainStart": 577,
+    "trainEnd": 829,
+    "testStart": 849,
+    "testEnd": 912,
+    "chosen": {
+      "window": 63,
+      "ridge": 100,
+      "calibration": "none",
+      "innerBrier": 0.25446452136766784
+    },
+    "searched": [
+      {
+        "window": 63,
+        "ridge": 0.1,
+        "calibration": "isotonic",
+        "brier": 0.3135865979225351,
+        "covered": 24161
+      },
+      {
+        "window": 63,
+        "ridge": 0.1,
+        "calibration": "platt",
+        "brier": 0.31736463397974635,
+        "covered": 24322
+      },
+      {
+        "window": 63,
+        "ridge": 0.1,
+        "calibration": "none",
+        "brier": 0.25517060771422595,
+        "covered": 24461
+      },
+      {
+        "window": 63,
+        "ridge": 1,
+        "calibration": "isotonic",
+        "brier": 0.31347414409061597,
+        "covered": 24140
+      },
+      {
+        "window": 63,
+        "ridge": 1,
+        "calibration": "platt",
+        "brier": 0.31737424809168363,
+        "covered": 24322
+      },
+      {
+        "window": 63,
+        "ridge": 1,
+        "calibration": "none",
+        "brier": 0.2551634068595022,
+        "covered": 24461
+      },
+      {
+        "window": 63,
+        "ridge": 10,
+        "calibration": "isotonic",
+        "brier": 0.31351513379543505,
+        "covered": 24098
+      },
+      {
+        "window": 63,
+        "ridge": 10,
+        "calibration": "platt",
+        "brier": 0.317488923054142,
+        "covered": 24315
+      },
+      {
+        "window": 63,
+        "ridge": 10,
+        "calibration": "none",
+        "brier": 0.2550923503312681,
+        "covered": 24461
+      },
+      {
+        "window": 63,
+        "ridge": 100,
+        "calibration": "isotonic",
+        "brier": 0.31416887836623136,
+        "covered": 24064
+      },
+      {
+        "window": 63,
+        "ridge": 100,
+        "calibration": "platt",
+        "brier": 0.31819732294438535,
+        "covered": 24244
+      },
+      {
+        "window": 63,
+        "ridge": 100,
+        "calibration": "none",
+        "brier": 0.25446452136766784,
+        "covered": 24461
+      },
+      {
+        "window": 126,
+        "ridge": 0.1,
+        "calibration": "isotonic",
+        "brier": 0.3117738313610568,
+        "covered": 24105
+      },
+      {
+        "window": 126,
+        "ridge": 0.1,
+        "calibration": "platt",
+        "brier": 0.31256436841796803,
+        "covered": 24335
+      },
+      {
+        "window": 126,
+        "ridge": 0.1,
+        "calibration": "none",
+        "brier": 0.26351226111240955,
+        "covered": 24449
+      },
+      {
+        "window": 126,
+        "ridge": 1,
+        "calibration": "isotonic",
+        "brier": 0.31169565669024435,
+        "covered": 24236
+      },
+      {
+        "window": 126,
+        "ridge": 1,
+        "calibration": "platt",
+        "brier": 0.3125716114181903,
+        "covered": 24336
+      },
+      {
+        "window": 126,
+        "ridge": 1,
+        "calibration": "none",
+        "brier": 0.2634961834690869,
+        "covered": 24449
+      },
+      {
+        "window": 126,
+        "ridge": 10,
+        "calibration": "isotonic",
+        "brier": 0.3119732934993448,
+        "covered": 24209
+      },
+      {
+        "window": 126,
+        "ridge": 10,
+        "calibration": "platt",
+        "brier": 0.31261790769902476,
+        "covered": 24335
+      },
+      {
+        "window": 126,
+        "ridge": 10,
+        "calibration": "none",
+        "brier": 0.26333736537073865,
+        "covered": 24449
+      },
+      {
+        "window": 126,
+        "ridge": 100,
+        "calibration": "isotonic",
+        "brier": 0.3121374666057515,
+        "covered": 24153
+      },
+      {
+        "window": 126,
+        "ridge": 100,
+        "calibration": "platt",
+        "brier": 0.3131323736109197,
+        "covered": 24368
+      },
+      {
+        "window": 126,
+        "ridge": 100,
+        "calibration": "none",
+        "brier": 0.2619205419618834,
+        "covered": 24449
+      },
+      {
+        "window": 252,
+        "ridge": 0.1,
+        "calibration": "isotonic",
+        "brier": 0.31190249944304455,
+        "covered": 24165
+      },
+      {
+        "window": 252,
+        "ridge": 0.1,
+        "calibration": "platt",
+        "brier": 0.31315120394173895,
+        "covered": 24382
+      },
+      {
+        "window": 252,
+        "ridge": 0.1,
+        "calibration": "none",
+        "brier": 0.2586569690816182,
+        "covered": 24449
+      },
+      {
+        "window": 252,
+        "ridge": 1,
+        "calibration": "isotonic",
+        "brier": 0.31207734462714837,
+        "covered": 24212
+      },
+      {
+        "window": 252,
+        "ridge": 1,
+        "calibration": "platt",
+        "brier": 0.3131610567902466,
+        "covered": 24382
+      },
+      {
+        "window": 252,
+        "ridge": 1,
+        "calibration": "none",
+        "brier": 0.2586483511237286,
+        "covered": 24449
+      },
+      {
+        "window": 252,
+        "ridge": 10,
+        "calibration": "isotonic",
+        "brier": 0.3122971928832582,
+        "covered": 24292
+      },
+      {
+        "window": 252,
+        "ridge": 10,
+        "calibration": "platt",
+        "brier": 0.31325654159337446,
+        "covered": 24382
+      },
+      {
+        "window": 252,
+        "ridge": 10,
+        "calibration": "none",
+        "brier": 0.2585631259755284,
+        "covered": 24449
+      },
+      {
+        "window": 252,
+        "ridge": 100,
+        "calibration": "isotonic",
+        "brier": 0.3127907554376453,
+        "covered": 24070
+      },
+      {
+        "window": 252,
+        "ridge": 100,
+        "calibration": "platt",
+        "brier": 0.3139315565597611,
+        "covered": 24373
+      },
+      {
+        "window": 252,
+        "ridge": 100,
+        "calibration": "none",
+        "brier": 0.25778830604992964,
+        "covered": 24449
+      }
+    ],
+    "trainRows": 82504,
+    "calibrationRows": 0,
+    "testRows": 31081,
+    "calibratorName": "none",
+    "intercept": -0.05740189358006114,
+    "coefficients": {
+      "ema_distance": -0.1807456078616617,
+      "ema_slope": 0.07970847430041555,
+      "ema_separation": 0.03514556953189205,
+      "rsi_normalized": 0.17014573127407032,
+      "macd_histogram_normalized": -0.09555021814151847,
+      "adx_normalized": -0.023472312315419276,
+      "atr_percentile": 0.27999678368483394,
+      "bollinger_position": -0.02847722368329993,
+      "bollinger_width": 0.02288340092390519,
+      "sr_distance": -0.02282894971128094,
+      "swing_strength": -0.004889259330410944,
+      "volume_anomaly": 0.048992602158902415,
+      "volatility_regime": -0.1537690311560889,
+      "trend_persistence": -0.0077468314156766745,
+      "market_efficiency_ratio": 0.0025616670915085214
+    },
+    "dropped": [],
+    "converged": true,
+    "eventsPerVariable": 2672.733333333333
+  },
+  {
+    "fold": 3,
+    "trainStart": 640,
+    "trainEnd": 892,
+    "testStart": 912,
+    "testEnd": 975,
+    "chosen": {
+      "window": 126,
+      "ridge": 100,
+      "calibration": "platt",
+      "innerBrier": 0.2733539784667456
+    },
+    "searched": [
+      {
+        "window": 63,
+        "ridge": 0.1,
+        "calibration": "isotonic",
+        "brier": 0.2773902579641362,
+        "covered": 23844
+      },
+      {
+        "window": 63,
+        "ridge": 0.1,
+        "calibration": "platt",
+        "brier": 0.27412874791229974,
+        "covered": 23564
+      },
+      {
+        "window": 63,
+        "ridge": 0.1,
+        "calibration": "none",
+        "brier": 0.2910561719911125,
+        "covered": 24556
+      },
+      {
+        "window": 63,
+        "ridge": 1,
+        "calibration": "isotonic",
+        "brier": 0.2775355181858285,
+        "covered": 23859
+      },
+      {
+        "window": 63,
+        "ridge": 1,
+        "calibration": "platt",
+        "brier": 0.274129726927504,
+        "covered": 23559
+      },
+      {
+        "window": 63,
+        "ridge": 1,
+        "calibration": "none",
+        "brier": 0.29103246543703604,
+        "covered": 24556
+      },
+      {
+        "window": 63,
+        "ridge": 10,
+        "calibration": "isotonic",
+        "brier": 0.27659570832574193,
+        "covered": 22394
+      },
+      {
+        "window": 63,
+        "ridge": 10,
+        "calibration": "platt",
+        "brier": 0.2741303377520603,
+        "covered": 23512
+      },
+      {
+        "window": 63,
+        "ridge": 10,
+        "calibration": "none",
+        "brier": 0.290798597970254,
+        "covered": 24556
+      },
+      {
+        "window": 63,
+        "ridge": 100,
+        "calibration": "isotonic",
+        "brier": 0.27569999485482904,
+        "covered": 24270
+      },
+      {
+        "window": 63,
+        "ridge": 100,
+        "calibration": "platt",
+        "brier": 0.273563315954819,
+        "covered": 23585
+      },
+      {
+        "window": 63,
+        "ridge": 100,
+        "calibration": "none",
+        "brier": 0.2887249296336155,
+        "covered": 24556
+      },
+      {
+        "window": 126,
+        "ridge": 0.1,
+        "calibration": "isotonic",
+        "brier": 0.27519886148882744,
+        "covered": 23266
+      },
+      {
+        "window": 126,
+        "ridge": 0.1,
+        "calibration": "platt",
+        "brier": 0.27419634701561707,
+        "covered": 24124
+      },
+      {
+        "window": 126,
+        "ridge": 0.1,
+        "calibration": "none",
+        "brier": 0.2882497574990361,
+        "covered": 24556
+      },
+      {
+        "window": 126,
+        "ridge": 1,
+        "calibration": "isotonic",
+        "brier": 0.2751731218337361,
+        "covered": 23246
+      },
+      {
+        "window": 126,
+        "ridge": 1,
+        "calibration": "platt",
+        "brier": 0.27418802574596174,
+        "covered": 24124
+      },
+      {
+        "window": 126,
+        "ridge": 1,
+        "calibration": "none",
+        "brier": 0.28821994343531154,
+        "covered": 24556
+      },
+      {
+        "window": 126,
+        "ridge": 10,
+        "calibration": "isotonic",
+        "brier": 0.27446197977848374,
+        "covered": 23746
+      },
+      {
+        "window": 126,
+        "ridge": 10,
+        "calibration": "platt",
+        "brier": 0.2740947656386132,
+        "covered": 24126
+      },
+      {
+        "window": 126,
+        "ridge": 10,
+        "calibration": "none",
+        "brier": 0.2879271801021867,
+        "covered": 24556
+      },
+      {
+        "window": 126,
+        "ridge": 100,
+        "calibration": "isotonic",
+        "brier": 0.27347269465256996,
+        "covered": 24100
+      },
+      {
+        "window": 126,
+        "ridge": 100,
+        "calibration": "platt",
+        "brier": 0.2733539784667456,
+        "covered": 24077
+      },
+      {
+        "window": 126,
+        "ridge": 100,
+        "calibration": "none",
+        "brier": 0.2854187053815189,
+        "covered": 24556
+      },
+      {
+        "window": 252,
+        "ridge": 0.1,
+        "calibration": "isotonic",
+        "brier": 0.277134895391762,
+        "covered": 23655
+      },
+      {
+        "window": 252,
+        "ridge": 0.1,
+        "calibration": "platt",
+        "brier": 0.2768576669370542,
+        "covered": 23592
+      },
+      {
+        "window": 252,
+        "ridge": 0.1,
+        "calibration": "none",
+        "brier": 0.28580789170556425,
+        "covered": 24556
+      },
+      {
+        "window": 252,
+        "ridge": 1,
+        "calibration": "isotonic",
+        "brier": 0.2771281326623223,
+        "covered": 23660
+      },
+      {
+        "window": 252,
+        "ridge": 1,
+        "calibration": "platt",
+        "brier": 0.27684987468616146,
+        "covered": 23592
+      },
+      {
+        "window": 252,
+        "ridge": 1,
+        "calibration": "none",
+        "brier": 0.2857817894235046,
+        "covered": 24556
+      },
+      {
+        "window": 252,
+        "ridge": 10,
+        "calibration": "isotonic",
+        "brier": 0.27707575950091357,
+        "covered": 23651
+      },
+      {
+        "window": 252,
+        "ridge": 10,
+        "calibration": "platt",
+        "brier": 0.27677811262868757,
+        "covered": 23596
+      },
+      {
+        "window": 252,
+        "ridge": 10,
+        "calibration": "none",
+        "brier": 0.2855246893371537,
+        "covered": 24556
+      },
+      {
+        "window": 252,
+        "ridge": 100,
+        "calibration": "isotonic",
+        "brier": 0.276273139114882,
+        "covered": 23562
+      },
+      {
+        "window": 252,
+        "ridge": 100,
+        "calibration": "platt",
+        "brier": 0.2759328162535217,
+        "covered": 23692
+      },
+      {
+        "window": 252,
+        "ridge": 100,
+        "calibration": "none",
+        "brier": 0.2832716910624708,
+        "covered": 24556
+      }
+    ],
+    "trainRows": 82625,
+    "calibrationRows": 31026,
+    "testRows": 31230,
+    "calibratorName": "platt",
+    "intercept": 0.17631198052920538,
+    "coefficients": {
+      "ema_distance": 0.024726691013497244,
+      "ema_slope": 0.1669531638525884,
+      "ema_separation": -0.12465245278626647,
+      "rsi_normalized": 0.2072764611492585,
+      "macd_histogram_normalized": -0.08404738635516569,
+      "adx_normalized": -0.032791001871122195,
+      "atr_percentile": 0.40610756039642204,
+      "bollinger_position": -0.10677144904770985,
+      "bollinger_width": 0.008188952448252467,
+      "sr_distance": -0.01750684121667231,
+      "swing_strength": -0.015778177685418067,
+      "volume_anomaly": -0.057874937561563415,
+      "volatility_regime": -0.20542721753730603,
+      "trend_persistence": 0.0029032831558387243,
+      "market_efficiency_ratio": -0.01069751092961673
+    },
+    "dropped": [],
+    "converged": true,
+    "eventsPerVariable": 2515.5333333333333
+  },
+  {
+    "fold": 4,
+    "trainStart": 703,
+    "trainEnd": 955,
+    "testStart": 975,
+    "testEnd": 1038,
+    "chosen": {
+      "window": 252,
+      "ridge": 100,
+      "calibration": "isotonic",
+      "innerBrier": 0.26167439106211204
+    },
+    "searched": [
+      {
+        "window": 63,
+        "ridge": 0.1,
+        "calibration": "isotonic",
+        "brier": 0.2629672939322291,
+        "covered": 24012
+      },
+      {
+        "window": 63,
+        "ridge": 0.1,
+        "calibration": "platt",
+        "brier": 0.2635782334788497,
+        "covered": 24347
+      },
+      {
+        "window": 63,
+        "ridge": 0.1,
+        "calibration": "none",
+        "brier": 0.27636283505838244,
+        "covered": 24680
+      },
+      {
+        "window": 63,
+        "ridge": 1,
+        "calibration": "isotonic",
+        "brier": 0.2629821209126997,
+        "covered": 24058
+      },
+      {
+        "window": 63,
+        "ridge": 1,
+        "calibration": "platt",
+        "brier": 0.26358141476065144,
+        "covered": 24349
+      },
+      {
+        "window": 63,
+        "ridge": 1,
+        "calibration": "none",
+        "brier": 0.2763537238621681,
+        "covered": 24680
+      },
+      {
+        "window": 63,
+        "ridge": 10,
+        "calibration": "isotonic",
+        "brier": 0.26297650967929065,
+        "covered": 24028
+      },
+      {
+        "window": 63,
+        "ridge": 10,
+        "calibration": "platt",
+        "brier": 0.26354118183928527,
+        "covered": 24357
+      },
+      {
+        "window": 63,
+        "ridge": 10,
+        "calibration": "none",
+        "brier": 0.27626123930059276,
+        "covered": 24680
+      },
+      {
+        "window": 63,
+        "ridge": 100,
+        "calibration": "isotonic",
+        "brier": 0.26229531161347047,
+        "covered": 24018
+      },
+      {
+        "window": 63,
+        "ridge": 100,
+        "calibration": "platt",
+        "brier": 0.26200124484781784,
+        "covered": 24034
+      },
+      {
+        "window": 63,
+        "ridge": 100,
+        "calibration": "none",
+        "brier": 0.2752795150772714,
+        "covered": 24680
+      },
+      {
+        "window": 126,
+        "ridge": 0.1,
+        "calibration": "isotonic",
+        "brier": 0.26257440361413575,
+        "covered": 23922
+      },
+      {
+        "window": 126,
+        "ridge": 0.1,
+        "calibration": "platt",
+        "brier": 0.2620677419196764,
+        "covered": 24074
+      },
+      {
+        "window": 126,
+        "ridge": 0.1,
+        "calibration": "none",
+        "brier": 0.2759218849480154,
+        "covered": 24680
+      },
+      {
+        "window": 126,
+        "ridge": 1,
+        "calibration": "isotonic",
+        "brier": 0.2626100486406549,
+        "covered": 23925
+      },
+      {
+        "window": 126,
+        "ridge": 1,
+        "calibration": "platt",
+        "brier": 0.26203572051515595,
+        "covered": 24074
+      },
+      {
+        "window": 126,
+        "ridge": 1,
+        "calibration": "none",
+        "brier": 0.2759090609043034,
+        "covered": 24680
+      },
+      {
+        "window": 126,
+        "ridge": 10,
+        "calibration": "isotonic",
+        "brier": 0.2621718847005069,
+        "covered": 23798
+      },
+      {
+        "window": 126,
+        "ridge": 10,
+        "calibration": "platt",
+        "brier": 0.26204622077787293,
+        "covered": 24083
+      },
+      {
+        "window": 126,
+        "ridge": 10,
+        "calibration": "none",
+        "brier": 0.27578242450648804,
+        "covered": 24680
+      },
+      {
+        "window": 126,
+        "ridge": 100,
+        "calibration": "isotonic",
+        "brier": 0.2619838050350186,
+        "covered": 23826
+      },
+      {
+        "window": 126,
+        "ridge": 100,
+        "calibration": "platt",
+        "brier": 0.26212511324712856,
+        "covered": 24191
+      },
+      {
+        "window": 126,
+        "ridge": 100,
+        "calibration": "none",
+        "brier": 0.27463597747470303,
+        "covered": 24680
+      },
+      {
+        "window": 252,
+        "ridge": 0.1,
+        "calibration": "isotonic",
+        "brier": 0.2642261106513844,
+        "covered": 23901
+      },
+      {
+        "window": 252,
+        "ridge": 0.1,
+        "calibration": "platt",
+        "brier": 0.2624430097333749,
+        "covered": 23772
+      },
+      {
+        "window": 252,
+        "ridge": 0.1,
+        "calibration": "none",
+        "brier": 0.27815070877590964,
+        "covered": 24680
+      },
+      {
+        "window": 252,
+        "ridge": 1,
+        "calibration": "isotonic",
+        "brier": 0.2642429976036877,
+        "covered": 23999
+      },
+      {
+        "window": 252,
+        "ridge": 1,
+        "calibration": "platt",
+        "brier": 0.2624548309931849,
+        "covered": 23775
+      },
+      {
+        "window": 252,
+        "ridge": 1,
+        "calibration": "none",
+        "brier": 0.278131600601688,
+        "covered": 24680
+      },
+      {
+        "window": 252,
+        "ridge": 10,
+        "calibration": "isotonic",
+        "brier": 0.2643155474129662,
+        "covered": 24028
+      },
+      {
+        "window": 252,
+        "ridge": 10,
+        "calibration": "platt",
+        "brier": 0.2624111631505531,
+        "covered": 23776
+      },
+      {
+        "window": 252,
+        "ridge": 10,
+        "calibration": "none",
+        "brier": 0.2779432908733215,
+        "covered": 24680
+      },
+      {
+        "window": 252,
+        "ridge": 100,
+        "calibration": "isotonic",
+        "brier": 0.26167439106211204,
+        "covered": 23793
+      },
+      {
+        "window": 252,
+        "ridge": 100,
+        "calibration": "platt",
+        "brier": 0.2618966893112601,
+        "covered": 23862
+      },
+      {
+        "window": 252,
+        "ridge": 100,
+        "calibration": "none",
+        "brier": 0.2762796048984759,
+        "covered": 24680
+      }
+    ],
+    "trainRows": 82851,
+    "calibrationRows": 31205,
+    "testRows": 31291,
+    "calibratorName": "isotonic",
+    "intercept": 0.18967575457454539,
+    "coefficients": {
+      "ema_distance": 0.23707278554673789,
+      "ema_slope": 0.06407894491750576,
+      "ema_separation": -0.1814623254267396,
+      "rsi_normalized": 0.1890588165881649,
+      "macd_histogram_normalized": -0.009255211965924935,
+      "adx_normalized": -0.019069404593748857,
+      "atr_percentile": 0.3179157224748234,
+      "bollinger_position": -0.17533399582711,
+      "bollinger_width": -0.10656670135864096,
+      "sr_distance": -0.0068195258123117655,
+      "swing_strength": -0.03422674192500087,
+      "volume_anomaly": -0.06248342905306899,
+      "volatility_regime": 0.047918999963115376,
+      "trend_persistence": 0.03671753405234048,
+      "market_efficiency_ratio": -0.0017238030242440038
+    },
+    "dropped": [],
+    "converged": true,
+    "eventsPerVariable": 2506.6
+  },
+  {
+    "fold": 5,
+    "trainStart": 766,
+    "trainEnd": 1018,
+    "testStart": 1038,
+    "testEnd": 1101,
+    "chosen": {
+      "window": 63,
+      "ridge": 100,
+      "calibration": "none",
+      "innerBrier": 0.2684713137922525
+    },
+    "searched": [
+      {
+        "window": 63,
+        "ridge": 0.1,
+        "calibration": "isotonic",
+        "brier": 0.29670693336665194,
+        "covered": 24634
+      },
+      {
+        "window": 63,
+        "ridge": 0.1,
+        "calibration": "platt",
+        "brier": 0.29363221770114256,
+        "covered": 24186
+      },
+      {
+        "window": 63,
+        "ridge": 0.1,
+        "calibration": "none",
+        "brier": 0.2691531946633428,
+        "covered": 24786
+      },
+      {
+        "window": 63,
+        "ridge": 1,
+        "calibration": "isotonic",
+        "brier": 0.29689803104914475,
+        "covered": 24618
+      },
+      {
+        "window": 63,
+        "ridge": 1,
+        "calibration": "platt",
+        "brier": 0.29363789458640976,
+        "covered": 24185
+      },
+      {
+        "window": 63,
+        "ridge": 1,
+        "calibration": "none",
+        "brier": 0.2691457708760285,
+        "covered": 24786
+      },
+      {
+        "window": 63,
+        "ridge": 10,
+        "calibration": "isotonic",
+        "brier": 0.2968590643912253,
+        "covered": 24654
+      },
+      {
+        "window": 63,
+        "ridge": 10,
+        "calibration": "platt",
+        "brier": 0.29358438461308695,
+        "covered": 24171
+      },
+      {
+        "window": 63,
+        "ridge": 10,
+        "calibration": "none",
+        "brier": 0.2690734671445792,
+        "covered": 24786
+      },
+      {
+        "window": 63,
+        "ridge": 100,
+        "calibration": "isotonic",
+        "brier": 0.2966068532525904,
+        "covered": 24649
+      },
+      {
+        "window": 63,
+        "ridge": 100,
+        "calibration": "platt",
+        "brier": 0.29512553097339117,
+        "covered": 24666
+      },
+      {
+        "window": 63,
+        "ridge": 100,
+        "calibration": "none",
+        "brier": 0.2684713137922525,
+        "covered": 24786
+      },
+      {
+        "window": 126,
+        "ridge": 0.1,
+        "calibration": "isotonic",
+        "brier": 0.29636981979355753,
+        "covered": 24593
+      },
+      {
+        "window": 126,
+        "ridge": 0.1,
+        "calibration": "platt",
+        "brier": 0.2953213334937244,
+        "covered": 24648
+      },
+      {
+        "window": 126,
+        "ridge": 0.1,
+        "calibration": "none",
+        "brier": 0.27012133324513277,
+        "covered": 24786
+      },
+      {
+        "window": 126,
+        "ridge": 1,
+        "calibration": "isotonic",
+        "brier": 0.2963085624883345,
+        "covered": 24635
+      },
+      {
+        "window": 126,
+        "ridge": 1,
+        "calibration": "platt",
+        "brier": 0.2953257635312936,
+        "covered": 24647
+      },
+      {
+        "window": 126,
+        "ridge": 1,
+        "calibration": "none",
+        "brier": 0.27011210915241507,
+        "covered": 24786
+      },
+      {
+        "window": 126,
+        "ridge": 10,
+        "calibration": "isotonic",
+        "brier": 0.2963630322080052,
+        "covered": 24552
+      },
+      {
+        "window": 126,
+        "ridge": 10,
+        "calibration": "platt",
+        "brier": 0.29526503896646483,
+        "covered": 24635
+      },
+      {
+        "window": 126,
+        "ridge": 10,
+        "calibration": "none",
+        "brier": 0.2700223673857958,
+        "covered": 24786
+      },
+      {
+        "window": 126,
+        "ridge": 100,
+        "calibration": "isotonic",
+        "brier": 0.2964818996085938,
+        "covered": 24558
+      },
+      {
+        "window": 126,
+        "ridge": 100,
+        "calibration": "platt",
+        "brier": 0.29488331134145584,
+        "covered": 24544
+      },
+      {
+        "window": 126,
+        "ridge": 100,
+        "calibration": "none",
+        "brier": 0.2692913649883984,
+        "covered": 24786
+      },
+      {
+        "window": 252,
+        "ridge": 0.1,
+        "calibration": "isotonic",
+        "brier": 0.2986887005716136,
+        "covered": 24649
+      },
+      {
+        "window": 252,
+        "ridge": 0.1,
+        "calibration": "platt",
+        "brier": 0.2986994204184617,
+        "covered": 24555
+      },
+      {
+        "window": 252,
+        "ridge": 0.1,
+        "calibration": "none",
+        "brier": 0.273999484015532,
+        "covered": 24786
+      },
+      {
+        "window": 252,
+        "ridge": 1,
+        "calibration": "isotonic",
+        "brier": 0.2986149947446288,
+        "covered": 24635
+      },
+      {
+        "window": 252,
+        "ridge": 1,
+        "calibration": "platt",
+        "brier": 0.2986725531712318,
+        "covered": 24554
+      },
+      {
+        "window": 252,
+        "ridge": 1,
+        "calibration": "none",
+        "brier": 0.2739827448371031,
+        "covered": 24786
+      },
+      {
+        "window": 252,
+        "ridge": 10,
+        "calibration": "isotonic",
+        "brier": 0.29837769058973035,
+        "covered": 24449
+      },
+      {
+        "window": 252,
+        "ridge": 10,
+        "calibration": "platt",
+        "brier": 0.2986070533561562,
+        "covered": 24551
+      },
+      {
+        "window": 252,
+        "ridge": 10,
+        "calibration": "none",
+        "brier": 0.2738196336579224,
+        "covered": 24786
+      },
+      {
+        "window": 252,
+        "ridge": 100,
+        "calibration": "isotonic",
+        "brier": 0.2989133947781332,
+        "covered": 24733
+      },
+      {
+        "window": 252,
+        "ridge": 100,
+        "calibration": "platt",
+        "brier": 0.2979406289054787,
+        "covered": 24499
+      },
+      {
+        "window": 252,
+        "ridge": 100,
+        "calibration": "none",
+        "brier": 0.2724848075485707,
+        "covered": 24786
+      }
+    ],
+    "trainRows": 83201,
+    "calibrationRows": 0,
+    "testRows": 31357,
+    "calibratorName": "none",
+    "intercept": 0.20112866075635802,
+    "coefficients": {
+      "ema_distance": 0.1938660230630253,
+      "ema_slope": -0.008342060398688074,
+      "ema_separation": -0.028917322689604796,
+      "rsi_normalized": 0.010753384910127142,
+      "macd_histogram_normalized": 0.01827322067983105,
+      "adx_normalized": -0.023547013944706825,
+      "atr_percentile": 0.23187438549229286,
+      "bollinger_position": -0.17175208813523118,
+      "bollinger_width": 0.0009893882292363657,
+      "sr_distance": -0.027891436360460074,
+      "swing_strength": -0.06616253759252058,
+      "volume_anomaly": -0.066743934587706,
+      "volatility_regime": 0.008748126842884835,
+      "trend_persistence": 0.029355915425395656,
+      "market_efficiency_ratio": -0.01269508447266141
+    },
+    "dropped": [],
+    "converged": true,
+    "eventsPerVariable": 2500.6
+  },
+  {
+    "fold": 6,
+    "trainStart": 829,
+    "trainEnd": 1081,
+    "testStart": 1101,
+    "testEnd": 1164,
+    "chosen": {
+      "window": 63,
+      "ridge": 100,
+      "calibration": "none",
+      "innerBrier": 0.2502120218852085
+    },
+    "searched": [
+      {
+        "window": 63,
+        "ridge": 0.1,
+        "calibration": "isotonic",
+        "brier": 0.2545899987483923,
+        "covered": 24530
+      },
+      {
+        "window": 63,
+        "ridge": 0.1,
+        "calibration": "platt",
+        "brier": 0.25385472292121625,
+        "covered": 24683
+      },
+      {
+        "window": 63,
+        "ridge": 0.1,
+        "calibration": "none",
+        "brier": 0.25073893837657296,
+        "covered": 24836
+      },
+      {
+        "window": 63,
+        "ridge": 1,
+        "calibration": "isotonic",
+        "brier": 0.25460799958796226,
+        "covered": 24531
+      },
+      {
+        "window": 63,
+        "ridge": 1,
+        "calibration": "platt",
+        "brier": 0.25385449125884274,
+        "covered": 24683
+      },
+      {
+        "window": 63,
+        "ridge": 1,
+        "calibration": "none",
+        "brier": 0.2507328440844195,
+        "covered": 24836
+      },
+      {
+        "window": 63,
+        "ridge": 10,
+        "calibration": "isotonic",
+        "brier": 0.25460597171286875,
+        "covered": 24504
+      },
+      {
+        "window": 63,
+        "ridge": 10,
+        "calibration": "platt",
+        "brier": 0.25385178869635794,
+        "covered": 24685
+      },
+      {
+        "window": 63,
+        "ridge": 10,
+        "calibration": "none",
+        "brier": 0.25067377818141573,
+        "covered": 24836
+      },
+      {
+        "window": 63,
+        "ridge": 100,
+        "calibration": "isotonic",
+        "brier": 0.25464395697847914,
+        "covered": 24592
+      },
+      {
+        "window": 63,
+        "ridge": 100,
+        "calibration": "platt",
+        "brier": 0.25384587561841854,
+        "covered": 24677
+      },
+      {
+        "window": 63,
+        "ridge": 100,
+        "calibration": "none",
+        "brier": 0.2502120218852085,
+        "covered": 24836
+      },
+      {
+        "window": 126,
+        "ridge": 0.1,
+        "calibration": "isotonic",
+        "brier": 0.2546719478442705,
+        "covered": 24120
+      },
+      {
+        "window": 126,
+        "ridge": 0.1,
+        "calibration": "platt",
+        "brier": 0.25386457328125916,
+        "covered": 24197
+      },
+      {
+        "window": 126,
+        "ridge": 0.1,
+        "calibration": "none",
+        "brier": 0.2516537780906946,
+        "covered": 24836
+      },
+      {
+        "window": 126,
+        "ridge": 1,
+        "calibration": "isotonic",
+        "brier": 0.25466285238032516,
+        "covered": 24131
+      },
+      {
+        "window": 126,
+        "ridge": 1,
+        "calibration": "platt",
+        "brier": 0.2538644251214527,
+        "covered": 24197
+      },
+      {
+        "window": 126,
+        "ridge": 1,
+        "calibration": "none",
+        "brier": 0.25164623028415384,
+        "covered": 24836
+      },
+      {
+        "window": 126,
+        "ridge": 10,
+        "calibration": "isotonic",
+        "brier": 0.25457453259848395,
+        "covered": 24027
+      },
+      {
+        "window": 126,
+        "ridge": 10,
+        "calibration": "platt",
+        "brier": 0.2538631144957406,
+        "covered": 24203
+      },
+      {
+        "window": 126,
+        "ridge": 10,
+        "calibration": "none",
+        "brier": 0.2515733479395773,
+        "covered": 24836
+      },
+      {
+        "window": 126,
+        "ridge": 100,
+        "calibration": "isotonic",
+        "brier": 0.2546895954797654,
+        "covered": 23918
+      },
+      {
+        "window": 126,
+        "ridge": 100,
+        "calibration": "platt",
+        "brier": 0.25384578319283435,
+        "covered": 24747
+      },
+      {
+        "window": 126,
+        "ridge": 100,
+        "calibration": "none",
+        "brier": 0.25101424139621575,
+        "covered": 24836
+      },
+      {
+        "window": 252,
+        "ridge": 0.1,
+        "calibration": "isotonic",
+        "brier": 0.25437505746627037,
+        "covered": 23921
+      },
+      {
+        "window": 252,
+        "ridge": 0.1,
+        "calibration": "platt",
+        "brier": 0.2538052249349265,
+        "covered": 24233
+      },
+      {
+        "window": 252,
+        "ridge": 0.1,
+        "calibration": "none",
+        "brier": 0.2517254147063253,
+        "covered": 24836
+      },
+      {
+        "window": 252,
+        "ridge": 1,
+        "calibration": "isotonic",
+        "brier": 0.2543647769236088,
+        "covered": 23921
+      },
+      {
+        "window": 252,
+        "ridge": 1,
+        "calibration": "platt",
+        "brier": 0.25380540961966497,
+        "covered": 24233
+      },
+      {
+        "window": 252,
+        "ridge": 1,
+        "calibration": "none",
+        "brier": 0.251717913291851,
+        "covered": 24836
+      },
+      {
+        "window": 252,
+        "ridge": 10,
+        "calibration": "isotonic",
+        "brier": 0.25439053451721494,
+        "covered": 23927
+      },
+      {
+        "window": 252,
+        "ridge": 10,
+        "calibration": "platt",
+        "brier": 0.2538054007041864,
+        "covered": 24231
+      },
+      {
+        "window": 252,
+        "ridge": 10,
+        "calibration": "none",
+        "brier": 0.2516456373063183,
+        "covered": 24836
+      },
+      {
+        "window": 252,
+        "ridge": 100,
+        "calibration": "isotonic",
+        "brier": 0.2560345598487957,
+        "covered": 24538
+      },
+      {
+        "window": 252,
+        "ridge": 100,
+        "calibration": "platt",
+        "brier": 0.25388855591930254,
+        "covered": 24140
+      },
+      {
+        "window": 252,
+        "ridge": 100,
+        "calibration": "none",
+        "brier": 0.25109634837874784,
+        "covered": 24836
+      }
+    ],
+    "trainRows": 83562,
+    "calibrationRows": 0,
+    "testRows": 31377,
+    "calibratorName": "none",
+    "intercept": 0.13887995518972449,
+    "coefficients": {
+      "ema_distance": 0.07863406099303853,
+      "ema_slope": -0.00037960097906812254,
+      "ema_separation": -0.042074541023822756,
+      "rsi_normalized": 0.09301649709214029,
+      "macd_histogram_normalized": 0.008142024375785588,
+      "adx_normalized": -0.03403988040763693,
+      "atr_percentile": 0.1322020995543733,
+      "bollinger_position": -0.19181350637895794,
+      "bollinger_width": 0.061259041581612335,
+      "sr_distance": -0.0285056289758099,
+      "swing_strength": -0.04050830759114403,
+      "volume_anomaly": 0.015080784810189535,
+      "volatility_regime": 0.024539621973999063,
+      "trend_persistence": 0.021400906024552344,
+      "market_efficiency_ratio": -0.01536542319314457
+    },
+    "dropped": [],
+    "converged": true,
+    "eventsPerVariable": 2594.733333333333
+  },
+  {
+    "fold": 7,
+    "trainStart": 892,
+    "trainEnd": 1144,
+    "testStart": 1164,
+    "testEnd": 1227,
+    "chosen": {
+      "window": 63,
+      "ridge": 0.1,
+      "calibration": "platt",
+      "innerBrier": 0.2495194924660635
+    },
+    "searched": [
+      {
+        "window": 63,
+        "ridge": 0.1,
+        "calibration": "isotonic",
+        "brier": 0.25021078815695963,
+        "covered": 24247
+      },
+      {
+        "window": 63,
+        "ridge": 0.1,
+        "calibration": "platt",
+        "brier": 0.2495194924660635,
+        "covered": 24807
+      },
+      {
+        "window": 63,
+        "ridge": 0.1,
+        "calibration": "none",
+        "brier": 0.2515075982205522,
+        "covered": 24885
+      },
+      {
+        "window": 63,
+        "ridge": 1,
+        "calibration": "isotonic",
+        "brier": 0.25019860199665617,
+        "covered": 24151
+      },
+      {
+        "window": 63,
+        "ridge": 1,
+        "calibration": "platt",
+        "brier": 0.24951985811855895,
+        "covered": 24807
+      },
+      {
+        "window": 63,
+        "ridge": 1,
+        "calibration": "none",
+        "brier": 0.251502461724135,
+        "covered": 24885
+      },
+      {
+        "window": 63,
+        "ridge": 10,
+        "calibration": "isotonic",
+        "brier": 0.25022170607551614,
+        "covered": 24479
+      },
+      {
+        "window": 63,
+        "ridge": 10,
+        "calibration": "platt",
+        "brier": 0.2495269537155385,
+        "covered": 24803
+      },
+      {
+        "window": 63,
+        "ridge": 10,
+        "calibration": "none",
+        "brier": 0.25146007218421423,
+        "covered": 24879
+      },
+      {
+        "window": 63,
+        "ridge": 100,
+        "calibration": "isotonic",
+        "brier": 0.2501894009984352,
+        "covered": 24543
+      },
+      {
+        "window": 63,
+        "ridge": 100,
+        "calibration": "platt",
+        "brier": 0.2495498715919849,
+        "covered": 24798
+      },
+      {
+        "window": 63,
+        "ridge": 100,
+        "calibration": "none",
+        "brier": 0.25106212131800976,
+        "covered": 24879
+      },
+      {
+        "window": 126,
+        "ridge": 0.1,
+        "calibration": "isotonic",
+        "brier": 0.2507528156079377,
+        "covered": 24456
+      },
+      {
+        "window": 126,
+        "ridge": 0.1,
+        "calibration": "platt",
+        "brier": 0.2500039769156698,
+        "covered": 24725
+      },
+      {
+        "window": 126,
+        "ridge": 0.1,
+        "calibration": "none",
+        "brier": 0.25182144767819065,
+        "covered": 24885
+      },
+      {
+        "window": 126,
+        "ridge": 1,
+        "calibration": "isotonic",
+        "brier": 0.2507599107446697,
+        "covered": 24399
+      },
+      {
+        "window": 126,
+        "ridge": 1,
+        "calibration": "platt",
+        "brier": 0.25000438652236556,
+        "covered": 24725
+      },
+      {
+        "window": 126,
+        "ridge": 1,
+        "calibration": "none",
+        "brier": 0.25181546482602724,
+        "covered": 24885
+      },
+      {
+        "window": 126,
+        "ridge": 10,
+        "calibration": "isotonic",
+        "brier": 0.2506597134263916,
+        "covered": 24396
+      },
+      {
+        "window": 126,
+        "ridge": 10,
+        "calibration": "platt",
+        "brier": 0.2500072376072299,
+        "covered": 24724
+      },
+      {
+        "window": 126,
+        "ridge": 10,
+        "calibration": "none",
+        "brier": 0.2517574959117496,
+        "covered": 24885
+      },
+      {
+        "window": 126,
+        "ridge": 100,
+        "calibration": "isotonic",
+        "brier": 0.2504160872002565,
+        "covered": 24597
+      },
+      {
+        "window": 126,
+        "ridge": 100,
+        "calibration": "platt",
+        "brier": 0.24999046011218012,
+        "covered": 24712
+      },
+      {
+        "window": 126,
+        "ridge": 100,
+        "calibration": "none",
+        "brier": 0.2512968160783069,
+        "covered": 24885
+      },
+      {
+        "window": 252,
+        "ridge": 0.1,
+        "calibration": "isotonic",
+        "brier": 0.2509405543793304,
+        "covered": 24406
+      },
+      {
+        "window": 252,
+        "ridge": 0.1,
+        "calibration": "platt",
+        "brier": 0.2497598097737243,
+        "covered": 24574
+      },
+      {
+        "window": 252,
+        "ridge": 0.1,
+        "calibration": "none",
+        "brier": 0.25184713406659004,
+        "covered": 24879
+      },
+      {
+        "window": 252,
+        "ridge": 1,
+        "calibration": "isotonic",
+        "brier": 0.2509694554893309,
+        "covered": 24350
+      },
+      {
+        "window": 252,
+        "ridge": 1,
+        "calibration": "platt",
+        "brier": 0.24976098300167435,
+        "covered": 24574
+      },
+      {
+        "window": 252,
+        "ridge": 1,
+        "calibration": "none",
+        "brier": 0.25184155900102745,
+        "covered": 24879
+      },
+      {
+        "window": 252,
+        "ridge": 10,
+        "calibration": "isotonic",
+        "brier": 0.2509469326571927,
+        "covered": 24525
+      },
+      {
+        "window": 252,
+        "ridge": 10,
+        "calibration": "platt",
+        "brier": 0.24977206705188115,
+        "covered": 24572
+      },
+      {
+        "window": 252,
+        "ridge": 10,
+        "calibration": "none",
+        "brier": 0.25178748997018047,
+        "covered": 24879
+      },
+      {
+        "window": 252,
+        "ridge": 100,
+        "calibration": "isotonic",
+        "brier": 0.25094364716089274,
+        "covered": 24621
+      },
+      {
+        "window": 252,
+        "ridge": 100,
+        "calibration": "platt",
+        "brier": 0.24985226568334665,
+        "covered": 24571
+      },
+      {
+        "window": 252,
+        "ridge": 100,
+        "calibration": "none",
+        "brier": 0.2513386168690507,
+        "covered": 24885
+      }
+    ],
+    "trainRows": 83853,
+    "calibrationRows": 31374,
+    "testRows": 31482,
+    "calibratorName": "platt",
+    "intercept": 0.1355980579087889,
+    "coefficients": {
+      "ema_distance": -0.04558344842974001,
+      "ema_slope": -0.0020996882393925,
+      "ema_separation": 0.0637380298578562,
+      "rsi_normalized": 0.10730378538923972,
+      "macd_histogram_normalized": -0.08239032731326816,
+      "adx_normalized": -0.054952342771606065,
+      "atr_percentile": 0.10793242128425459,
+      "bollinger_position": -0.09877249595329515,
+      "bollinger_width": 0.014239748026740596,
+      "sr_distance": -0.05860121726463469,
+      "swing_strength": -0.030387320809286685,
+      "volume_anomaly": 0.0029870599686363073,
+      "volatility_regime": -0.01715121351800056,
+      "trend_persistence": -0.0015282305217806497,
+      "market_efficiency_ratio": 0.03722447284182922
+    },
+    "dropped": [],
+    "converged": true,
+    "eventsPerVariable": 2607.3333333333335
+  }
+]

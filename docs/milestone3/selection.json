@@ -1,0 +1,76 @@
+{
+  "steps": [
+    {
+      "step": 1,
+      "added": "sr_distance",
+      "innerBrier": 0.2536413115373903,
+      "candidates": [
+        {
+          "name": "ema_distance",
+          "innerBrier": 0.2544476603305578
+        },
+        {
+          "name": "ema_slope",
+          "innerBrier": 0.2543702953663171
+        },
+        {
+          "name": "ema_separation",
+          "innerBrier": 0.2553162722737662
+        },
+        {
+          "name": "rsi_normalized",
+          "innerBrier": 0.25436341948673324
+        },
+        {
+          "name": "macd_histogram_normalized",
+          "innerBrier": 0.25593203467153786
+        },
+        {
+          "name": "adx_normalized",
+          "innerBrier": 0.2540689433125593
+        },
+        {
+          "name": "atr_percentile",
+          "innerBrier": 0.25843027247688466
+        },
+        {
+          "name": "bollinger_position",
+          "innerBrier": 0.25425121513780485
+        },
+        {
+          "name": "bollinger_width",
+          "innerBrier": 0.2538264182706302
+        },
+        {
+          "name": "sr_distance",
+          "innerBrier": 0.2536413115373903
+        },
+        {
+          "name": "swing_strength",
+          "innerBrier": 0.2541824310813179
+        },
+        {
+          "name": "volume_anomaly",
+          "innerBrier": 0.2549917258537869
+        },
+        {
+          "name": "volatility_regime",
+          "innerBrier": 0.2547837272558675
+        },
+        {
+          "name": "trend_persistence",
+          "innerBrier": 0.2545804314744817
+        },
+        {
+          "name": "market_efficiency_ratio",
+          "innerBrier": 0.25483784942630044
+        }
+      ],
+      "improvement": null
+    }
+  ],
+  "selected": [
+    "sr_distance"
+  ],
+  "stoppedAt": 2
+}

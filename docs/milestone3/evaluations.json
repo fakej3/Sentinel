@@ -1,0 +1,1959 @@
+[
+  {
+    "name": "fitted_model",
+    "covered": 249573,
+    "available": 249573,
+    "coverage": 1,
+    "raw": {
+      "ic": {
+        "point": -0.004172820120475129,
+        "lower": -0.019301064515344128,
+        "upper": 0.010684464661778841,
+        "n": 504,
+        "method": "block bootstrap over 101 groups (2000 iterations)"
+      },
+      "rankIc": {
+        "point": -0.0061668283783243094,
+        "lower": -0.023717173604604572,
+        "upper": 0.010228664674456408,
+        "n": 504,
+        "method": "block bootstrap over 101 groups (2000 iterations)"
+      },
+      "auc": {
+        "point": 0.49562191043723297,
+        "lower": 0.4866446055992726,
+        "upper": 0.5043045710077573,
+        "n": 504,
+        "method": "block bootstrap over 101 groups (2000 iterations)"
+      },
+      "brier": {
+        "point": 0.25330123284072675,
+        "lower": 0.250054245669511,
+        "upper": 0.2566386560946153,
+        "n": 504,
+        "method": "block bootstrap over 101 groups (2000 iterations)"
+      },
+      "logLoss": {
+        "point": 0.7000544669024945,
+        "lower": 0.6932998354529508,
+        "upper": 0.707415182981553,
+        "n": 504,
+        "method": "block bootstrap over 101 groups (2000 iterations)"
+      },
+      "longShort": {
+        "point": -0.00036335610505295696,
+        "lower": -0.001785110440883921,
+        "upper": 0.0010519292871759157,
+        "n": 504,
+        "method": "block bootstrap over 101 groups (2000 iterations)"
+      },
+      "days": 504
+    },
+    "marketNeutral": {
+      "ic": {
+        "point": -0.004172820120475128,
+        "lower": -0.01893015920699359,
+        "upper": 0.011383995890144686,
+        "n": 504,
+        "method": "block bootstrap over 101 groups (2000 iterations)"
+      },
+      "rankIc": {
+        "point": -0.0061668283783243094,
+        "lower": -0.023676158973733902,
+        "upper": 0.011543076396456721,
+        "n": 504,
+        "method": "block bootstrap over 101 groups (2000 iterations)"
+      },
+      "auc": {
+        "point": 0.4973017805841032,
+        "lower": 0.48879938656305344,
+        "upper": 0.5058154925336968,
+        "n": 504,
+        "method": "block bootstrap over 101 groups (2000 iterations)"
+      },
+      "brier": {
+        "point": 0.2551323326871496,
+        "lower": 0.25397654027418415,
+        "upper": 0.25630101098707203,
+        "n": 504,
+        "method": "block bootstrap over 101 groups (2000 iterations)"
+      },
+      "logLoss": {
+        "point": 0.7037903819412714,
+        "lower": 0.7014582130669926,
+        "upper": 0.7063647051790787,
+        "n": 504,
+        "method": "block bootstrap over 101 groups (2000 iterations)"
+      },
+      "longShort": {
+        "point": -0.00036335610505295723,
+        "lower": -0.0019454461163102548,
+        "upper": 0.001149673844937252,
+        "n": 504,
+        "method": "block bootstrap over 101 groups (2000 iterations)"
+      },
+      "days": 504
+    },
+    "pooledBrier": 0.2532905981535651,
+    "pooledBrierSkill": -0.023524891056554864,
+    "pooledLogLoss": 0.7000327846864209,
+    "reliability": {
+      "bins": [
+        {
+          "lower": 0,
+          "upper": 0.1,
+          "n": 0,
+          "meanPredicted": null,
+          "observed": null
+        },
+        {
+          "lower": 0.1,
+          "upper": 0.2,
+          "n": 0,
+          "meanPredicted": null,
+          "observed": null
+        },
+        {
+          "lower": 0.2,
+          "upper": 0.3,
+          "n": 218,
+          "meanPredicted": 0.2873083505120409,
+          "observed": 0.6284403669724771
+        },
+        {
+          "lower": 0.3,
+          "upper": 0.4,
+          "n": 12180,
+          "meanPredicted": 0.3683372546410984,
+          "observed": 0.5254515599343186
+        },
+        {
+          "lower": 0.4,
+          "upper": 0.5,
+          "n": 78780,
+          "meanPredicted": 0.45748703057556445,
+          "observed": 0.5426758060421427
+        },
+        {
+          "lower": 0.5,
+          "upper": 0.6,
+          "n": 120525,
+          "meanPredicted": 0.5418843737892819,
+          "observed": 0.558572910184609
+        },
+        {
+          "lower": 0.6,
+          "upper": 0.7,
+          "n": 37215,
+          "meanPredicted": 0.6316404784153422,
+          "observed": 0.5486228671234717
+        },
+        {
+          "lower": 0.7,
+          "upper": 0.8,
+          "n": 555,
+          "meanPredicted": 0.7226555391720405,
+          "observed": 0.4666666666666667
+        },
+        {
+          "lower": 0.8,
+          "upper": 0.9,
+          "n": 1,
+          "meanPredicted": 0.8013660949580916,
+          "observed": 1
+        },
+        {
+          "lower": 0.9,
+          "upper": 1,
+          "n": 0,
+          "meanPredicted": null,
+          "observed": null
+        }
+      ],
+      "ece": 0.05588698405740123,
+      "mce": 0.34113201646043617,
+      "n": 249474,
+      "minBinCount": 10
+    },
+    "classification": {
+      "n": 249573,
+      "accuracy": 0.5207013579193263,
+      "precision": 0.5559021901129159,
+      "recall": 0.6410095831755557,
+      "f1": 0.5954300711599341,
+      "baseRate": 0.5502358027510988,
+      "predictedPositiveRate": 0.6344756844690732
+    },
+    "horizon": 5
+  },
+  {
+    "name": "sentinel_engine",
+    "covered": 249573,
+    "available": 249573,
+    "coverage": 1,
+    "raw": {
+      "ic": {
+        "point": -0.01301567807494128,
+        "lower": -0.03734369430694508,
+        "upper": 0.011186953227441732,
+        "n": 504,
+        "method": "block bootstrap over 101 groups (2000 iterations)"
+      },
+      "rankIc": {
+        "point": -0.015202010899468044,
+        "lower": -0.042627980295431085,
+        "upper": 0.011369960519749778,
+        "n": 504,
+        "method": "block bootstrap over 101 groups (2000 iterations)"
+      },
+      "auc": {
+        "point": 0.5005589195408917,
+        "lower": 0.4877040740845222,
+        "upper": 0.5143903531585504,
+        "n": 504,
+        "method": "block bootstrap over 101 groups (2000 iterations)"
+      },
+      "brier": null,
+      "logLoss": null,
+      "longShort": {
+        "point": -0.0010497330555629904,
+        "lower": -0.0034036158127870716,
+        "upper": 0.0013119870722963993,
+        "n": 504,
+        "method": "block bootstrap over 101 groups (2000 iterations)"
+      },
+      "days": 504
+    },
+    "marketNeutral": {
+      "ic": {
+        "point": -0.013015678074941278,
+        "lower": -0.037538392797827315,
+        "upper": 0.012783097777517419,
+        "n": 504,
+        "method": "block bootstrap over 101 groups (2000 iterations)"
+      },
+      "rankIc": {
+        "point": -0.015202010899468044,
+        "lower": -0.042757164774537386,
+        "upper": 0.013004270237856339,
+        "n": 504,
+        "method": "block bootstrap over 101 groups (2000 iterations)"
+      },
+      "auc": {
+        "point": 0.4935183712714543,
+        "lower": 0.4795379355049398,
+        "upper": 0.5071229515563345,
+        "n": 504,
+        "method": "block bootstrap over 101 groups (2000 iterations)"
+      },
+      "brier": null,
+      "logLoss": null,
+      "longShort": {
+        "point": -0.0010497330555629906,
+        "lower": -0.0036276503431650602,
+        "upper": 0.0013141518429859794,
+        "n": 504,
+        "method": "block bootstrap over 101 groups (2000 iterations)"
+      },
+      "days": 504
+    },
+    "pooledBrier": null,
+    "pooledBrierSkill": null,
+    "pooledLogLoss": null,
+    "reliability": null,
+    "classification": {
+      "n": 249573,
+      "accuracy": 0.4981348142627608,
+      "precision": 0.5443301997649824,
+      "recall": 0.5397162913984446,
+      "f1": 0.5420134267452574,
+      "baseRate": 0.5502358027510988,
+      "predictedPositiveRate": 0.5455718366970786
+    },
+    "horizon": 5
+  },
+  {
+    "name": "sentinel_direction",
+    "covered": 249573,
+    "available": 249573,
+    "coverage": 1,
+    "raw": {
+      "ic": {
+        "point": -0.015172129329526123,
+        "lower": -0.03756404771001103,
+        "upper": 0.007078750234536491,
+        "n": 504,
+        "method": "block bootstrap over 101 groups (2000 iterations)"
+      },
+      "rankIc": {
+        "point": -0.01681511366570647,
+        "lower": -0.04150166455834618,
+        "upper": 0.007438052843464225,
+        "n": 504,
+        "method": "block bootstrap over 101 groups (2000 iterations)"
+      },
+      "auc": {
+        "point": 0.498709606550338,
+        "lower": 0.48866811451083425,
+        "upper": 0.5096401086847285,
+        "n": 504,
+        "method": "block bootstrap over 101 groups (2000 iterations)"
+      },
+      "brier": null,
+      "logLoss": null,
+      "longShort": {
+        "point": -0.001178334300610692,
+        "lower": -0.003096965709801619,
+        "upper": 0.0006222481921992454,
+        "n": 495,
+        "method": "block bootstrap over 99 groups (2000 iterations)"
+      },
+      "days": 504
+    },
+    "marketNeutral": {
+      "ic": {
+        "point": -0.015172129329526121,
+        "lower": -0.0378578135899761,
+        "upper": 0.008083157887420075,
+        "n": 504,
+        "method": "block bootstrap over 101 groups (2000 iterations)"
+      },
+      "rankIc": {
+        "point": -0.01681511366570647,
+        "lower": -0.04146964349945868,
+        "upper": 0.009246392864243452,
+        "n": 504,
+        "method": "block bootstrap over 101 groups (2000 iterations)"
+      },
+      "auc": {
+        "point": 0.4935268401012076,
+        "lower": 0.48226375327401133,
+        "upper": 0.5045413667625905,
+        "n": 504,
+        "method": "block bootstrap over 101 groups (2000 iterations)"
+      },
+      "brier": null,
+      "logLoss": null,
+      "longShort": {
+        "point": -0.0011783343006106922,
+        "lower": -0.0030878051731099082,
+        "upper": 0.0006600580149012221,
+        "n": 495,
+        "method": "block bootstrap over 99 groups (2000 iterations)"
+      },
+      "days": 504
+    },
+    "pooledBrier": null,
+    "pooledBrierSkill": null,
+    "pooledLogLoss": null,
+    "reliability": null,
+    "classification": {
+      "n": 249573,
+      "accuracy": 0.4981508416375169,
+      "precision": 0.5443292611300364,
+      "recall": 0.5399056246541027,
+      "f1": 0.5421084187590482,
+      "baseRate": 0.5502358027510988,
+      "predictedPositiveRate": 0.5457641651941516
+    },
+    "horizon": 5
+  },
+  {
+    "name": "random",
+    "covered": 249573,
+    "available": 249573,
+    "coverage": 1,
+    "raw": {
+      "ic": {
+        "point": -0.0010699227930589476,
+        "lower": -0.005132961858502,
+        "upper": 0.002865124874946081,
+        "n": 504,
+        "method": "block bootstrap over 101 groups (2000 iterations)"
+      },
+      "rankIc": {
+        "point": -0.0016664698615400859,
+        "lower": -0.005851022432564232,
+        "upper": 0.002533599364223744,
+        "n": 504,
+        "method": "block bootstrap over 101 groups (2000 iterations)"
+      },
+      "auc": {
+        "point": 0.49790352860884424,
+        "lower": 0.4951567328521869,
+        "upper": 0.5006378199874714,
+        "n": 504,
+        "method": "block bootstrap over 101 groups (2000 iterations)"
+      },
+      "brier": null,
+      "logLoss": null,
+      "longShort": {
+        "point": -0.00010598722113897654,
+        "lower": -0.0005295001367842436,
+        "upper": 0.0003254302496691421,
+        "n": 504,
+        "method": "block bootstrap over 101 groups (2000 iterations)"
+      },
+      "days": 504
+    },
+    "marketNeutral": {
+      "ic": {
+        "point": -0.0010699227930589484,
+        "lower": -0.005181539677493018,
+        "upper": 0.0030197280840721487,
+        "n": 504,
+        "method": "block bootstrap over 101 groups (2000 iterations)"
+      },
+      "rankIc": {
+        "point": -0.0016664698615400859,
+        "lower": -0.0056401733853077484,
+        "upper": 0.002035512548589117,
+        "n": 504,
+        "method": "block bootstrap over 101 groups (2000 iterations)"
+      },
+      "auc": {
+        "point": 0.4993933006649397,
+        "lower": 0.4972261625478851,
+        "upper": 0.5016118150939863,
+        "n": 504,
+        "method": "block bootstrap over 101 groups (2000 iterations)"
+      },
+      "brier": null,
+      "logLoss": null,
+      "longShort": {
+        "point": -0.00010598722113897563,
+        "lower": -0.0005385745801370186,
+        "upper": 0.00035020267620863025,
+        "n": 504,
+        "method": "block bootstrap over 101 groups (2000 iterations)"
+      },
+      "days": 504
+    },
+    "pooledBrier": null,
+    "pooledBrierSkill": null,
+    "pooledLogLoss": null,
+    "reliability": null,
+    "classification": {
+      "n": 249573,
+      "accuracy": 0.49947710689858277,
+      "precision": 0.5498605496033501,
+      "recall": 0.4981794879263639,
+      "f1": 0.5227457677627885,
+      "baseRate": 0.5502358027510988,
+      "predictedPositiveRate": 0.4985194712569068
+    },
+    "horizon": 5
+  },
+  {
+    "name": "always_long",
+    "covered": 249573,
+    "available": 249573,
+    "coverage": 1,
+    "raw": {
+      "ic": null,
+      "rankIc": null,
+      "auc": {
+        "point": 0.5,
+        "lower": 0.5,
+        "upper": 0.5,
+        "n": 504,
+        "method": "block bootstrap over 101 groups (2000 iterations)"
+      },
+      "brier": null,
+      "logLoss": null,
+      "longShort": null,
+      "days": 504
+    },
+    "marketNeutral": {
+      "ic": null,
+      "rankIc": null,
+      "auc": {
+        "point": 0.5,
+        "lower": 0.5,
+        "upper": 0.5,
+        "n": 504,
+        "method": "block bootstrap over 101 groups (2000 iterations)"
+      },
+      "brier": null,
+      "logLoss": null,
+      "longShort": null,
+      "days": 504
+    },
+    "pooledBrier": null,
+    "pooledBrierSkill": null,
+    "pooledLogLoss": null,
+    "reliability": null,
+    "classification": {
+      "n": 249573,
+      "accuracy": 0.5502358027510988,
+      "precision": 0.5502358027510988,
+      "recall": 1,
+      "f1": 0.7098736873121271,
+      "baseRate": 0.5502358027510988,
+      "predictedPositiveRate": 1
+    },
+    "horizon": 5
+  },
+  {
+    "name": "ema_cross",
+    "covered": 249573,
+    "available": 249573,
+    "coverage": 1,
+    "raw": {
+      "ic": {
+        "point": -0.002599238954201005,
+        "lower": -0.024495943982274965,
+        "upper": 0.020304443425456304,
+        "n": 504,
+        "method": "block bootstrap over 101 groups (2000 iterations)"
+      },
+      "rankIc": {
+        "point": -0.004653723454241351,
+        "lower": -0.028454695338173817,
+        "upper": 0.01829903129627858,
+        "n": 504,
+        "method": "block bootstrap over 101 groups (2000 iterations)"
+      },
+      "auc": {
+        "point": 0.5027663093539838,
+        "lower": 0.49325657033019177,
+        "upper": 0.5126915746844128,
+        "n": 504,
+        "method": "block bootstrap over 101 groups (2000 iterations)"
+      },
+      "brier": null,
+      "logLoss": null,
+      "longShort": {
+        "point": 0.00011060381358528401,
+        "lower": -0.0015149172500888897,
+        "upper": 0.0017807663135935132,
+        "n": 448,
+        "method": "block bootstrap over 90 groups (2000 iterations)"
+      },
+      "days": 504
+    },
+    "marketNeutral": {
+      "ic": {
+        "point": -0.002599238954201005,
+        "lower": -0.024876889195699747,
+        "upper": 0.020478012253285213,
+        "n": 504,
+        "method": "block bootstrap over 101 groups (2000 iterations)"
+      },
+      "rankIc": {
+        "point": -0.004653723454241351,
+        "lower": -0.028616335945595577,
+        "upper": 0.01994758529384808,
+        "n": 504,
+        "method": "block bootstrap over 101 groups (2000 iterations)"
+      },
+      "auc": {
+        "point": 0.4990978252165199,
+        "lower": 0.48896686741948564,
+        "upper": 0.5087877159248647,
+        "n": 504,
+        "method": "block bootstrap over 101 groups (2000 iterations)"
+      },
+      "brier": null,
+      "logLoss": null,
+      "longShort": {
+        "point": 0.00011060381358528487,
+        "lower": -0.0015649263604959475,
+        "upper": 0.001757753289238985,
+        "n": 448,
+        "method": "block bootstrap over 90 groups (2000 iterations)"
+      },
+      "days": 504
+    },
+    "pooledBrier": null,
+    "pooledBrierSkill": null,
+    "pooledLogLoss": null,
+    "reliability": null,
+    "classification": {
+      "n": 249573,
+      "accuracy": 0.5119263702403706,
+      "precision": 0.549405755194069,
+      "recall": 0.6281494858873904,
+      "f1": 0.5861448034519077,
+      "baseRate": 0.5502358027510988,
+      "predictedPositiveRate": 0.6290985002384072
+    },
+    "horizon": 5
+  },
+  {
+    "name": "ema_cross_continuous",
+    "covered": 249573,
+    "available": 249573,
+    "coverage": 1,
+    "raw": {
+      "ic": {
+        "point": -0.0148217831272687,
+        "lower": -0.04214616431424595,
+        "upper": 0.013960884277080558,
+        "n": 504,
+        "method": "block bootstrap over 101 groups (2000 iterations)"
+      },
+      "rankIc": {
+        "point": -0.012808446543070381,
+        "lower": -0.04010489143210683,
+        "upper": 0.013601556892819274,
+        "n": 504,
+        "method": "block bootstrap over 101 groups (2000 iterations)"
+      },
+      "auc": {
+        "point": 0.4990749384420618,
+        "lower": 0.48575812625934345,
+        "upper": 0.5131118538624679,
+        "n": 504,
+        "method": "block bootstrap over 101 groups (2000 iterations)"
+      },
+      "brier": null,
+      "logLoss": null,
+      "longShort": {
+        "point": -0.0005086820746288736,
+        "lower": -0.0032443533271415345,
+        "upper": 0.0021412256807594892,
+        "n": 504,
+        "method": "block bootstrap over 101 groups (2000 iterations)"
+      },
+      "days": 504
+    },
+    "marketNeutral": {
+      "ic": {
+        "point": -0.0148217831272687,
+        "lower": -0.04300128564266562,
+        "upper": 0.014834595277576686,
+        "n": 504,
+        "method": "block bootstrap over 101 groups (2000 iterations)"
+      },
+      "rankIc": {
+        "point": -0.012808446543070381,
+        "lower": -0.04074346885150006,
+        "upper": 0.01543237438575325,
+        "n": 504,
+        "method": "block bootstrap over 101 groups (2000 iterations)"
+      },
+      "auc": {
+        "point": 0.49448414661904044,
+        "lower": 0.48004807564718904,
+        "upper": 0.5086405670671534,
+        "n": 504,
+        "method": "block bootstrap over 101 groups (2000 iterations)"
+      },
+      "brier": null,
+      "logLoss": null,
+      "longShort": {
+        "point": -0.000508682074628874,
+        "lower": -0.0033226647915376825,
+        "upper": 0.0021675344525785446,
+        "n": 504,
+        "method": "block bootstrap over 101 groups (2000 iterations)"
+      },
+      "days": 504
+    },
+    "pooledBrier": null,
+    "pooledBrierSkill": null,
+    "pooledLogLoss": null,
+    "reliability": null,
+    "classification": {
+      "n": 249573,
+      "accuracy": 0.5119263702403706,
+      "precision": 0.549405755194069,
+      "recall": 0.6281494858873904,
+      "f1": 0.5861448034519077,
+      "baseRate": 0.5502358027510988,
+      "predictedPositiveRate": 0.6290985002384072
+    },
+    "horizon": 5
+  },
+  {
+    "name": "feature:ema_distance",
+    "covered": 249243,
+    "available": 249573,
+    "coverage": 0.9986777415826231,
+    "raw": {
+      "ic": {
+        "point": 0.0009858326328302494,
+        "lower": -0.022327153087048125,
+        "upper": 0.024721390640766675,
+        "n": 504,
+        "method": "block bootstrap over 101 groups (2000 iterations)"
+      },
+      "rankIc": {
+        "point": -0.0010640815719577693,
+        "lower": -0.02887159758785556,
+        "upper": 0.025517302376236516,
+        "n": 504,
+        "method": "block bootstrap over 101 groups (2000 iterations)"
+      },
+      "auc": {
+        "point": 0.5029714850484414,
+        "lower": 0.4883380713393483,
+        "upper": 0.5174472330379268,
+        "n": 504,
+        "method": "block bootstrap over 101 groups (2000 iterations)"
+      },
+      "brier": null,
+      "logLoss": null,
+      "longShort": {
+        "point": 0.0007475132428229361,
+        "lower": -0.0017095712453683042,
+        "upper": 0.0032700838698608518,
+        "n": 504,
+        "method": "block bootstrap over 101 groups (2000 iterations)"
+      },
+      "days": 504
+    },
+    "marketNeutral": {
+      "ic": {
+        "point": 0.0009858326328302518,
+        "lower": -0.02273017231848669,
+        "upper": 0.025930581951974147,
+        "n": 504,
+        "method": "block bootstrap over 101 groups (2000 iterations)"
+      },
+      "rankIc": {
+        "point": -0.0010640815719577693,
+        "lower": -0.029305227501520426,
+        "upper": 0.02797049745381997,
+        "n": 504,
+        "method": "block bootstrap over 101 groups (2000 iterations)"
+      },
+      "auc": {
+        "point": 0.49978255821608314,
+        "lower": 0.4858688543651762,
+        "upper": 0.5136963948677871,
+        "n": 504,
+        "method": "block bootstrap over 101 groups (2000 iterations)"
+      },
+      "brier": null,
+      "logLoss": null,
+      "longShort": {
+        "point": 0.0007475132428229362,
+        "lower": -0.0017321718044825687,
+        "upper": 0.0032774831783661685,
+        "n": 504,
+        "method": "block bootstrap over 101 groups (2000 iterations)"
+      },
+      "days": 504
+    },
+    "pooledBrier": null,
+    "pooledBrierSkill": null,
+    "pooledLogLoss": null,
+    "reliability": null,
+    "classification": {
+      "n": 249243,
+      "accuracy": 0.5036731222140642,
+      "precision": 0.548168210772196,
+      "recall": 0.5578085467842013,
+      "f1": 0.5529463633932509,
+      "baseRate": 0.5502702182207725,
+      "predictedPositiveRate": 0.5599475210938722
+    },
+    "horizon": 5
+  },
+  {
+    "name": "feature:ema_slope",
+    "covered": 249243,
+    "available": 249573,
+    "coverage": 0.9986777415826231,
+    "raw": {
+      "ic": {
+        "point": -0.014060320344844383,
+        "lower": -0.03531373714548455,
+        "upper": 0.007010270387535596,
+        "n": 504,
+        "method": "block bootstrap over 101 groups (2000 iterations)"
+      },
+      "rankIc": {
+        "point": -0.016842690201604265,
+        "lower": -0.042035631836630394,
+        "upper": 0.007527524359222796,
+        "n": 504,
+        "method": "block bootstrap over 101 groups (2000 iterations)"
+      },
+      "auc": {
+        "point": 0.4945739964766502,
+        "lower": 0.48108589625273607,
+        "upper": 0.5078105925425032,
+        "n": 504,
+        "method": "block bootstrap over 101 groups (2000 iterations)"
+      },
+      "brier": null,
+      "logLoss": null,
+      "longShort": {
+        "point": -0.0009227745023290869,
+        "lower": -0.003193964461827666,
+        "upper": 0.001270044110498148,
+        "n": 504,
+        "method": "block bootstrap over 101 groups (2000 iterations)"
+      },
+      "days": 504
+    },
+    "marketNeutral": {
+      "ic": {
+        "point": -0.014060320344844382,
+        "lower": -0.036585871982318344,
+        "upper": 0.006865499709220376,
+        "n": 504,
+        "method": "block bootstrap over 101 groups (2000 iterations)"
+      },
+      "rankIc": {
+        "point": -0.016842690201604265,
+        "lower": -0.04123918896349406,
+        "upper": 0.007625115285604028,
+        "n": 504,
+        "method": "block bootstrap over 101 groups (2000 iterations)"
+      },
+      "auc": {
+        "point": 0.491799347741479,
+        "lower": 0.47841396973059996,
+        "upper": 0.5047559340930726,
+        "n": 504,
+        "method": "block bootstrap over 101 groups (2000 iterations)"
+      },
+      "brier": null,
+      "logLoss": null,
+      "longShort": {
+        "point": -0.0009227745023290875,
+        "lower": -0.0031358322909027514,
+        "upper": 0.0013120628860600536,
+        "n": 504,
+        "method": "block bootstrap over 101 groups (2000 iterations)"
+      },
+      "days": 504
+    },
+    "pooledBrier": null,
+    "pooledBrierSkill": null,
+    "pooledLogLoss": null,
+    "reliability": null,
+    "classification": {
+      "n": 249243,
+      "accuracy": 0.49893878664596397,
+      "precision": 0.5465178903292852,
+      "recall": 0.525318809195704,
+      "f1": 0.5357087091329531,
+      "baseRate": 0.5502702182207725,
+      "predictedPositiveRate": 0.5289255866764563
+    },
+    "horizon": 5
+  },
+  {
+    "name": "feature:ema_separation",
+    "covered": 249243,
+    "available": 249573,
+    "coverage": 0.9986777415826231,
+    "raw": {
+      "ic": {
+        "point": -0.004121597690179618,
+        "lower": -0.02555840214611693,
+        "upper": 0.018665016006686345,
+        "n": 504,
+        "method": "block bootstrap over 101 groups (2000 iterations)"
+      },
+      "rankIc": {
+        "point": -0.009730259130126316,
+        "lower": -0.03466799937683276,
+        "upper": 0.015133624888525937,
+        "n": 504,
+        "method": "block bootstrap over 101 groups (2000 iterations)"
+      },
+      "auc": {
+        "point": 0.49752284990689927,
+        "lower": 0.4836311204880828,
+        "upper": 0.511174416558314,
+        "n": 504,
+        "method": "block bootstrap over 101 groups (2000 iterations)"
+      },
+      "brier": null,
+      "logLoss": null,
+      "longShort": {
+        "point": -0.00037533232655035433,
+        "lower": -0.0026317412696199548,
+        "upper": 0.0019832110307113618,
+        "n": 504,
+        "method": "block bootstrap over 101 groups (2000 iterations)"
+      },
+      "days": 504
+    },
+    "marketNeutral": {
+      "ic": {
+        "point": -0.004121597690179617,
+        "lower": -0.026227220034275744,
+        "upper": 0.018607113505470185,
+        "n": 504,
+        "method": "block bootstrap over 101 groups (2000 iterations)"
+      },
+      "rankIc": {
+        "point": -0.009730259130126316,
+        "lower": -0.03528767207777931,
+        "upper": 0.01654913289326421,
+        "n": 504,
+        "method": "block bootstrap over 101 groups (2000 iterations)"
+      },
+      "auc": {
+        "point": 0.4948562682137308,
+        "lower": 0.48120604938010836,
+        "upper": 0.508466860195108,
+        "n": 504,
+        "method": "block bootstrap over 101 groups (2000 iterations)"
+      },
+      "brier": null,
+      "logLoss": null,
+      "longShort": {
+        "point": -0.0003753323265503549,
+        "lower": -0.0026027348208611995,
+        "upper": 0.0019054558321475337,
+        "n": 504,
+        "method": "block bootstrap over 101 groups (2000 iterations)"
+      },
+      "days": 504
+    },
+    "pooledBrier": null,
+    "pooledBrierSkill": null,
+    "pooledLogLoss": null,
+    "reliability": null,
+    "classification": {
+      "n": 249243,
+      "accuracy": 0.5033401138647826,
+      "precision": 0.5492735452466996,
+      "recall": 0.5430219247398852,
+      "f1": 0.5461298447978118,
+      "baseRate": 0.5502702182207725,
+      "predictedPositiveRate": 0.544007253965006
+    },
+    "horizon": 5
+  },
+  {
+    "name": "feature:rsi_normalized",
+    "covered": 249573,
+    "available": 249573,
+    "coverage": 1,
+    "raw": {
+      "ic": {
+        "point": -0.016084498227643854,
+        "lower": -0.03787496189164091,
+        "upper": 0.006246614795682796,
+        "n": 504,
+        "method": "block bootstrap over 101 groups (2000 iterations)"
+      },
+      "rankIc": {
+        "point": -0.016308846031353998,
+        "lower": -0.0411274114650354,
+        "upper": 0.0089826838237466,
+        "n": 504,
+        "method": "block bootstrap over 101 groups (2000 iterations)"
+      },
+      "auc": {
+        "point": 0.49740147195573375,
+        "lower": 0.4844350806300856,
+        "upper": 0.510806824278181,
+        "n": 504,
+        "method": "block bootstrap over 101 groups (2000 iterations)"
+      },
+      "brier": null,
+      "logLoss": null,
+      "longShort": {
+        "point": -0.0015631656349570705,
+        "lower": -0.00390996355923106,
+        "upper": 0.0007289790332152768,
+        "n": 504,
+        "method": "block bootstrap over 101 groups (2000 iterations)"
+      },
+      "days": 504
+    },
+    "marketNeutral": {
+      "ic": {
+        "point": -0.016084498227643854,
+        "lower": -0.03873484334048325,
+        "upper": 0.006137094936618111,
+        "n": 504,
+        "method": "block bootstrap over 101 groups (2000 iterations)"
+      },
+      "rankIc": {
+        "point": -0.016308846031353998,
+        "lower": -0.042520033502105405,
+        "upper": 0.009421003724502122,
+        "n": 504,
+        "method": "block bootstrap over 101 groups (2000 iterations)"
+      },
+      "auc": {
+        "point": 0.49298757140823735,
+        "lower": 0.4801593913909773,
+        "upper": 0.5057761993616454,
+        "n": 504,
+        "method": "block bootstrap over 101 groups (2000 iterations)"
+      },
+      "brier": null,
+      "logLoss": null,
+      "longShort": {
+        "point": -0.0015631656349570707,
+        "lower": -0.003978848194471588,
+        "upper": 0.0006919087872392007,
+        "n": 504,
+        "method": "block bootstrap over 101 groups (2000 iterations)"
+      },
+      "days": 504
+    },
+    "pooledBrier": null,
+    "pooledBrierSkill": null,
+    "pooledLogLoss": null,
+    "reliability": null,
+    "classification": {
+      "n": 249573,
+      "accuracy": 0.5049865169709864,
+      "precision": 0.5458507438852367,
+      "recall": 0.5973973959395299,
+      "f1": 0.570462004895416,
+      "baseRate": 0.5502358027510988,
+      "predictedPositiveRate": 0.6021965517103213
+    },
+    "horizon": 5
+  },
+  {
+    "name": "feature:macd_histogram_normalized",
+    "covered": 249243,
+    "available": 249573,
+    "coverage": 0.9986777415826231,
+    "raw": {
+      "ic": {
+        "point": -0.010277964921719174,
+        "lower": -0.03154685983799504,
+        "upper": 0.010476712713040579,
+        "n": 504,
+        "method": "block bootstrap over 101 groups (2000 iterations)"
+      },
+      "rankIc": {
+        "point": -0.007906368006505791,
+        "lower": -0.031398316982722003,
+        "upper": 0.01600557578154345,
+        "n": 504,
+        "method": "block bootstrap over 101 groups (2000 iterations)"
+      },
+      "auc": {
+        "point": 0.49710138324617437,
+        "lower": 0.48471760229835437,
+        "upper": 0.5098195731902673,
+        "n": 504,
+        "method": "block bootstrap over 101 groups (2000 iterations)"
+      },
+      "brier": null,
+      "logLoss": null,
+      "longShort": {
+        "point": -0.0007264772855191543,
+        "lower": -0.0027154111585415397,
+        "upper": 0.0011857995887130288,
+        "n": 504,
+        "method": "block bootstrap over 101 groups (2000 iterations)"
+      },
+      "days": 504
+    },
+    "marketNeutral": {
+      "ic": {
+        "point": -0.010277964921719174,
+        "lower": -0.03155301936692489,
+        "upper": 0.010858561593681535,
+        "n": 504,
+        "method": "block bootstrap over 101 groups (2000 iterations)"
+      },
+      "rankIc": {
+        "point": -0.007906368006505791,
+        "lower": -0.03091098662546615,
+        "upper": 0.014281411841003998,
+        "n": 504,
+        "method": "block bootstrap over 101 groups (2000 iterations)"
+      },
+      "auc": {
+        "point": 0.4966730119069992,
+        "lower": 0.48464603903708725,
+        "upper": 0.5086290855733024,
+        "n": 504,
+        "method": "block bootstrap over 101 groups (2000 iterations)"
+      },
+      "brier": null,
+      "logLoss": null,
+      "longShort": {
+        "point": -0.0007264772855191542,
+        "lower": -0.002735698423312854,
+        "upper": 0.001197710472874188,
+        "n": 504,
+        "method": "block bootstrap over 101 groups (2000 iterations)"
+      },
+      "days": 504
+    },
+    "pooledBrier": null,
+    "pooledBrierSkill": null,
+    "pooledLogLoss": null,
+    "reliability": null,
+    "classification": {
+      "n": 249243,
+      "accuracy": 0.4965274852252621,
+      "precision": 0.5465591569535366,
+      "recall": 0.49917244496941326,
+      "f1": 0.5217921504814965,
+      "baseRate": 0.5502702182207725,
+      "predictedPositiveRate": 0.5025617570001966
+    },
+    "horizon": 5
+  },
+  {
+    "name": "feature:adx_normalized",
+    "covered": 249573,
+    "available": 249573,
+    "coverage": 1,
+    "raw": {
+      "ic": {
+        "point": -0.019799750992328443,
+        "lower": -0.03920023627211088,
+        "upper": 0.0007176157773415732,
+        "n": 504,
+        "method": "block bootstrap over 101 groups (2000 iterations)"
+      },
+      "rankIc": {
+        "point": -0.02153243999385881,
+        "lower": -0.045975747263726684,
+        "upper": 0.0031767308989835,
+        "n": 504,
+        "method": "block bootstrap over 101 groups (2000 iterations)"
+      },
+      "auc": {
+        "point": 0.49323030024689785,
+        "lower": 0.4804519024701598,
+        "upper": 0.5064274014202532,
+        "n": 504,
+        "method": "block bootstrap over 101 groups (2000 iterations)"
+      },
+      "brier": null,
+      "logLoss": null,
+      "longShort": {
+        "point": -0.0016645390441589378,
+        "lower": -0.003897528064556249,
+        "upper": 0.0004973233391657999,
+        "n": 504,
+        "method": "block bootstrap over 101 groups (2000 iterations)"
+      },
+      "days": 504
+    },
+    "marketNeutral": {
+      "ic": {
+        "point": -0.019799750992328443,
+        "lower": -0.04105460154647717,
+        "upper": 0.0006604439892381861,
+        "n": 504,
+        "method": "block bootstrap over 101 groups (2000 iterations)"
+      },
+      "rankIc": {
+        "point": -0.02153243999385881,
+        "lower": -0.04663713939136147,
+        "upper": 0.0031243598715986294,
+        "n": 504,
+        "method": "block bootstrap over 101 groups (2000 iterations)"
+      },
+      "auc": {
+        "point": 0.49035308949183887,
+        "lower": 0.4774876057614982,
+        "upper": 0.5030880394497305,
+        "n": 504,
+        "method": "block bootstrap over 101 groups (2000 iterations)"
+      },
+      "brier": null,
+      "logLoss": null,
+      "longShort": {
+        "point": -0.0016645390441589387,
+        "lower": -0.003928210990517529,
+        "upper": 0.00046370751957180577,
+        "n": 504,
+        "method": "block bootstrap over 101 groups (2000 iterations)"
+      },
+      "days": 504
+    },
+    "pooledBrier": null,
+    "pooledBrierSkill": null,
+    "pooledLogLoss": null,
+    "reliability": null,
+    "classification": {
+      "n": 249573,
+      "accuracy": 0.4996413874898326,
+      "precision": 0.5443778966131907,
+      "recall": 0.555977105240162,
+      "f1": 0.5501163653656324,
+      "baseRate": 0.5502358027510988,
+      "predictedPositiveRate": 0.5619598273851739
+    },
+    "horizon": 5
+  },
+  {
+    "name": "feature:atr_percentile",
+    "covered": 249573,
+    "available": 249573,
+    "coverage": 1,
+    "raw": {
+      "ic": {
+        "point": 0.0020862025873994825,
+        "lower": -0.016319933856320253,
+        "upper": 0.01963114968605638,
+        "n": 504,
+        "method": "block bootstrap over 101 groups (2000 iterations)"
+      },
+      "rankIc": {
+        "point": 0.0039211413806158925,
+        "lower": -0.01607058892520833,
+        "upper": 0.02417896708241482,
+        "n": 504,
+        "method": "block bootstrap over 101 groups (2000 iterations)"
+      },
+      "auc": {
+        "point": 0.5022986121869019,
+        "lower": 0.49213051019505033,
+        "upper": 0.5120219925299536,
+        "n": 504,
+        "method": "block bootstrap over 101 groups (2000 iterations)"
+      },
+      "brier": null,
+      "logLoss": null,
+      "longShort": {
+        "point": 0.00019899753764220012,
+        "lower": -0.0016010056810247075,
+        "upper": 0.00197637952203655,
+        "n": 504,
+        "method": "block bootstrap over 101 groups (2000 iterations)"
+      },
+      "days": 504
+    },
+    "marketNeutral": {
+      "ic": {
+        "point": 0.002086202587399483,
+        "lower": -0.015971094829213058,
+        "upper": 0.01987540954183391,
+        "n": 504,
+        "method": "block bootstrap over 101 groups (2000 iterations)"
+      },
+      "rankIc": {
+        "point": 0.0039211413806158925,
+        "lower": -0.01618084244077882,
+        "upper": 0.02494019880436123,
+        "n": 504,
+        "method": "block bootstrap over 101 groups (2000 iterations)"
+      },
+      "auc": {
+        "point": 0.5021183374081797,
+        "lower": 0.4920636157606842,
+        "upper": 0.5122026215979523,
+        "n": 504,
+        "method": "block bootstrap over 101 groups (2000 iterations)"
+      },
+      "brier": null,
+      "logLoss": null,
+      "longShort": {
+        "point": 0.00019899753764220066,
+        "lower": -0.0016852750199274527,
+        "upper": 0.0020014079001863744,
+        "n": 504,
+        "method": "block bootstrap over 101 groups (2000 iterations)"
+      },
+      "days": 504
+    },
+    "pooledBrier": null,
+    "pooledBrierSkill": null,
+    "pooledLogLoss": null,
+    "reliability": null,
+    "classification": {
+      "n": 249573,
+      "accuracy": 0.5118943154908584,
+      "precision": 0.5753977515851714,
+      "recall": 0.430856951443302,
+      "f1": 0.4927462607015557,
+      "baseRate": 0.5502358027510988,
+      "predictedPositiveRate": 0.4120157228546357
+    },
+    "horizon": 5
+  },
+  {
+    "name": "feature:bollinger_position",
+    "covered": 249573,
+    "available": 249573,
+    "coverage": 1,
+    "raw": {
+      "ic": {
+        "point": -0.015568256152084077,
+        "lower": -0.03501457594350794,
+        "upper": 0.0044769202157525076,
+        "n": 504,
+        "method": "block bootstrap over 101 groups (2000 iterations)"
+      },
+      "rankIc": {
+        "point": -0.015698281788487457,
+        "lower": -0.03784835637502252,
+        "upper": 0.0059852876182677475,
+        "n": 504,
+        "method": "block bootstrap over 101 groups (2000 iterations)"
+      },
+      "auc": {
+        "point": 0.49638703910225995,
+        "lower": 0.48512219720393296,
+        "upper": 0.507891908816977,
+        "n": 504,
+        "method": "block bootstrap over 101 groups (2000 iterations)"
+      },
+      "brier": null,
+      "logLoss": null,
+      "longShort": {
+        "point": -0.001911467286804645,
+        "lower": -0.0039039652535398503,
+        "upper": -0.000019342604319808532,
+        "n": 504,
+        "method": "block bootstrap over 101 groups (2000 iterations)"
+      },
+      "days": 504
+    },
+    "marketNeutral": {
+      "ic": {
+        "point": -0.015568256152084079,
+        "lower": -0.036028349439556885,
+        "upper": 0.00391039288147588,
+        "n": 504,
+        "method": "block bootstrap over 101 groups (2000 iterations)"
+      },
+      "rankIc": {
+        "point": -0.015698281788487457,
+        "lower": -0.03900388385544515,
+        "upper": 0.005822873370199168,
+        "n": 504,
+        "method": "block bootstrap over 101 groups (2000 iterations)"
+      },
+      "auc": {
+        "point": 0.49279624620571416,
+        "lower": 0.48109578557534854,
+        "upper": 0.5041266908994776,
+        "n": 504,
+        "method": "block bootstrap over 101 groups (2000 iterations)"
+      },
+      "brier": null,
+      "logLoss": null,
+      "longShort": {
+        "point": -0.0019114672868046452,
+        "lower": -0.003950229695094282,
+        "upper": -0.0000736496027605693,
+        "n": 504,
+        "method": "block bootstrap over 101 groups (2000 iterations)"
+      },
+      "days": 504
+    },
+    "pooledBrier": null,
+    "pooledBrierSkill": null,
+    "pooledLogLoss": null,
+    "reliability": null,
+    "classification": {
+      "n": 249573,
+      "accuracy": 0.5032435399662624,
+      "precision": 0.5460276296822517,
+      "recall": 0.5765051993824823,
+      "f1": 0.5608526706173644,
+      "baseRate": 0.5502358027510988,
+      "predictedPositiveRate": 0.5809482596274437
+    },
+    "horizon": 5
+  },
+  {
+    "name": "feature:bollinger_width",
+    "covered": 249243,
+    "available": 249573,
+    "coverage": 0.9986777415826231,
+    "raw": {
+      "ic": {
+        "point": -0.006411816941677255,
+        "lower": -0.02028332783707925,
+        "upper": 0.0072753942503749,
+        "n": 504,
+        "method": "block bootstrap over 101 groups (2000 iterations)"
+      },
+      "rankIc": {
+        "point": -0.009475564508371675,
+        "lower": -0.025223193814899056,
+        "upper": 0.005842569365158078,
+        "n": 504,
+        "method": "block bootstrap over 101 groups (2000 iterations)"
+      },
+      "auc": {
+        "point": 0.4957136180016651,
+        "lower": 0.4872018054411592,
+        "upper": 0.5037701508881072,
+        "n": 504,
+        "method": "block bootstrap over 101 groups (2000 iterations)"
+      },
+      "brier": null,
+      "logLoss": null,
+      "longShort": {
+        "point": -0.0005814862324812226,
+        "lower": -0.0019643544623741465,
+        "upper": 0.000771751558954654,
+        "n": 504,
+        "method": "block bootstrap over 101 groups (2000 iterations)"
+      },
+      "days": 504
+    },
+    "marketNeutral": {
+      "ic": {
+        "point": -0.006411816941677257,
+        "lower": -0.02071599865656004,
+        "upper": 0.007832461467560054,
+        "n": 504,
+        "method": "block bootstrap over 101 groups (2000 iterations)"
+      },
+      "rankIc": {
+        "point": -0.009475564508371675,
+        "lower": -0.02495622724928333,
+        "upper": 0.006157168437966147,
+        "n": 504,
+        "method": "block bootstrap over 101 groups (2000 iterations)"
+      },
+      "auc": {
+        "point": 0.49441912095875407,
+        "lower": 0.4872542864133766,
+        "upper": 0.5020836530841623,
+        "n": 504,
+        "method": "block bootstrap over 101 groups (2000 iterations)"
+      },
+      "brier": null,
+      "logLoss": null,
+      "longShort": {
+        "point": -0.0005814862324812222,
+        "lower": -0.0020409839027536432,
+        "upper": 0.0007601181946972052,
+        "n": 504,
+        "method": "block bootstrap over 101 groups (2000 iterations)"
+      },
+      "days": 504
+    },
+    "pooledBrier": null,
+    "pooledBrierSkill": null,
+    "pooledLogLoss": null,
+    "reliability": null,
+    "classification": {
+      "n": 249243,
+      "accuracy": 0.5031555550206024,
+      "precision": 0.5583758570501692,
+      "recall": 0.46434222134727415,
+      "f1": 0.5070360860651659,
+      "baseRate": 0.5502702182207725,
+      "predictedPositiveRate": 0.45760161769839075
+    },
+    "horizon": 5
+  },
+  {
+    "name": "feature:sr_distance",
+    "covered": 83541,
+    "available": 249573,
+    "coverage": 0.33473572862449064,
+    "raw": {
+      "ic": {
+        "point": 0.0005314799467740076,
+        "lower": -0.014759062153875699,
+        "upper": 0.015037690460465788,
+        "n": 504,
+        "method": "block bootstrap over 101 groups (2000 iterations)"
+      },
+      "rankIc": {
+        "point": 0.0002871945821658333,
+        "lower": -0.01500458671846902,
+        "upper": 0.01594197094313735,
+        "n": 504,
+        "method": "block bootstrap over 101 groups (2000 iterations)"
+      },
+      "auc": {
+        "point": 0.4973965734483191,
+        "lower": 0.48855785797143947,
+        "upper": 0.5065556653950372,
+        "n": 504,
+        "method": "block bootstrap over 101 groups (2000 iterations)"
+      },
+      "brier": null,
+      "logLoss": null,
+      "longShort": {
+        "point": -0.0007094755548504789,
+        "lower": -0.0022403592376973873,
+        "upper": 0.0008758001757748816,
+        "n": 504,
+        "method": "block bootstrap over 101 groups (2000 iterations)"
+      },
+      "days": 504
+    },
+    "marketNeutral": {
+      "ic": {
+        "point": 0.0005314799467740069,
+        "lower": -0.01431956286824247,
+        "upper": 0.015948989450036748,
+        "n": 504,
+        "method": "block bootstrap over 101 groups (2000 iterations)"
+      },
+      "rankIc": {
+        "point": 0.0002871945821658333,
+        "lower": -0.014937093495546378,
+        "upper": 0.01512787339307183,
+        "n": 504,
+        "method": "block bootstrap over 101 groups (2000 iterations)"
+      },
+      "auc": {
+        "point": 0.49687848565845294,
+        "lower": 0.4887983434617337,
+        "upper": 0.5049546454596345,
+        "n": 504,
+        "method": "block bootstrap over 101 groups (2000 iterations)"
+      },
+      "brier": null,
+      "logLoss": null,
+      "longShort": {
+        "point": -0.0007094755548504788,
+        "lower": -0.0022661099866270297,
+        "upper": 0.0008284376855482315,
+        "n": 504,
+        "method": "block bootstrap over 101 groups (2000 iterations)"
+      },
+      "days": 504
+    },
+    "pooledBrier": null,
+    "pooledBrierSkill": null,
+    "pooledLogLoss": null,
+    "reliability": null,
+    "classification": {
+      "n": 83541,
+      "accuracy": 0.49739648795202357,
+      "precision": 0.5458813173916233,
+      "recall": 0.48809601888896176,
+      "f1": 0.5153739612188365,
+      "baseRate": 0.5475275613171976,
+      "predictedPositiveRate": 0.4895679965525909
+    },
+    "horizon": 5
+  },
+  {
+    "name": "feature:swing_strength",
+    "covered": 249573,
+    "available": 249573,
+    "coverage": 1,
+    "raw": {
+      "ic": {
+        "point": -0.004503343330259981,
+        "lower": -0.024584005033592864,
+        "upper": 0.015895507982627826,
+        "n": 504,
+        "method": "block bootstrap over 101 groups (2000 iterations)"
+      },
+      "rankIc": {
+        "point": -0.005884790724831214,
+        "lower": -0.028606883902428614,
+        "upper": 0.015899214328442265,
+        "n": 504,
+        "method": "block bootstrap over 101 groups (2000 iterations)"
+      },
+      "auc": {
+        "point": 0.5015271642100291,
+        "lower": 0.4899338806357404,
+        "upper": 0.5137200223301662,
+        "n": 504,
+        "method": "block bootstrap over 101 groups (2000 iterations)"
+      },
+      "brier": null,
+      "logLoss": null,
+      "longShort": {
+        "point": -0.0006172616474055293,
+        "lower": -0.0025902092107949917,
+        "upper": 0.001376018028979376,
+        "n": 504,
+        "method": "block bootstrap over 101 groups (2000 iterations)"
+      },
+      "days": 504
+    },
+    "marketNeutral": {
+      "ic": {
+        "point": -0.00450334333025998,
+        "lower": -0.02453354121181848,
+        "upper": 0.017028522297520367,
+        "n": 504,
+        "method": "block bootstrap over 101 groups (2000 iterations)"
+      },
+      "rankIc": {
+        "point": -0.005884790724831214,
+        "lower": -0.028228831508555735,
+        "upper": 0.017496063035039804,
+        "n": 504,
+        "method": "block bootstrap over 101 groups (2000 iterations)"
+      },
+      "auc": {
+        "point": 0.4971841616269026,
+        "lower": 0.4866469537483759,
+        "upper": 0.5083709970327149,
+        "n": 504,
+        "method": "block bootstrap over 101 groups (2000 iterations)"
+      },
+      "brier": null,
+      "logLoss": null,
+      "longShort": {
+        "point": -0.0006172616474055297,
+        "lower": -0.00259275946919832,
+        "upper": 0.001231106512921622,
+        "n": 504,
+        "method": "block bootstrap over 101 groups (2000 iterations)"
+      },
+      "days": 504
+    },
+    "pooledBrier": null,
+    "pooledBrierSkill": null,
+    "pooledLogLoss": null,
+    "reliability": null,
+    "classification": {
+      "n": 249573,
+      "accuracy": 0.5038205254574813,
+      "precision": 0.5503940831496769,
+      "recall": 0.5364903440039615,
+      "f1": 0.5433532832557094,
+      "baseRate": 0.5502358027510988,
+      "predictedPositiveRate": 0.5363360619938855
+    },
+    "horizon": 5
+  },
+  {
+    "name": "feature:volume_anomaly",
+    "covered": 249243,
+    "available": 249573,
+    "coverage": 0.9986777415826231,
+    "raw": {
+      "ic": {
+        "point": -0.003746239891953289,
+        "lower": -0.013054729925072511,
+        "upper": 0.005856243824999439,
+        "n": 504,
+        "method": "block bootstrap over 101 groups (2000 iterations)"
+      },
+      "rankIc": {
+        "point": -0.004801401924437586,
+        "lower": -0.014104191265876923,
+        "upper": 0.004962662367801589,
+        "n": 504,
+        "method": "block bootstrap over 101 groups (2000 iterations)"
+      },
+      "auc": {
+        "point": 0.49307064001709533,
+        "lower": 0.48704015274624124,
+        "upper": 0.4985191887905651,
+        "n": 504,
+        "method": "block bootstrap over 101 groups (2000 iterations)"
+      },
+      "brier": null,
+      "logLoss": null,
+      "longShort": {
+        "point": -0.00024172709124936986,
+        "lower": -0.0010970166993159783,
+        "upper": 0.0006370634637099715,
+        "n": 504,
+        "method": "block bootstrap over 101 groups (2000 iterations)"
+      },
+      "days": 504
+    },
+    "marketNeutral": {
+      "ic": {
+        "point": -0.0037462398919532883,
+        "lower": -0.013218718360445556,
+        "upper": 0.0056277802867777255,
+        "n": 504,
+        "method": "block bootstrap over 101 groups (2000 iterations)"
+      },
+      "rankIc": {
+        "point": -0.004801401924437586,
+        "lower": -0.014103189555356015,
+        "upper": 0.004929057951347386,
+        "n": 504,
+        "method": "block bootstrap over 101 groups (2000 iterations)"
+      },
+      "auc": {
+        "point": 0.49750666679087874,
+        "lower": 0.4923939449526383,
+        "upper": 0.5024523942951319,
+        "n": 504,
+        "method": "block bootstrap over 101 groups (2000 iterations)"
+      },
+      "brier": null,
+      "logLoss": null,
+      "longShort": {
+        "point": -0.00024172709124937013,
+        "lower": -0.0011398531384587704,
+        "upper": 0.0006672317777078143,
+        "n": 504,
+        "method": "block bootstrap over 101 groups (2000 iterations)"
+      },
+      "days": 504
+    },
+    "pooledBrier": null,
+    "pooledBrierSkill": null,
+    "pooledLogLoss": null,
+    "reliability": null,
+    "classification": {
+      "n": 249243,
+      "accuracy": 0.49393162496038,
+      "precision": 0.544453859500464,
+      "recall": 0.49191037615474914,
+      "f1": 0.5168501451740173,
+      "baseRate": 0.5502702182207725,
+      "predictedPositiveRate": 0.4971654168823197
+    },
+    "horizon": 5
+  },
+  {
+    "name": "feature:volatility_regime",
+    "covered": 249573,
+    "available": 249573,
+    "coverage": 1,
+    "raw": {
+      "ic": {
+        "point": -0.008123581433238127,
+        "lower": -0.02327446243528109,
+        "upper": 0.007070468727732018,
+        "n": 504,
+        "method": "block bootstrap over 101 groups (2000 iterations)"
+      },
+      "rankIc": {
+        "point": -0.006713752921060332,
+        "lower": -0.023412444218752274,
+        "upper": 0.011023431930139325,
+        "n": 504,
+        "method": "block bootstrap over 101 groups (2000 iterations)"
+      },
+      "auc": {
+        "point": 0.4989265534539324,
+        "lower": 0.4897357514655192,
+        "upper": 0.5083796867694921,
+        "n": 504,
+        "method": "block bootstrap over 101 groups (2000 iterations)"
+      },
+      "brier": null,
+      "logLoss": null,
+      "longShort": {
+        "point": -0.0011196030913808957,
+        "lower": -0.0027945528063710104,
+        "upper": 0.0005968674222843669,
+        "n": 504,
+        "method": "block bootstrap over 101 groups (2000 iterations)"
+      },
+      "days": 504
+    },
+    "marketNeutral": {
+      "ic": {
+        "point": -0.008123581433238129,
+        "lower": -0.023047870913347653,
+        "upper": 0.006800656088883238,
+        "n": 504,
+        "method": "block bootstrap over 101 groups (2000 iterations)"
+      },
+      "rankIc": {
+        "point": -0.006713752921060332,
+        "lower": -0.02377158095041473,
+        "upper": 0.011210345385681518,
+        "n": 504,
+        "method": "block bootstrap over 101 groups (2000 iterations)"
+      },
+      "auc": {
+        "point": 0.4978776180121034,
+        "lower": 0.48940514599556006,
+        "upper": 0.5064864025224053,
+        "n": 504,
+        "method": "block bootstrap over 101 groups (2000 iterations)"
+      },
+      "brier": null,
+      "logLoss": null,
+      "longShort": {
+        "point": -0.0011196030913808953,
+        "lower": -0.002896034549618411,
+        "upper": 0.0005502591219369524,
+        "n": 504,
+        "method": "block bootstrap over 101 groups (2000 iterations)"
+      },
+      "days": 504
+    },
+    "pooledBrier": null,
+    "pooledBrierSkill": null,
+    "pooledLogLoss": null,
+    "reliability": null,
+    "classification": {
+      "n": 249573,
+      "accuracy": 0.5031153209682138,
+      "precision": 0.5721312718723253,
+      "recall": 0.3845358422417057,
+      "f1": 0.4599405106675783,
+      "baseRate": 0.5502358027510988,
+      "predictedPositiveRate": 0.36981965196555716
+    },
+    "horizon": 5
+  },
+  {
+    "name": "feature:trend_persistence",
+    "covered": 249573,
+    "available": 249573,
+    "coverage": 1,
+    "raw": {
+      "ic": {
+        "point": -0.0028152353206407923,
+        "lower": -0.012177040440272844,
+        "upper": 0.007296002939594358,
+        "n": 504,
+        "method": "block bootstrap over 101 groups (2000 iterations)"
+      },
+      "rankIc": {
+        "point": -0.0005130255635660616,
+        "lower": -0.012094994214381155,
+        "upper": 0.011033909266827105,
+        "n": 504,
+        "method": "block bootstrap over 101 groups (2000 iterations)"
+      },
+      "auc": {
+        "point": 0.49830987019434875,
+        "lower": 0.4921492930499387,
+        "upper": 0.5043530857899531,
+        "n": 504,
+        "method": "block bootstrap over 101 groups (2000 iterations)"
+      },
+      "brier": null,
+      "logLoss": null,
+      "longShort": {
+        "point": -0.00018736615424180418,
+        "lower": -0.0011732018446248597,
+        "upper": 0.0008848656471958863,
+        "n": 504,
+        "method": "block bootstrap over 101 groups (2000 iterations)"
+      },
+      "days": 504
+    },
+    "marketNeutral": {
+      "ic": {
+        "point": -0.0028152353206407927,
+        "lower": -0.013141616262603165,
+        "upper": 0.008012524329565252,
+        "n": 504,
+        "method": "block bootstrap over 101 groups (2000 iterations)"
+      },
+      "rankIc": {
+        "point": -0.0005130255635660616,
+        "lower": -0.011253216672469297,
+        "upper": 0.010734706392116461,
+        "n": 504,
+        "method": "block bootstrap over 101 groups (2000 iterations)"
+      },
+      "auc": {
+        "point": 0.5007373850086655,
+        "lower": 0.49472374459606117,
+        "upper": 0.5066604104926768,
+        "n": 504,
+        "method": "block bootstrap over 101 groups (2000 iterations)"
+      },
+      "brier": null,
+      "logLoss": null,
+      "longShort": {
+        "point": -0.00018736615424180445,
+        "lower": -0.001267966738735572,
+        "upper": 0.0008998810026507734,
+        "n": 504,
+        "method": "block bootstrap over 101 groups (2000 iterations)"
+      },
+      "days": 504
+    },
+    "pooledBrier": null,
+    "pooledBrierSkill": null,
+    "pooledLogLoss": null,
+    "reliability": null,
+    "classification": {
+      "n": 249573,
+      "accuracy": 0.49221269929038797,
+      "precision": 0.549871954204798,
+      "recall": 0.42529346654627015,
+      "f1": 0.47962518888377903,
+      "baseRate": 0.5502358027510988,
+      "predictedPositiveRate": 0.42557488189828224
+    },
+    "horizon": 5
+  },
+  {
+    "name": "feature:market_efficiency_ratio",
+    "covered": 249573,
+    "available": 249573,
+    "coverage": 1,
+    "raw": {
+      "ic": {
+        "point": -0.00721718514440422,
+        "lower": -0.019344637168305034,
+        "upper": 0.004114466390478938,
+        "n": 504,
+        "method": "block bootstrap over 101 groups (2000 iterations)"
+      },
+      "rankIc": {
+        "point": -0.01124522892255058,
+        "lower": -0.024751953883081622,
+        "upper": 0.0014779922421634941,
+        "n": 504,
+        "method": "block bootstrap over 101 groups (2000 iterations)"
+      },
+      "auc": {
+        "point": 0.49491521688890033,
+        "lower": 0.48704563983325166,
+        "upper": 0.503045103450359,
+        "n": 504,
+        "method": "block bootstrap over 101 groups (2000 iterations)"
+      },
+      "brier": null,
+      "logLoss": null,
+      "longShort": {
+        "point": -0.0008363434409163326,
+        "lower": -0.001966525050633471,
+        "upper": 0.00035640875322809145,
+        "n": 504,
+        "method": "block bootstrap over 101 groups (2000 iterations)"
+      },
+      "days": 504
+    },
+    "marketNeutral": {
+      "ic": {
+        "point": -0.00721718514440422,
+        "lower": -0.019846749233493135,
+        "upper": 0.004486850286169412,
+        "n": 504,
+        "method": "block bootstrap over 101 groups (2000 iterations)"
+      },
+      "rankIc": {
+        "point": -0.01124522892255058,
+        "lower": -0.02471395966049977,
+        "upper": 0.0018431208077308349,
+        "n": 504,
+        "method": "block bootstrap over 101 groups (2000 iterations)"
+      },
+      "auc": {
+        "point": 0.4939695095815371,
+        "lower": 0.4870445114492169,
+        "upper": 0.5010198710763879,
+        "n": 504,
+        "method": "block bootstrap over 101 groups (2000 iterations)"
+      },
+      "brier": null,
+      "logLoss": null,
+      "longShort": {
+        "point": -0.0008363434409163327,
+        "lower": -0.002029816608027018,
+        "upper": 0.00038110875259452756,
+        "n": 504,
+        "method": "block bootstrap over 101 groups (2000 iterations)"
+      },
+      "days": 504
+    },
+    "pooledBrier": null,
+    "pooledBrierSkill": null,
+    "pooledLogLoss": null,
+    "reliability": null,
+    "classification": {
+      "n": 249573,
+      "accuracy": 0.5501035769093612,
+      "precision": 0.550234704112337,
+      "recall": 0.9987037954035711,
+      "f1": 0.7095459084159824,
+      "baseRate": 0.5502358027510988,
+      "predictedPositiveRate": 0.9987057894884462
+    },
+    "horizon": 5
+  }
+]
