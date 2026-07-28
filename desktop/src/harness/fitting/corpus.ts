@@ -34,8 +34,7 @@ import type { Timeframe } from '../../modules/market/types'
 import { analyseWindow } from '../snapshot'
 import { extractCategorical, extractFeatures as oldEngineFeatures } from '../features'
 import { computeOutcomes } from '../outcomes'
-import { extractFeatures as signalFeatureValues } from '../../modules/signal/features'
-import { FEATURE_NAMES } from '../../modules/signal/features'
+import { extractFeatures as signalFeatureValues, FEATURE_NAMES } from '../../modules/signal/features'
 import type { StockDataset } from './dataset'
 
 /** Horizons in trading days. 5 is the primary; 1 and 20 test horizon sensitivity. */
@@ -115,7 +114,6 @@ export function extractCorpus(dataset: StockDataset, options: ExtractOptions = {
   const dateToIdx = new Map<number, number>()
   for (let i = 0; i < dataset.dates.length; i++) dateToIdx.set(dataset.dates[i], i)
 
-  const maxH = Math.max(...horizons)
   const minH = Math.min(...horizons)
 
   // Upper bound on rows, so the typed arrays are allocated once.
@@ -203,8 +201,6 @@ export function extractCorpus(dataset: StockDataset, options: ExtractOptions = {
     }
     options.onProgress?.(si + 1, series.length)
   }
-  void maxH
-
   const trim = <T extends Int32Array | Float64Array>(a: T): T => a.slice(0, n) as T
   const outFeatures: Record<string, Float64Array> = {}
   for (const k of FEATURE_NAMES) outFeatures[k] = trim(features[k])

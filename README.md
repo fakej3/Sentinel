@@ -6,7 +6,7 @@ Sentinel is a **desktop application** for Windows, macOS, and Linux. It runs a d
 
 [![Release](https://img.shields.io/github/v/release/fakej3/Sentinel?include_prereleases&label=release&color=2f7bff)](https://github.com/fakej3/Sentinel/releases/latest)
 [![Build](https://img.shields.io/github/actions/workflow/status/fakej3/Sentinel/release.yml?label=build)](https://github.com/fakej3/Sentinel/actions/workflows/release.yml)
-[![Tests](https://img.shields.io/badge/tests-1%2C531%20passing-22c55e)](desktop/docs/TESTING_STRATEGY.md)
+[![Tests](https://img.shields.io/badge/tests-2%2C892%20passing-22c55e)](desktop/docs/TESTING_STRATEGY.md)
 [![License](https://img.shields.io/badge/license-MIT-22c55e)](LICENSE)
 
 **[→ Download](https://github.com/fakej3/Sentinel/releases/latest)** &nbsp;·&nbsp; **[→ Web App](web/)** &nbsp;·&nbsp; **[→ Docs](desktop/docs/)**
@@ -29,7 +29,7 @@ Sentinel is a **desktop application** for Windows, macOS, and Linux. It runs a d
 - **Optional Gemini AI narration** — after all computation completes, Gemini writes prose from the finished result; it never calculates or invents a number
 - **Local analysis history** — every analysis stored in AppData; review past setups, track confidence across timeframes
 - **Offline after first fetch** — only Binance (candles) and Google (Gemini, if enabled) are called externally; everything else runs on your machine
-- **1,531 tests across 77 files** — every module covered; determinism enforced by the test suite
+- **2,892 tests across 115 files** — every module covered; determinism enforced by the test suite
 - **MIT licensed** — full source available; audit every line of analysis logic
 
 ---

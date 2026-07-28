@@ -49,8 +49,7 @@ import {
 } from '../../modules/signal/model'
 import type { ModelWeights, TrainingRow } from '../../modules/signal/model'
 import { brierScore, fitIsotonic, fitPlatt } from '../../modules/signal/calibration'
-import type { Calibrator } from '../../modules/signal/types'
-import type { ScaledFeatures } from '../../modules/signal/types'
+import type { Calibrator, ScaledFeatures } from '../../modules/signal/types'
 
 export type CalibrationMethod = 'isotonic' | 'platt' | 'none'
 
