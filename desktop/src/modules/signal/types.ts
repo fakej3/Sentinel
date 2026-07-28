@@ -25,16 +25,69 @@
  *      to users as though it meant something.
  */
 import type { Candle, Timeframe } from '../market/types'
+import type { IndicatorResult } from '../indicators/types'
+import type { MarketStructureResult } from '../market-structure/types'
+import type { SupportResistanceResult } from '../support-resistance/types'
 
 // ── Features ──────────────────────────────────────────────────────────────────
 
 /**
+ * Why a feature has no value.
+ *
+ * Mirrors the vocabulary in `modules/common/availability.ts`: absence has a
+ * cause, and the cause is part of the output. A feature that returned a bare
+ * `null` would leave every consumer guessing whether the market lacked the
+ * structure or the window lacked the history.
+ */
+export type FeatureValidity =
+  | 'ok'
+  | 'insufficient-history'
+  | 'undefined-at-timeframe'
+  | 'degenerate-input'
+  | 'not-applicable'
+
+/**
+ * One feature's output.
+ *
+ * `confidence` is NOT a prediction — it is how well-supported the measurement
+ * is, in [0, 1]. A 200-period EMA computed from 200 bars is fully supported;
+ * one computed from 205 bars of a series with a gap is not. Keeping this
+ * separate from the model's probability is the distinction the old engine never
+ * drew: `confidence.score` conflated "how much evidence agrees" with "how
+ * likely this is to be right", and Phase 4 measured the result to have negative
+ * Brier skill in all 20 cells.
+ */
+export interface FeatureValue {
+  /** Continuous. `null` whenever `validity !== 'ok'`. Never a sentinel number. */
+  readonly value: number | null
+  /** Measurement support in [0, 1]. 0 when unavailable. */
+  readonly confidence: number
+  readonly validity: FeatureValidity
+  /** One sentence stating what was measured, or why it could not be. */
+  readonly explanation: string
+}
+
+/** A feature value that is unavailable, with its reason. */
+export function unavailable(validity: Exclude<FeatureValidity, 'ok'>, explanation: string): FeatureValue {
+  return { value: null, confidence: 0, validity, explanation }
+}
+
+/** A feature value that is available. */
+export function available(value: number, confidence: number, explanation: string): FeatureValue {
+  if (!Number.isFinite(value)) {
+    return unavailable('degenerate-input', `computed a non-finite value: ${value}`)
+  }
+  return { value, confidence: Math.min(1, Math.max(0, confidence)), validity: 'ok', explanation }
+}
+
+/**
  * One continuous feature.
  *
- * `extract` returns `null` for genuine unavailability — never a sentinel. A
- * zero-filled unavailable feature would place "EMA200 not computable" and
- * "price exactly at EMA200" at the same coordinate, which is the defect class
- * this project has already fixed twice (VWAP, Bollinger bandwidth).
+ * There is no boolean anywhere in this interface, and none may be introduced:
+ * `extract` returns a `FeatureValue` whose `value` is a number or nothing.
+ * `full-trend.ts:36-98` converts eleven continuous inputs to twenty-two
+ * booleans, and Phase 6 measured that step alone at 34% of the available
+ * information.
  */
 export interface FeatureSpec {
   readonly name: string
@@ -53,13 +106,23 @@ export interface FeatureSpec {
    */
   readonly scaling: 'zscore' | 'rank' | 'none'
   /** Sign convention: POSITIVE = BULLISH, without exception. */
-  readonly extract: (ctx: FeatureContext) => number | null
+  readonly extract: (ctx: FeatureContext) => FeatureValue
 }
 
-/** Everything a feature may read. Causal by construction: a window ending at the decision bar. */
+/**
+ * Everything a feature may read.
+ *
+ * Causal by construction: a window ENDING at the decision bar, plus the
+ * already-computed results of the existing (tested) indicator, structure and
+ * S/R modules. Recomputing those per feature would be both wasteful and a
+ * second place for their contracts to drift.
+ */
 export interface FeatureContext {
   readonly candles: readonly Candle[]
   readonly timeframe: Timeframe
+  readonly indicators: IndicatorResult
+  readonly marketStructure: MarketStructureResult
+  readonly supportResistance: SupportResistanceResult
   /** Aligned coarser windows, keyed by timeframe. Empty when unavailable. */
   readonly higherTimeframes: ReadonlyMap<Timeframe, readonly Candle[]>
 }
