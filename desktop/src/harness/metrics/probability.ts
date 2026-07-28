@@ -14,6 +14,15 @@
 import type { CalibrationBin, CalibrationResult, BinningMethod } from './types'
 import { quantile, sum } from './stats'
 
+/**
+ * Brier score and its skill form are DEFINED in the signal layer, because that
+ * is where a calibrator is fitted and has to be scored. Re-deriving them here
+ * would put the same formula in two files that are compared against each other,
+ * which is how the two silently come to disagree. The dependency runs
+ * harness → modules, never the reverse.
+ */
+export { brierScore, brierSkillScore } from '../../modules/signal/calibration'
+
 function assertProbabilities(p: readonly number[], y: readonly boolean[]): void {
   if (p.length !== y.length) throw new Error(`length mismatch: ${p.length} probabilities vs ${y.length} outcomes`)
   for (let i = 0; i < p.length; i++) {
@@ -21,38 +30,6 @@ function assertProbabilities(p: readonly number[], y: readonly boolean[]): void 
       throw new Error(`probability at index ${i} is ${p[i]}; must be a finite number in [0, 1]`)
     }
   }
-}
-
-/**
- * Brier score: mean squared error of the probability.
- *
- *     BS = (1/N) · Σ (pᵢ − yᵢ)²
- *
- * Range [0, 1], lower is better. A constant forecast of the base rate `b`
- * scores `b(1−b)`, which is the number any model has to beat — 0.25 when the
- * base rate is 1/2. Reported alongside as `brierSkillScore`, the standard
- * skill form:
- *
- *     BSS = 1 − BS / BS_reference
- *
- * BSS > 0 means the forecast beats always predicting the base rate; BSS <= 0
- * means it does not, however good the raw Brier score looks.
- */
-export function brierScore(p: readonly number[], y: readonly boolean[]): number | null {
-  assertProbabilities(p, y)
-  if (p.length === 0) return null
-  return sum(p.map((pi, i) => (pi - (y[i] ? 1 : 0)) ** 2)) / p.length
-}
-
-export function brierSkillScore(p: readonly number[], y: readonly boolean[]): number | null {
-  const bs = brierScore(p, y)
-  if (bs === null) return null
-  const base = y.filter(Boolean).length / y.length
-  const reference = base * (1 - base)
-  // A degenerate slice (every outcome identical) has zero reference variance:
-  // no skill is definable relative to a perfect constant forecast.
-  if (reference === 0) return null
-  return 1 - bs / reference
 }
 
 /**
