@@ -74,11 +74,21 @@ export class OverlayManager {
    * snapshot is on screen, re-push it so temporal drawings track the live edge.
    */
   private refreshChartRange(candles: Candle[]): void {
+    // Extend toSec past the last candle to cover the chart's rightOffset blank area.
+    // Without this, zone fills end at the last candle bar while hlines extend into
+    // the blank right gutter — a visible cutoff. 15 bars > rightOffset:10 ensures
+    // fills always reach the visual right edge regardless of bar spacing.
     const next: ChartTimeRange | null = candles.length > 0
-      ? {
-          fromSec: Math.floor(candles[0].openTime / 1000),
-          toSec:   Math.floor(candles[candles.length - 1].openTime / 1000),
-        }
+      ? (() => {
+          const last         = candles[candles.length - 1]
+          const intervalSec  = candles.length >= 2
+            ? (last.openTime - candles[0].openTime) / (candles.length - 1) / 1000
+            : 0
+          return {
+            fromSec: Math.floor(candles[0].openTime / 1000),
+            toSec:   Math.floor(last.openTime / 1000) + Math.round(intervalSec * 15),
+          }
+        })()
       : null
 
     const changed =
