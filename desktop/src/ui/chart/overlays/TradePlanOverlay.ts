@@ -190,6 +190,9 @@ export class TradePlanOverlay implements IAnalysisOverlay {
       !usedCoords.some(c => Math.abs(c - entryCoord) < LABEL_COLLISION_PX)
     if (entryCoord !== null && entryLabelVisible) usedCoords.push(entryCoord)
 
+    // Title carries direction arrow so the axis label communicates bias at a glance.
+    // A separate direction-label hline with axisLabelVisible:false would be dead code —
+    // in LW Charts, title text only renders inside the axis label box.
     instructions.push({
       kind:             'hline',
       key:              'entry-mid',
@@ -198,20 +201,6 @@ export class TradePlanOverlay implements IAnalysisOverlay {
       lineWidth:        1,
       lineStyle:        LineStyle.Solid,
       axisLabelVisible: entryLabelVisible,
-      title:            'Entry',
-      visible:          this.visible,
-    })
-
-    // Direction label at zone midpoint — visible as floating text near the right axis.
-    // Transparent line so only the title text renders; the arrow communicates bias at a glance.
-    instructions.push({
-      kind:             'hline',
-      key:              'direction-label',
-      price:            entryMid,
-      color:            'rgba(0,0,0,0)',
-      lineWidth:        1,
-      lineStyle:        LineStyle.Solid,
-      axisLabelVisible: false,
       title:            long ? '▲ Long' : '▼ Short',
       visible:          this.visible,
     })
