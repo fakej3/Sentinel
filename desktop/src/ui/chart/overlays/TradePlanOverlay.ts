@@ -100,7 +100,18 @@ export class TradePlanOverlay implements IAnalysisOverlay {
     const stop     = plan.invalidationLevel
     const tp1      = plan.targetLevel
     const risk     = Math.abs(entryMid - stop)
-    const { fromSec, toSec } = range
+    const { toSec } = range
+
+    // Zone fills are anchored to the recent past so a large history doesn't
+    // paint the entire chart with the current trade setup's colors.
+    // 50 bars gives enough context while keeping the fills local to current action.
+    const candles      = this.lastData!.candles
+    const intervalSec  = candles.length >= 2
+      ? (candles[candles.length - 1].openTime - candles[0].openTime) / (candles.length - 1) / 1000
+      : 0
+    const lookbackSec  = intervalSec > 0 ? Math.round(intervalSec * 50) : 0
+    const lastSec      = Math.floor(candles[candles.length - 1].openTime / 1000)
+    const fromSec      = lookbackSec > 0 ? Math.max(range.fromSec, lastSec - lookbackSec) : range.fromSec
 
     const entryLit = key === 'entry:zone' || key === 'trade:full'
     const slLit    = key === 'stop:loss'  || key === 'trade:full'
