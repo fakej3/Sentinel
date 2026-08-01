@@ -31,7 +31,7 @@ type SwingLabel = 'HH' | 'HL' | 'LH' | 'LL' | 'EH' | 'EL'
 function swingLabelColor(label: SwingLabel | null): string {
   if (label === 'HH' || label === 'HL') return '#22c55e'
   if (label === 'LH' || label === 'LL') return '#ef5350'
-  return '#64748b'
+  return '#8b5cf6'   // EH / EL — liquidity pools (violet, distinct from structural swing colors)
 }
 
 // ── Overlay ───────────────────────────────────────────────────────────────────
@@ -153,6 +153,8 @@ export class MarketStructureOverlay implements IAnalysisOverlay {
 
     let litTs: number | null = null
     if (key?.startsWith('ms:swing:')) litTs = Number(key.slice('ms:swing:'.length))
+    let litBosTs: number | null = null
+    if (key?.startsWith('ms:bos:')) litBosTs = Number(key.slice('ms:bos:'.length))
     const litAll = key === 'ms:all'
 
     const markers = labeledSwings.map(s => {
@@ -240,6 +242,55 @@ export class MarketStructureOverlay implements IAnalysisOverlay {
         lineStyle:        LineStyle.Solid,
         axisLabelVisible: isMostRecent && !tooClose,
         title:            'BOS',
+        visible:          this.visible,
+      })
+    }
+
+    // ── BOS breakout arrows ───────────────────────────────────────────────────
+    // Arrow at the exact candle that broke structure — makes the breakout bar unmistakable.
+    // Uses a lean anchor (just the BOS candle timestamps) so aboveBar/belowBar positions
+    // correctly relative to the candle's high or low.
+    const bosArrowMarkers = bosEvents.map(e => {
+      const tSec = Math.floor(e.timestamp / 1000)
+      const candle = this.candleByTime.get(tSec)
+      return {
+        time:     tSec,
+        value:    e.direction === 'bullish' ? (candle?.low ?? 0) : (candle?.high ?? 0),
+        position: e.direction === 'bullish' ? 'belowBar' as const : 'aboveBar' as const,
+        shape:    e.direction === 'bullish' ? 'arrowUp'  as const : 'arrowDown' as const,
+        color:    e.direction === 'bullish' ? 'rgba(34,197,94,0.9)' : 'rgba(239,83,80,0.9)',
+        size:     (litAll || (litBosTs !== null && e.timestamp === litBosTs)) ? 2.5 : 1.2,
+      }
+    }).sort((a, b) => a.time - b.time)
+
+    if (bosArrowMarkers.length > 0) {
+      instructions.push({
+        kind:    'markerset',
+        key:     'bos-arrows',
+        anchor:  bosArrowMarkers.map(m => ({ time: m.time, value: m.value })),
+        markers: bosArrowMarkers.map(({ time, position, shape, color, size }) => ({ time, position, shape, color, text: '', size })),
+        visible: this.visible,
+      })
+    }
+
+    // ── EH / EL liquidity hlines ─────────────────────────────────────────────
+    // Dotted violet lines at equal-high / equal-low swing prices.
+    // These are unmitigated liquidity pools (resting sell-stops above EH, buy-stops below EL).
+    // Only drawn within MAX_DIST_PCT of current price to keep the chart readable.
+    const currentPrice = data.analysis.price.current
+    const EH_EL_DIST_PCT = 0.20
+    for (const s of labeledSwings) {
+      if (s.label !== 'EH' && s.label !== 'EL') continue
+      if (Math.abs(s.price - currentPrice) / currentPrice > EH_EL_DIST_PCT) continue
+      instructions.push({
+        kind:             'hline',
+        key:              `ehl_${s.timestamp}`,
+        price:            s.price,
+        color:            'rgba(139, 92, 246, 0.40)',
+        lineWidth:        1,
+        lineStyle:        LineStyle.Dotted,
+        axisLabelVisible: false,
+        title:            '',
         visible:          this.visible,
       })
     }

@@ -99,9 +99,10 @@ function TradingViewChart({ symbol, interval, data, candles: controlledCandles }
     })
     emaOverlaysRef.current = emaOverlays
 
+    // Z-order: SR fills at bottom, Fib golden pocket below trade setup fills, MS on top
     manager.addAnalysis(new SupportResistanceOverlay())
-    manager.addAnalysis(new TradePlanOverlay())
     manager.addAnalysis(new FibonacciOverlay())
+    manager.addAnalysis(new TradePlanOverlay())
     manager.addAnalysis(new MarketStructureOverlay())
 
     engineRef.current  = engine

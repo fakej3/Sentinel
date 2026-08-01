@@ -9,8 +9,8 @@ import type { IAnalysisOverlay, ChartTimeRange } from '../types'
 
 function colorForLevel(level: FibLevel): string {
   if (level.isExtension)     return level.confluence ? '#22d3ee' : '#06b6d4'
-  if (level.ratio === 1.000) return level.confluence ? '#c8e0ff' : '#94a3b8'
-  if (level.ratio === 0.786) return level.confluence ? '#ffb340' : '#f97316'
+  if (level.ratio === 1.000) return level.confluence ? '#e0e7ff' : '#c7d2fe'  // indigo-100/200 — swing end (distinct from 0.000 slate)
+  if (level.ratio === 0.786) return level.confluence ? '#fbbf24' : '#d97706'  // amber — distinct from S→R flipped orange (#f97316)
   if (level.ratio === 0.650) return level.confluence ? '#ffd740' : '#eab308'
   if (level.ratio === 0.618) return level.confluence ? '#ffd740' : '#eab308'
   if (level.ratio === 0.500) return level.confluence ? '#a8b8cc' : '#7a8fa8'

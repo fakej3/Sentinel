@@ -163,7 +163,7 @@ export class TradePlanOverlay implements IAnalysisOverlay {
       price:            stop,
       color:            SL_COLOR,
       lineWidth:        slLit ? 4 : 2,
-      lineStyle:        LineStyle.Solid,
+      lineStyle:        LineStyle.Dashed,
       axisLabelVisible: true,
       title:            'SL',
       visible:          this.visible,
@@ -188,6 +188,20 @@ export class TradePlanOverlay implements IAnalysisOverlay {
       lineStyle:        LineStyle.Solid,
       axisLabelVisible: entryLabelVisible,
       title:            'Entry',
+      visible:          this.visible,
+    })
+
+    // Direction label at zone midpoint — visible as floating text near the right axis.
+    // Transparent line so only the title text renders; the arrow communicates bias at a glance.
+    instructions.push({
+      kind:             'hline',
+      key:              'direction-label',
+      price:            entryMid,
+      color:            'rgba(0,0,0,0)',
+      lineWidth:        1,
+      lineStyle:        LineStyle.Solid,
+      axisLabelVisible: false,
+      title:            long ? '▲ Long' : '▼ Short',
       visible:          this.visible,
     })
 
@@ -221,7 +235,7 @@ export class TradePlanOverlay implements IAnalysisOverlay {
       ? Math.abs(tpCoord - entryEdgeCoord)
       : 999
     const rewardVal = Math.abs(tp1 - entryMid)
-    const rrText    = risk > 0 ? (rewardVal / risk).toFixed(2) : '—'
+    const rrText    = risk > 0 ? (rewardVal / risk).toFixed(1) : '—'
 
     instructions.push({
       kind:             'hline',
