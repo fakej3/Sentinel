@@ -9,7 +9,8 @@ import type { IAnalysisOverlay, ChartTimeRange } from '../types'
 
 function colorForLevel(level: FibLevel): string {
   if (level.isExtension)     return level.confluence ? '#22d3ee' : '#06b6d4'
-  if (level.ratio === 1.000) return level.confluence ? '#e0e7ff' : '#c7d2fe'  // indigo-100/200 — swing end (distinct from 0.000 slate)
+  if (level.ratio === 0.000) return level.confluence ? '#f1f5f9' : '#cbd5e1'  // slate-200/300 — impulse-origin anchor
+  if (level.ratio === 1.000) return level.confluence ? '#e0e7ff' : '#c7d2fe'  // indigo-100/200 — impulse-end anchor
   if (level.ratio === 0.786) return level.confluence ? '#fbbf24' : '#d97706'  // amber — distinct from S→R flipped orange (#f97316)
   if (level.ratio === 0.650) return level.confluence ? '#ffd740' : '#eab308'
   if (level.ratio === 0.618) return level.confluence ? '#ffd740' : '#eab308'
@@ -43,8 +44,12 @@ const GP_LIT = {
 } as const
 
 const PRIORITY: Partial<Record<number, number>> = {
-  0.618: 1, 0.650: 2, 0.500: 3, 0.382: 4, 1.000: 5, 0.786: 6, 0.236: 7,
+  0.000: 1, 0.618: 2, 0.650: 3, 0.500: 4, 0.382: 5, 1.000: 6, 0.786: 7, 0.236: 8,
 }
+
+// Impulse anchor levels whose axis labels must always be visible regardless of
+// collision proximity — removing them makes the Fibonacci grid unreadable.
+const ANCHOR_RATIOS = new Set([0.000, 1.000])
 
 // ── Overlay ───────────────────────────────────────────────────────────────────
 
@@ -101,10 +106,10 @@ export class FibonacciOverlay implements IAnalysisOverlay {
     const fromTime = Math.max(range.fromSec, impulseStartSec)
     const toTime   = range.toSec
 
-    // Golden pocket zone
+    // Golden pocket zone (guard fromTime < toTime to prevent degenerate zones)
     const gp618 = fib.levels.find(l => l.ratio === 0.618)
     const gp650 = fib.levels.find(l => l.ratio === 0.650)
-    if (gp618 && gp650) {
+    if (gp618 && gp650 && fromTime < toTime) {
       const gpTop = Math.max(gp618.price, gp650.price)
       const gpBot = Math.min(gp618.price, gp650.price)
       const gp    = gpLit ? GP_LIT : GP_BASE
@@ -159,6 +164,9 @@ export class FibonacciOverlay implements IAnalysisOverlay {
       .sort((a, b) => (PRIORITY[a.ratio] ?? 99) - (PRIORITY[b.ratio] ?? 99))
     const hiddenLabels = new Set<FibLevel>()
     for (const level of retraceByPriority) {
+      // Anchor levels (0.000 and 1.000) are always visible — they define the
+      // impulse range; suppressing them makes the Fibonacci grid unreadable.
+      if (ANCHOR_RATIOS.has(level.ratio)) continue
       const coord = this.engine?.priceToCoordinate(level.price) ?? null
       if (coord !== null && usedCoords.some(c => Math.abs(c - coord) < 14)) {
         hiddenLabels.add(level)
@@ -176,7 +184,7 @@ export class FibonacciOverlay implements IAnalysisOverlay {
         key === `fib:ratio:${level.ratio}` ||
         (key === 'fib:golden-pocket' && (level.ratio === 0.618 || level.ratio === 0.650))
       const lineWidth         = (lit ? Math.min(base + 2, 4) : base) as 1 | 2 | 3 | 4
-      const axisLabelVisible  = !level.isExtension && !hiddenLabels.has(level)
+      const axisLabelVisible  = !level.isExtension && (ANCHOR_RATIOS.has(level.ratio) || !hiddenLabels.has(level))
 
       instructions.push({
         kind:             'hline',

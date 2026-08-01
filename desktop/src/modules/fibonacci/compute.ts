@@ -5,7 +5,10 @@ import type { FibResult, FibLevel, FibDirection } from './types'
 import type { UnavailableCode } from '../common/availability'
 import { unavailable } from '../common/availability'
 
-const RETRACEMENT_RATIOS = [0.236, 0.382, 0.500, 0.618, 0.650, 0.786, 1.000]
+// 0.000 is the impulse-origin anchor (swing high for bullish, swing low for bearish).
+// Without it the chart shows retracement lines with no anchor at the starting extreme,
+// making the Fibonacci grid appear to float with no reference point.
+const RETRACEMENT_RATIOS = [0.000, 0.236, 0.382, 0.500, 0.618, 0.650, 0.786, 1.000]
 const EXTENSION_RATIOS   = [1.272, 1.618, 2.000]
 const ALL_RATIOS = [...RETRACEMENT_RATIOS, ...EXTENSION_RATIOS]
 

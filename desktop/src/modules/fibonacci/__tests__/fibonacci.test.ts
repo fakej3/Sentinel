@@ -54,14 +54,38 @@ describe('computeFibonacci', () => {
     expect(result.available).toBe(false)
   })
 
-  it('computes 10 levels for a bullish move (7 retracements + 3 extensions)', () => {
+  it('computes 11 levels for a bullish move (8 retracements + 3 extensions)', () => {
     const swings = [
       swing(0, 100,  'low',  'HL'),
       swing(10, 200, 'high', 'HH'),
     ]
     const result = computeFibonacci(swings, 'bullish', emptySR, null)
     expect(result.available).toBe(true)
-    expect(result.levels).toHaveLength(10)
+    expect(result.levels).toHaveLength(11)
+  })
+
+  it('includes the 0.000 anchor level at the swing-high price for a bullish move', () => {
+    const swings = [
+      swing(0, 100,  'low',  'HL'),
+      swing(10, 200, 'high', 'HH'),
+    ]
+    const result = computeFibonacci(swings, 'bullish', emptySR, null)
+    const level0 = result.levels.find(l => l.ratio === 0.000)
+    expect(level0).toBeDefined()
+    expect(level0!.price).toBeCloseTo(200, 4)
+    expect(level0!.isExtension).toBe(false)
+  })
+
+  it('includes the 0.000 anchor level at the swing-low price for a bearish move', () => {
+    const swings = [
+      swing(0,  200, 'high', 'LH'),
+      swing(10, 100, 'low',  'LL'),
+    ]
+    const result = computeFibonacci(swings, 'bearish', emptySR, null)
+    const level0 = result.levels.find(l => l.ratio === 0.000)
+    expect(level0).toBeDefined()
+    expect(level0!.price).toBeCloseTo(100, 4)
+    expect(level0!.isExtension).toBe(false)
   })
 
   it('prices the 0.618 level correctly for a bullish move', () => {

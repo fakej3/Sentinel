@@ -612,3 +612,96 @@ describe('trade plan — every non-actionable tier explains its own cause', () =
     }
   })
 })
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Entry distance validation (Issue #1)
+// MAX_ENTRY_DISTANCE_ATR = 5; ATR = currentPrice * atrPercent / 100
+// SHORT gap = max(0, entryZone.lower − currentPrice)   [entry is above price]
+// LONG  gap = max(0, currentPrice − entryZone.upper)   [entry is below price]
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('trade plan — entry distance validation', () => {
+  it('SHORT: entry zone 7 ATR above price → avoid (entry_too_distant)', () => {
+    // price=1000, ATR=10 → threshold=50; resistance.lower=1070 → gap=70 → 7 ATR
+    const sr = {
+      ...makeSR(null, { lower: 1070, upper: 1080, center: 1075 }),
+      nearestSupport: fullZone('s', 900, 910, 'support'),
+    } as SupportResistanceResult
+    const plan = computeTradePlan(analysisWithAtr('strong bearish', 1000, 1.0), sr, makeConfidence())
+    expect(plan.setupQuality).toBe('avoid')
+    expect(plan.actionable).toBe(false)
+    expect(plan.setupQualityReason).toMatch(/ATR away/i)
+    expect(plan.patienceMessage).toMatch(/ATR away/i)
+  })
+
+  it('LONG: entry zone 7 ATR below price → avoid (entry_too_distant)', () => {
+    // price=1000, ATR=10 → threshold=50; support.upper=930 → gap=70 → 7 ATR
+    const sr = {
+      ...makeSR({ lower: 920, upper: 930, center: 925 }, null),
+      nearestResistance: fullZone('r', 1060, 1070, 'resistance'),
+    } as SupportResistanceResult
+    const plan = computeTradePlan(analysisWithAtr('strong bullish', 1000, 1.0), sr, makeConfidence())
+    expect(plan.setupQuality).toBe('avoid')
+    expect(plan.actionable).toBe(false)
+    expect(plan.setupQualityReason).toMatch(/ATR away/i)
+    expect(plan.patienceMessage).toMatch(/ATR away/i)
+  })
+
+  it('SHORT: entry zone 3 ATR above price → passes the distance gate', () => {
+    // price=1000, ATR=10 → threshold=50; resistance.lower=1030 → gap=30 → 3 ATR ≤ 5
+    const sr = {
+      ...makeSR(null, { lower: 1030, upper: 1040, center: 1035 }),
+      nearestSupport: fullZone('s', 1010, 1015, 'support'),
+    } as SupportResistanceResult
+    const plan = computeTradePlan(analysisWithAtr('strong bearish', 1000, 1.0), sr, makeConfidence())
+    expect(plan.setupQualityReason).not.toMatch(/ATR away/i)
+    expect(plan.setupQuality).not.toBe('avoid')
+  })
+
+  it('LONG: entry zone 3 ATR below price → passes the distance gate', () => {
+    // price=1000, ATR=10 → threshold=50; support.upper=970 → gap=30 → 3 ATR ≤ 5
+    const sr = {
+      ...makeSR({ lower: 962, upper: 970, center: 966 }, null),
+      nearestResistance: fullZone('r', 1000, 1010, 'resistance'),
+    } as SupportResistanceResult
+    const plan = computeTradePlan(analysisWithAtr('strong bullish', 1000, 1.0), sr, makeConfidence())
+    expect(plan.setupQualityReason).not.toMatch(/ATR away/i)
+    expect(plan.setupQuality).not.toBe('avoid')
+  })
+
+  it('SHORT: price inside the entry zone → gap=0 → distance gate does not fire', () => {
+    // price=1035, zone 1030-1040 → max(0, 1030-1035)=0 → allowed
+    const resistanceZone = fullZone('r', 1030, 1040, 'resistance')
+    const sr = {
+      ...makeSR(null, null),
+      currentZone:    resistanceZone,
+      nearestSupport: fullZone('s', 1010, 1015, 'support'),
+    } as SupportResistanceResult
+    const plan = computeTradePlan(analysisWithAtr('strong bearish', 1035, 1.0), sr, makeConfidence())
+    expect(plan.setupQualityReason).not.toMatch(/ATR away/i)
+    expect(plan.entryZone).not.toBeNull()
+  })
+
+  it('LONG: price inside the entry zone → gap=0 → distance gate does not fire', () => {
+    // price=925, zone 920-930 → max(0, 925-930)=0 → allowed
+    const supportZone = fullZone('s', 920, 930, 'support')
+    const sr = {
+      ...makeSR(null, null),
+      currentZone:       supportZone,
+      nearestResistance: fullZone('r', 960, 970, 'resistance'),
+    } as SupportResistanceResult
+    const plan = computeTradePlan(analysisWithAtr('strong bullish', 925, 1.0), sr, makeConfidence())
+    expect(plan.setupQualityReason).not.toMatch(/ATR away/i)
+    expect(plan.entryZone).not.toBeNull()
+  })
+
+  it('when ATR is null the distance gate is skipped entirely', () => {
+    // atrPercent=null → cannot compute ATR → gate is skipped, even for extreme distances
+    const sr = {
+      ...makeSR(null, { lower: 2000, upper: 2100, center: 2050 }),
+      nearestSupport: fullZone('s', 800, 810, 'support'),
+    } as SupportResistanceResult
+    const plan = computeTradePlan(analysisWithAtr('strong bearish', 1000, null), sr, makeConfidence())
+    expect(plan.setupQualityReason).not.toMatch(/ATR away/i)
+  })
+})

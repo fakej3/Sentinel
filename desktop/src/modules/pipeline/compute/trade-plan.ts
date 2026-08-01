@@ -7,6 +7,18 @@ import type { TradePlan, TradeSetupQuality, MultiTimeframeAgreement } from '../t
 import { computeTradeMaturity } from './trade-maturity'
 import type { TradeMaturityResult } from './trade-maturity'
 
+/**
+ * Entry zones further than this many ATRs from current price are treated as
+ * 'avoid' (entry_too_distant). The setup may be structurally valid but requires
+ * too much uninterrupted movement before entry becomes realistic.
+ *
+ * Rationale: price commonly retraces 1–3 ATRs before finding an entry zone.
+ * 5 ATRs is the outer bound of a realistic short-term pullback; beyond it the
+ * zone is a level to watch, not an entry to plan today. Using ATR (not %) means
+ * the gate scales automatically with timeframe and volatility regime.
+ */
+const MAX_ENTRY_DISTANCE_ATR = 5
+
 const CLEAN_VALIDATION: ValidationResult = {
   passed: true, clean: true, issues: [],
   criticalCount: 0, warningCount: 0, infoCount: 0,
@@ -204,6 +216,7 @@ export function computeTradePlan(
     geometryValid, riskRewardRatio,
     confidence, validation, mtfAgreement, trend, maturity.score, atrBased,
     analysis.price.atrPercent,
+    analysis.price.current,
   )
 
   // excellent / good / average are actionable; poor / avoid / no_setup are not
@@ -293,6 +306,7 @@ type SetupQualityCause =
   | 'immature'
   | 'atr_based'
   | 'mtf_conflict'
+  | 'entry_too_distant'
   /** Passed every gate — the tier is driven by RR/confidence, not by a fault. */
   | 'qualified'
 
@@ -309,6 +323,7 @@ function classifySetupQuality(
   maturityScore?: number,
   atrBased?: boolean,
   atrPercent?: number | null,
+  currentPrice?: number,
 ): { setupQuality: TradeSetupQuality; setupQualityReason: string; cause: SetupQualityCause } {
   // Weak trend (weak bullish / weak bearish / ranging) reduces setup reliability.
   // Evidence: 8/10 synthetic validation losses had weak trend labels despite high
@@ -340,6 +355,38 @@ function classifySetupQuality(
       setupQuality: 'avoid',
       setupQualityReason: 'Trade geometry is invalid — stop, entry, and target are not in the correct order',
       cause: 'invalid_geometry',
+    }
+  }
+
+  // 2b. Entry zone too distant from current price.
+  // A geometrically valid setup can still be non-actionable when price must
+  // travel more than MAX_ENTRY_DISTANCE_ATR before reaching the entry zone.
+  // For SHORT the entry is above price; distance = max(0, entry.lower - price).
+  // For LONG  the entry is below price; distance = max(0, price - entry.upper).
+  // When price is inside the zone both expressions are ≤ 0, so distance = 0 and
+  // the gate never fires. Skip the check when ATR is unavailable.
+  if (
+    currentPrice !== undefined &&
+    atrPercent !== null && atrPercent !== undefined &&
+    atrPercent >= 0.2
+  ) {
+    const atr = currentPrice * atrPercent / 100
+    if (atr > 0) {
+      const isBull = trend?.includes('bullish') ?? false
+      const distance = isBull
+        ? Math.max(0, currentPrice - entryZone.upper)
+        : Math.max(0, entryZone.lower - currentPrice)
+      const distanceATR = distance / atr
+      if (distanceATR > MAX_ENTRY_DISTANCE_ATR) {
+        const distStr = distanceATR.toFixed(1)
+        const zoneStr = `${fmtPrice(entryZone.lower)}–${fmtPrice(entryZone.upper)}`
+        const zoneType = isBull ? 'support' : 'resistance'
+        return {
+          setupQuality: 'avoid',
+          setupQualityReason: `Entry zone is ${distStr} ATR away — too far to reach the ${zoneType} zone (${zoneStr}); wait for price to approach`,
+          cause: 'entry_too_distant',
+        }
+      }
     }
   }
 
@@ -520,6 +567,9 @@ function buildPatienceMessage(
         : 'No trade setup available — no nearby S/R structure and no usable ATR fallback; wait for structure to form or a pullback to a key level'
 
     case 'avoid':
+      if (cause === 'entry_too_distant') {
+        return `${setupQualityReason} — no trade until price approaches the zone`
+      }
       if (cause === 'rr_below_min' && riskRewardRatio !== null) {
         return confidence.score >= 6.0
           ? `Confidence is high but risk/reward is ${riskRewardRatio.toFixed(2)}:1 (minimum 1.5:1) — wait for a better entry zone`
