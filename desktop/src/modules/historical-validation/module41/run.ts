@@ -73,15 +73,18 @@ function tierFor(score: number): MaturityTier {
   return 'immature'
 }
 
-function expectancy(wins: number, losses: number, avgRR: number | null): number | null {
+export function expectancy(wins: number, losses: number, avgRR: number | null): number | null {
   const total = wins + losses
   if (total === 0 || avgRR === null) return null
   const wr = wins / total
   return wr * avgRR - (1 - wr) * 1.0
 }
 
-function profitFactor(wins: number, losses: number, avgRR: number | null): number | null {
-  if (losses === 0 || avgRR === null) return wins > 0 ? Infinity : null
+// Returns null — not Infinity — when losses === 0 or avgRR is unavailable.
+// Infinity is not a valid metric value: it breaks JSON serialisation, and
+// "no losses observed in this sample" is insufficient data, not perfection.
+export function profitFactor(wins: number, losses: number, avgRR: number | null): number | null {
+  if (losses === 0 || avgRR === null) return null
   return (wins * avgRR) / losses
 }
 
