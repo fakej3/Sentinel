@@ -355,6 +355,13 @@ export interface PipelineTimings {
 }
 
 export interface PipelineMetadata {
+  /**
+   * UUID generated fresh for every pipeline run. Two calls that happen to
+   * return the same symbol/interval/window still get different IDs — this
+   * lets the UI distinguish a truly fresh result from an unchanged one and
+   * is the stable key for React memoisation and history deduplication.
+   */
+  analysisId: string
   symbol: string
   interval: Timeframe
   candleCount: number

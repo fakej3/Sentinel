@@ -398,6 +398,7 @@ export async function analyzeMarket(options: PipelineOptions): Promise<PipelineR
     sanityAudit,
     ...(fibonacci !== undefined && { fibonacci }),
     metadata: {
+      analysisId: crypto.randomUUID(),
       symbol: marketData.symbol,
       interval,
       candleCount: marketData.candles.length,

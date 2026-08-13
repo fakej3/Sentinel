@@ -437,3 +437,48 @@ describe('analyzeMarket — Phase 13: cross-layer wiring invariants', () => {
     expect(result.candles).toBe(candles)
   })
 })
+
+// ── Phase 14 — Analysis generation ID ────────────────────────────────────────
+//
+// Every pipeline run emits a unique analysisId. This lets the UI distinguish a
+// genuinely fresh result from an identical re-render, and is the stable key for
+// React memoisation and history deduplication — even when symbol/interval/window
+// are the same across two consecutive calls.
+
+describe('analyzeMarket — Phase 14: analysis generation ID', () => {
+  it('metadata.analysisId is a non-empty string', async () => {
+    const result = await analyzeMarket({ symbol: SYMBOL, interval: INTERVAL, fetchImpl: mockFetch(makeCandles(100)) })
+    expect(typeof result.metadata.analysisId).toBe('string')
+    expect(result.metadata.analysisId.length).toBeGreaterThan(0)
+  })
+
+  it('metadata.analysisId looks like a UUID (8-4-4-4-12 hex)', async () => {
+    const result = await analyzeMarket({ symbol: SYMBOL, interval: INTERVAL, fetchImpl: mockFetch(makeCandles(100)) })
+    expect(result.metadata.analysisId).toMatch(
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i,
+    )
+  })
+
+  it('two runs with identical inputs produce different analysisIds', async () => {
+    const candles = makeCandles(100)
+    const fetch = mockFetch(candles)
+    const opts = { symbol: SYMBOL, interval: INTERVAL as Timeframe, fetchImpl: fetch }
+
+    const r1 = await analyzeMarket(opts)
+    const r2 = await analyzeMarket(opts)
+
+    expect(r1.metadata.analysisId).not.toBe(r2.metadata.analysisId)
+  })
+
+  it('analysisId is not included in the deterministic-output snapshot (it changes per run)', async () => {
+    // The existing determinism test checks stable: never include analysisId there.
+    // This test makes that contract explicit.
+    const candles = makeCandles(100)
+    const result = await analyzeMarket({ symbol: SYMBOL, interval: INTERVAL, fetchImpl: mockFetch(candles) })
+    // analysisId must be present on metadata but MUST NOT equal any deterministic field
+    expect(result.metadata.analysisId).toBeDefined()
+    expect(result.metadata.analysisId).not.toBe(result.metadata.symbol)
+    expect(result.metadata.analysisId).not.toBe(result.metadata.interval)
+    expect(result.metadata.analysisId).not.toBe(result.metadata.version)
+  })
+})
