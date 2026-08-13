@@ -360,8 +360,9 @@ export interface PipelineMetadata {
    * return the same symbol/interval/window still get different IDs — this
    * lets the UI distinguish a truly fresh result from an unchanged one and
    * is the stable key for React memoisation and history deduplication.
+   * Optional because persisted history entries predate this field.
    */
-  analysisId: string
+  analysisId?: string
   symbol: string
   interval: Timeframe
   candleCount: number
