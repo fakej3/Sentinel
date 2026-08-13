@@ -337,3 +337,103 @@ describe('analyzeMarket — execution order', () => {
     expect(result.generatedAnalysis.metadata.confidenceScore).toBe(result.confidence.score)
   })
 })
+
+// ── Phase 13 — Cross-layer wiring invariants ──────────────────────────────────
+//
+// The pipeline is composed of independent modules. These tests verify the
+// data plumbing: that each stage consumes exactly the output of the stage
+// above it, not a recomputed copy. A wiring regression (e.g. Fibonacci
+// receiving a different swing set, or metadata.window pointing to wrong
+// candles) would not be caught by per-module unit tests.
+
+describe('analyzeMarket — Phase 13: cross-layer wiring invariants', () => {
+  it('metadata.window spans exactly the fetched candle array', async () => {
+    const candles = makeCandles(200)
+    const result = await analyzeMarket({ symbol: SYMBOL, interval: INTERVAL, fetchImpl: mockFetch(candles) })
+    expect(result.metadata.window).toBeDefined()
+    expect(result.metadata.window!.firstOpenTime).toBe(candles[0].openTime)
+    expect(result.metadata.window!.lastOpenTime).toBe(candles[candles.length - 1].openTime)
+  })
+
+  it('metadata.window.lastOpenTime equals the last candle openTime in result.candles', async () => {
+    // This verifies the window tracks the same candle set as result.candles.
+    const candles = makeCandles(150)
+    const result = await analyzeMarket({ symbol: SYMBOL, interval: INTERVAL, fetchImpl: mockFetch(candles) })
+    const lastCandle = result.candles[result.candles.length - 1]
+    expect(result.metadata.window!.lastOpenTime).toBe(lastCandle.openTime)
+  })
+
+  it('fibonacci anchor prices come from marketStructure.swings when fibonacci is available', async () => {
+    // fibonacci is computed with marketStructure.swings as input. Its anchor
+    // prices must be prices that the swing detector emitted — never recomputed.
+    const candles = makeCandles(200)
+    const result = await analyzeMarket({ symbol: SYMBOL, interval: INTERVAL, fetchImpl: mockFetch(candles) })
+
+    if (!result.fibonacci?.available) return  // no impulse detected on this fixture — skip
+
+    const swingPrices = new Set(result.marketStructure.swings.map(s => s.price))
+    expect(swingPrices.has(result.fibonacci.swingHigh.price),
+      `fibonacci.swingHigh.price ${result.fibonacci.swingHigh.price} not in marketStructure.swings`
+    ).toBe(true)
+    expect(swingPrices.has(result.fibonacci.swingLow.price),
+      `fibonacci.swingLow.price ${result.fibonacci.swingLow.price} not in marketStructure.swings`
+    ).toBe(true)
+  })
+
+  it('fibonacci anchor timestamps match the swing timestamps', async () => {
+    const candles = makeCandles(200)
+    const result = await analyzeMarket({ symbol: SYMBOL, interval: INTERVAL, fetchImpl: mockFetch(candles) })
+
+    if (!result.fibonacci?.available) return
+
+    const matchHigh = result.marketStructure.swings.find(
+      s => s.price === result.fibonacci!.swingHigh.price && s.type === 'high',
+    )
+    const matchLow = result.marketStructure.swings.find(
+      s => s.price === result.fibonacci!.swingLow.price && s.type === 'low',
+    )
+    expect(matchHigh).toBeDefined()
+    expect(matchLow).toBeDefined()
+    expect(result.fibonacci.swingHigh.timestamp).toBe(matchHigh!.timestamp)
+    expect(result.fibonacci.swingLow.timestamp).toBe(matchLow!.timestamp)
+  })
+
+  it('fibonacci direction is consistent with the full-trend direction from analysis', async () => {
+    // Stage 6b derives fibDirection from analysis.fullTrend.trend (not from
+    // marketStructure.trend alone). Verify the two directions agree.
+    const candles = makeCandles(200)
+    const result = await analyzeMarket({ symbol: SYMBOL, interval: INTERVAL, fetchImpl: mockFetch(candles) })
+
+    if (!result.fibonacci?.available) return
+
+    const fullTrend = result.analysis.fullTrend.trend
+    const expectedFibDir =
+      fullTrend.includes('bullish') ? 'bullish' :
+      fullTrend.includes('bearish') ? 'bearish' :
+      'ranging'
+
+    expect(result.fibonacci.direction).toBe(expectedFibDir)
+  })
+
+  it('every BOS and CHoCH event level is a price from marketStructure.swings', async () => {
+    // detectBosChoch assigns event.level directly from the swing object.
+    // This verifies the pipeline does not re-derive levels from candle data.
+    const candles = makeCandles(200)
+    const result = await analyzeMarket({ symbol: SYMBOL, interval: INTERVAL, fetchImpl: mockFetch(candles) })
+
+    const swingPrices = new Set(result.marketStructure.swings.map(s => s.price))
+    for (const e of result.marketStructure.events) {
+      expect(swingPrices.has(e.level),
+        `${e.type} level ${e.level} at bar ${e.index} is not in marketStructure.swings`
+      ).toBe(true)
+    }
+  })
+
+  it('result.candles is the exact array returned by fetchImpl (identity, not a copy)', async () => {
+    // The pipeline must not deep-copy the candles array — downstream consumers
+    // that compare candle references (e.g. pipelineFetch.ts) depend on identity.
+    const candles = makeCandles(100)
+    const result = await analyzeMarket({ symbol: SYMBOL, interval: INTERVAL, fetchImpl: mockFetch(candles) })
+    expect(result.candles).toBe(candles)
+  })
+})
