@@ -50,12 +50,6 @@ export function computeDecision(
     label = (score >= 6.5 && !hasCritical) ? 'Strong Sell' : 'Sell'
   }
 
-  // ── Validation downgrade ───────────────────────────────────────────────────
-  if (hasCritical) {
-    if (label === 'Strong Buy') label = 'Buy'
-    if (label === 'Strong Sell') label = 'Sell'
-  }
-
   // ── Build concise reason bullets (3–5) ────────────────────────────────────
   const { fullTrend, emaContext, volumeContext, indicatorSummary, srContext } = analysis
 
