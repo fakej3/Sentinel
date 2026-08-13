@@ -14,6 +14,8 @@ import { FibonacciOverlay } from '../../chart/overlays/FibonacciOverlay'
 import { MarketStructureOverlay } from '../../chart/overlays/MarketStructureOverlay'
 import { formatPrice, formatPercent, formatVolume, formatTimestamp } from '../../utils/format'
 import { IndicatorPanel, INDICATORS, loadIndicatorVisibility, type IndicatorId } from './IndicatorPanel'
+import { checkAnalyzeWindowStaleness } from '../../hooks/analyzeResponseGuard'
+import { intervalToMs } from '../../utils/timeframes'
 
 /** Backfill older history when the user scrolls within this many bars of the left edge. */
 const BACKFILL_TRIGGER_BARS = 20
@@ -67,9 +69,10 @@ function TradingViewChart({ symbol, interval, data, candles: controlledCandles }
   // EMA value spans (indexed 0-3 = E20, E50, E100, E200)
   const hudEmaRefs    = useRef<(HTMLSpanElement | null)[]>([null, null, null, null])
 
-  const [status,   setStatus]   = useState<'loading' | 'error' | 'ready'>('loading')
-  const [errorMsg, setErrorMsg] = useState('')
-  const [retryKey, setRetryKey] = useState(0)
+  const [status,      setStatus     ] = useState<'loading' | 'error' | 'ready'>('loading')
+  const [errorMsg,    setErrorMsg   ] = useState('')
+  const [retryKey,    setRetryKey   ] = useState(0)
+  const [windowStale, setWindowStale] = useState<{ driftMs: number } | null>(null)
 
   useImperativeHandle(ref, () => ({
     highlight(key: string | null) { managerRef.current?.highlight(key) },
@@ -293,6 +296,20 @@ function TradingViewChart({ symbol, interval, data, candles: controlledCandles }
     managerRef.current?.updateAnalysis(data)
   }, [data])
 
+  // Staleness check: warn when the analysis window is more than 1 interval behind
+  // the chart's current candles. This can only happen in web/HTTP mode where the
+  // server fetches via REST while the chart streams via WebSocket. In Tauri mode
+  // the same CandleStore feeds both, so the check is always a no-op.
+  useEffect(() => {
+    if (!data?.metadata) { setWindowStale(null); return }
+    const lastCandle = candlesRef.current.at(-1)
+    if (!lastCandle) { setWindowStale(null); return }
+    const ms = intervalToMs(interval)
+    if (!ms) { setWindowStale(null); return }
+    const stale = checkAnalyzeWindowStaleness(data.metadata, lastCandle.openTime, ms)
+    setWindowStale(stale ? { driftMs: stale.driftMs } : null)
+  }, [data, interval])
+
   const handleToggle = useCallback((id: IndicatorId, visible: boolean) => {
     const ind = INDICATORS.find(i => i.id === id)
     if (!ind) return
@@ -372,6 +389,17 @@ function TradingViewChart({ symbol, interval, data, candles: controlledCandles }
           >
             Retry
           </button>
+        </div>
+      )}
+
+      {windowStale && (
+        <div
+          title={`Analysis is ${Math.round(Math.abs(windowStale.driftMs) / 60_000)} min ${windowStale.driftMs < 0 ? 'behind' : 'ahead of'} the chart. Re-analyze to refresh.`}
+          className="absolute bottom-8 right-2 z-20 flex items-center gap-1 px-2 py-0.5 rounded
+                     bg-amber-500/10 border border-amber-500/30 text-amber-400 text-[10px] font-medium
+                     pointer-events-none select-none"
+        >
+          ⚠ Analysis window drift
         </div>
       )}
     </div>
