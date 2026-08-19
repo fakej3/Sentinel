@@ -100,11 +100,56 @@ export class FibonacciOverlay implements IAnalysisOverlay {
     const key  = this.lastHighlightKey
     const gpLit = key === 'fib:golden-pocket' || key === 'fib:all'
 
-    // Zone extent: from the impulse anchor to the chart's live edge — the
-    // measurement is only meaningful from the swing it was drawn from.
-    const impulseStartSec = Math.floor(Math.min(fib.swingLow.timestamp, fib.swingHigh.timestamp) / 1000)
+    // Impulse leg timestamps
+    const highSec = Math.floor(fib.swingHigh.timestamp / 1000)
+    const lowSec  = Math.floor(fib.swingLow.timestamp  / 1000)
+    const impulseStartSec = Math.min(highSec, lowSec)
     const fromTime = Math.max(range.fromSec, impulseStartSec)
     const toTime   = range.toSec
+
+    // Impulse leg — diagonal line from swingLow to swingHigh shows the measured move.
+    // Makes the anchor visually obvious and distinguishes this fib from floating lines.
+    instructions.push({
+      kind:      'polyline',
+      key:       'impulse-leg',
+      color:     'rgba(234, 179, 8, 0.35)',
+      lineWidth: 1,
+      lineStyle: LineStyle.SparseDotted,
+      data:      [
+        { time: lowSec,  value: fib.swingLow.price  },
+        { time: highSec, value: fib.swingHigh.price },
+      ],
+      visible: this.visible,
+    })
+
+    // Anchor markers at swingHigh and swingLow — small gold circles that pin the fib grid.
+    instructions.push({
+      kind:    'markerset',
+      key:     'fib-anchors',
+      anchor: [
+        { time: lowSec,  value: fib.swingLow.price  },
+        { time: highSec, value: fib.swingHigh.price },
+      ],
+      markers: [
+        {
+          time:     lowSec,
+          position: 'belowBar',
+          shape:    'circle',
+          color:    'rgba(234, 179, 8, 0.80)',
+          text:     '',
+          size:     0.8,
+        },
+        {
+          time:     highSec,
+          position: 'aboveBar',
+          shape:    'circle',
+          color:    'rgba(234, 179, 8, 0.80)',
+          text:     '',
+          size:     0.8,
+        },
+      ],
+      visible: this.visible,
+    })
 
     // Golden pocket zone (guard fromTime < toTime to prevent degenerate zones)
     const gp618 = fib.levels.find(l => l.ratio === 0.618)
@@ -186,13 +231,31 @@ export class FibonacciOverlay implements IAnalysisOverlay {
       const lineWidth         = (lit ? Math.min(base + 2, 4) : base) as 1 | 2 | 3 | 4
       const axisLabelVisible  = !level.isExtension && (ANCHOR_RATIOS.has(level.ratio) || !hiddenLabels.has(level))
 
+      // Time-bounded polyline: anchored from impulse start to live edge so the
+      // level visually originates from the measured swing, not from chart history.
+      if (fromTime < toTime) {
+        instructions.push({
+          kind:      'polyline',
+          key:       `fib_line_${level.ratio}_${level.isExtension ? 'ext' : 'ret'}`,
+          color:     colorForLevel(level),
+          lineWidth,
+          lineStyle: lineStyleForLevel(level),
+          data:      [
+            { time: fromTime, value: level.price },
+            { time: toTime,   value: level.price },
+          ],
+          visible: this.visible,
+        })
+      }
+
+      // Invisible hline carries the axis label — polylines have no axis label.
       instructions.push({
         kind:             'hline',
         key:              `fib_${level.ratio}_${level.isExtension ? 'ext' : 'ret'}`,
         price:            level.price,
-        color:            colorForLevel(level),
-        lineWidth,
-        lineStyle:        lineStyleForLevel(level),
+        color:            'rgba(0,0,0,0)',
+        lineWidth:        1,
+        lineStyle:        LineStyle.Solid,
         axisLabelVisible,
         title,
         visible:          this.visible,

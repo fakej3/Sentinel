@@ -37,10 +37,10 @@ interface TradingViewChartProps {
 // Color language: blue=EMA20/entry, orange=EMA50, teal=EMA100, white=EMA200 (long-term context)
 // Gold is reserved exclusively for Fibonacci; purple for CHoCH structure.
 const EMA_CONFIGS = [
-  { period: 20,  color: 'rgba(59, 130, 246, 0.75)',  hudColor: '#60a5fa' },
-  { period: 50,  color: 'rgba(249, 115, 22, 0.85)',  hudColor: '#fb923c' },
-  { period: 100, color: 'rgba(16, 185, 129, 0.80)',  hudColor: '#34d399' },
-  { period: 200, color: 'rgba(226, 232, 240, 0.80)', hudColor: '#e2e8f0' },
+  { period: 20,  color: 'rgba(59, 130, 246, 0.50)',  hudColor: '#60a5fa' },
+  { period: 50,  color: 'rgba(249, 115, 22, 0.55)',  hudColor: '#fb923c' },
+  { period: 100, color: 'rgba(16, 185, 129, 0.50)',  hudColor: '#34d399' },
+  { period: 200, color: 'rgba(226, 232, 240, 0.60)', hudColor: '#e2e8f0' },
 ] as const
 
 export const TradingViewChart = forwardRef<TradingViewChartHandle, TradingViewChartProps>(

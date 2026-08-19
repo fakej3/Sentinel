@@ -170,7 +170,7 @@ export class MarketStructureOverlay implements IAnalysisOverlay {
         shape:    'circle' as const,
         color:    swingLabelColor(s.label as SwingLabel),
         text:     nearLine ? '' : (s.label as string),
-        size:     shouldLit ? 2.5 : 0.9,
+        size:     shouldLit ? 3 : 1.5,
       }
     })
 
@@ -186,7 +186,7 @@ export class MarketStructureOverlay implements IAnalysisOverlay {
     instructions.push({
       kind:      'polyline',
       key:       'zigzag',
-      color:     'rgba(100, 116, 139, 0.35)',
+      color:     'rgba(100, 116, 139, 0.55)',
       lineWidth: 1,
       lineStyle: LineStyle.SparseDotted,
       data:      labeledSwings.map(s => ({ time: Math.floor(s.timestamp / 1000), value: s.price })),
@@ -266,7 +266,7 @@ export class MarketStructureOverlay implements IAnalysisOverlay {
         kind:    'markerset',
         key:     'bos-arrows',
         anchor:  bosArrowMarkers.map(m => ({ time: m.time, value: m.value })),
-        markers: bosArrowMarkers.map(({ time, position, shape, color, size }) => ({ time, position, shape, color, text: '', size })),
+        markers: bosArrowMarkers.map(({ time, position, shape, color, size }) => ({ time, position, shape, color, text: 'BOS', size })),
         visible: this.visible,
       })
     }

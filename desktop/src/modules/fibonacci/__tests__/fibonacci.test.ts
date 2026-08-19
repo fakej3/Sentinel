@@ -259,3 +259,64 @@ describe('computeFibonacci — confluence excludes broken zones', () => {
     expect(result.levels.find(l => l.ratio === 0.618)?.confluence).toBe(true)
   })
 })
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Fib anchor integrity — swingHigh and swingLow in the result must exactly
+// match the price and timestamp of the source swing points that the engine
+// selected. Any mismatch would cause chart drawings to float off the wrong bar.
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('computeFibonacci — anchor integrity', () => {
+  it('swingHigh.price and swingHigh.timestamp match the source HH swing', () => {
+    const hl  = swing(0,  100, 'low',  'HL')
+    const hh  = swing(10, 200, 'high', 'HH')
+    const result = computeFibonacci([hl, hh], 'bullish', emptySR, null)
+    expect(result.available).toBe(true)
+    expect(result.swingHigh.price).toBe(hh.price)
+    expect(result.swingHigh.timestamp).toBe(hh.timestamp)
+  })
+
+  it('swingLow.price and swingLow.timestamp match the source HL swing', () => {
+    const hl  = swing(0,  100, 'low',  'HL')
+    const hh  = swing(10, 200, 'high', 'HH')
+    const result = computeFibonacci([hl, hh], 'bullish', emptySR, null)
+    expect(result.available).toBe(true)
+    expect(result.swingLow.price).toBe(hl.price)
+    expect(result.swingLow.timestamp).toBe(hl.timestamp)
+  })
+
+  it('bearish: swingHigh matches LH and swingLow matches LL', () => {
+    const lh = swing(0,  200, 'high', 'LH')
+    const ll = swing(10, 100, 'low',  'LL')
+    const result = computeFibonacci([lh, ll], 'bearish', emptySR, null)
+    expect(result.available).toBe(true)
+    expect(result.swingHigh.price).toBe(lh.price)
+    expect(result.swingHigh.timestamp).toBe(lh.timestamp)
+    expect(result.swingLow.price).toBe(ll.price)
+    expect(result.swingLow.timestamp).toBe(ll.timestamp)
+  })
+
+  it('most recent impulse is preferred over earlier legs', () => {
+    // Two bullish legs: HL1→HH1 (older) and HL2→HH2 (newer)
+    const hl1 = swing(0,  100, 'low',  'HL')
+    const hh1 = swing(5,  150, 'high', 'HH')
+    const hl2 = swing(8,  130, 'low',  'HL')
+    const hh2 = swing(15, 180, 'high', 'HH')
+    const result = computeFibonacci([hl1, hh1, hl2, hh2], 'bullish', emptySR, null)
+    expect(result.available).toBe(true)
+    // The most recent HH is hh2; its preceding HL is hl2
+    expect(result.swingHigh.price).toBe(hh2.price)
+    expect(result.swingLow.price).toBe(hl2.price)
+  })
+
+  it('fib level prices are bounded within [swingLow.price, swingHigh.price] for retracements', () => {
+    const hl  = swing(0,  100, 'low',  'HL')
+    const hh  = swing(10, 200, 'high', 'HH')
+    const result = computeFibonacci([hl, hh], 'bullish', emptySR, null)
+    const retracements = result.levels.filter(l => !l.isExtension)
+    for (const level of retracements) {
+      expect(level.price).toBeGreaterThanOrEqual(hl.price - 0.001)
+      expect(level.price).toBeLessThanOrEqual(hh.price + 0.001)
+    }
+  })
+})

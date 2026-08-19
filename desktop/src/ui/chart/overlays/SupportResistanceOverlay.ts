@@ -86,9 +86,18 @@ export class SupportResistanceOverlay implements IAnalysisOverlay {
     const currentZoneId       = this.lastData.supportResistance.currentZone?.id       ?? null
     const key                 = this.lastHighlightKey
 
-    // Zone fill time extent: full chart history to live edge
-    const fromSec = this.lastRange?.fromSec ?? 0
+    // Zone fill time extent: limited to recent 30 bars so S/R fills don't
+    // paint large opaque rectangles across the full chart history.
     const toSec   = this.lastRange?.toSec   ?? 0
+    const candles = this.lastData.candles
+    const intervalSec = candles.length >= 2
+      ? (candles[candles.length - 1].openTime - candles[0].openTime) / (candles.length - 1) / 1000
+      : 0
+    const lookback30 = intervalSec > 0 ? Math.round(intervalSec * 30) : 0
+    const lastCandleSec = candles.length > 0 ? Math.floor(candles[candles.length - 1].openTime / 1000) : 0
+    const fromSec = lookback30 > 0
+      ? Math.max(this.lastRange?.fromSec ?? 0, lastCandleSec - lookback30)
+      : (this.lastRange?.fromSec ?? 0)
 
     const support    = this.lastData.supportResistance.activeSupport
       .filter(z => Math.abs(z.center - currentPrice) / currentPrice <= MAX_DIST_PCT)
