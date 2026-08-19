@@ -145,8 +145,8 @@ export class MarketStructureOverlay implements IAnalysisOverlay {
       .map(time => {
         const swing  = swingByTime.get(time)
         const candle = this.candleByTime.get(time)
-        if (swing && candle) {
-          return { time, value: swing.type === 'high' ? candle.high : candle.low }
+        if (swing) {
+          return { time, value: swing.price }
         }
         return { time, value: candle?.close ?? 0 }
       })
@@ -160,9 +160,7 @@ export class MarketStructureOverlay implements IAnalysisOverlay {
     const markers = labeledSwings.map(s => {
       const tsMs      = s.timestamp
       const shouldLit = litAll || (litTs !== null && tsMs === litTs)
-      const candle    = this.candleByTime.get(Math.floor(s.timestamp / 1000))
-      const mPrice    = s.type === 'high' ? (candle?.high ?? s.price) : (candle?.low ?? s.price)
-      const coord     = this.engine?.priceToCoordinate(mPrice) ?? null
+      const coord     = this.engine?.priceToCoordinate(s.price) ?? null
       // Suppress swing text when it would stack on top of a BOS/CHoCH axis label
       const nearLine  = coord !== null && significantLineCoords.some(c => Math.abs(c - coord) < 16)
 
