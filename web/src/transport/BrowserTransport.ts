@@ -4,7 +4,8 @@ import { SentinelApiError } from '@ui/transport/types'
 import type { AnalysisTransport, AnalyzeOptions, HistoryMeta, HistoryEntry } from '@ui/transport/types'
 import type { PipelineResult } from '@ui/types'
 import type { Timeframe } from '@engine/market/types'
-import { STORAGE_KEYS } from '@ui/constants/storageKeys'
+
+const GEMINI_ENDPOINT = '/api/gemini'
 
 const HISTORY_LIST_KEY  = 'sentinel_web_history_list'
 const HISTORY_ENTRY_KEY = (id: string) => `sentinel_web_history_${id}`
@@ -40,19 +41,48 @@ export class BrowserTransport implements AnalysisTransport {
       throw new SentinelApiError({ kind: 'abort', friendly: 'Request cancelled.' })
     }
 
-    const geminiKey = typeof localStorage !== 'undefined'
-      ? (localStorage.getItem(STORAGE_KEYS.geminiKey) ?? '')
-      : ''
-
     try {
       const result = await analyzeMarket({
         symbol:      symbol.trim().toUpperCase(),
         interval:    interval as Timeframe,
         candleLimit: options?.candleLimit,
-        ...(geminiKey && {
-          config: { ai: { provider: 'gemini' as const, apiKey: geminiKey } },
-        }),
       })
+
+      // Optional server-side AI enhancement — Gemini key never touches the browser.
+      // Runs after the pipeline so it can only affect summary/conclusion text.
+      if (!signal?.aborted) {
+        try {
+          const ga = result.generatedAnalysis
+          const aiRes = await fetch(GEMINI_ENDPOINT, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              symbol,
+              interval,
+              headline:        ga.headline,
+              summary:         ga.summary,
+              conclusion:      ga.conclusion,
+              fullReport:      ga.fullReport,
+              confidenceScore: result.confidence.score,
+              confidenceGrade: result.confidence.grade,
+            }),
+            signal,
+          })
+          if (aiRes.ok) {
+            const enhanced = await aiRes.json() as { summary?: string; conclusion?: string }
+            if (enhanced.summary && enhanced.conclusion) {
+              result.generatedAnalysis = {
+                ...ga,
+                summary:    enhanced.summary,
+                conclusion: enhanced.conclusion,
+                aiEnhanced: true,
+              }
+            }
+          }
+        } catch {
+          // AI enhancement is always optional — silently fall back to deterministic output
+        }
+      }
 
       if (signal?.aborted) {
         throw new SentinelApiError({ kind: 'abort', friendly: 'Request cancelled.' })

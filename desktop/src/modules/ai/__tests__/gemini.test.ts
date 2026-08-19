@@ -31,9 +31,9 @@ describe('GeminiProvider', () => {
     expect(p.name).toBe('gemini')
   })
 
-  it('defaults to gemini-1.5-flash model', () => {
+  it('defaults to gemini-2.5-flash model', () => {
     const p = new GeminiProvider({ apiKey: 'key' })
-    expect(p.model).toBe('gemini-1.5-flash')
+    expect(p.model).toBe('gemini-2.5-flash')
   })
 
   it('uses custom model when provided', () => {

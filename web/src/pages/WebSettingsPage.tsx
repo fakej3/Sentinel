@@ -1,7 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
-import { Settings, Trash2, Database, Cpu, Key, Eye, EyeOff, Check, AlertTriangle } from 'lucide-react'
+import { Settings, Trash2, Database, Cpu, Sparkles, AlertTriangle } from 'lucide-react'
 import { clsx } from 'clsx'
-import { STORAGE_KEYS } from '@ui/constants/storageKeys'
 
 interface WebSettingsPageProps {
   onClearHistory: () => void
@@ -35,8 +34,8 @@ export function WebSettingsPage({ onClearHistory, onClearWatchlist, onClearAll }
         </p>
       </div>
 
-      {/* Gemini API Key */}
-      <GeminiKeySection />
+      {/* Gemini AI Enhancement */}
+      <GeminiStatusSection />
 
       {/* Data Management */}
       <div className="card p-4">
@@ -89,69 +88,19 @@ export function WebSettingsPage({ onClearHistory, onClearWatchlist, onClearAll }
   )
 }
 
-function GeminiKeySection() {
-  const [key, setKey]         = useState(() => localStorage.getItem(STORAGE_KEYS.geminiKey) ?? '')
-  const [visible, setVisible] = useState(false)
-  const [saved, setSaved]     = useState(false)
-  const timerRef              = useRef<ReturnType<typeof setTimeout> | null>(null)
-
-  useEffect(() => () => {
-    if (timerRef.current !== null) clearTimeout(timerRef.current)
-  }, [])
-
-  function handleSave() {
-    localStorage.setItem(STORAGE_KEYS.geminiKey, key.trim())
-    setSaved(true)
-    if (timerRef.current !== null) clearTimeout(timerRef.current)
-    timerRef.current = setTimeout(() => setSaved(false), 2000)
-  }
-
+function GeminiStatusSection() {
   return (
     <div className="card p-4">
       <div className="flex items-center gap-2 mb-3">
-        <Key size={13} className="text-slate-500" />
-        <p className="text-xs font-semibold text-slate-300">Gemini AI Key</p>
+        <Sparkles size={13} className="text-slate-500" />
+        <p className="text-xs font-semibold text-slate-300">Gemini AI Enhancement</p>
       </div>
-      <p className="text-[11px] text-slate-600 mb-3 leading-relaxed">
-        Optional. When set, AI-generated narrative is added to each analysis.
-        Leave blank to run the engine without AI commentary.
+      <p className="text-[11px] text-slate-600 leading-relaxed">
+        When configured, AI narrative is added to each analysis via a server-side request.
+        The Gemini API key is held securely on the server — it never reaches your browser.
+        AI output is limited to summary and conclusion text; trading decisions, confidence scores,
+        and trade plans are always determined by the deterministic analysis engine.
       </p>
-      <div className="flex gap-2">
-        <div className="relative flex-1">
-          <input
-            type={visible ? 'text' : 'password'}
-            value={key}
-            onChange={e => setKey(e.target.value)}
-            placeholder="AIza..."
-            className={clsx(
-              'w-full text-xs font-mono rounded-lg border px-3 py-2 pr-8',
-              'bg-surface-600 border-border-subtle text-slate-300 placeholder-slate-600',
-              'focus:outline-none focus:ring-1 focus:ring-slate-500',
-            )}
-          />
-          <button
-            type="button"
-            onClick={() => setVisible(v => !v)}
-            className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-600 hover:text-slate-400"
-            aria-label={visible ? 'Hide key' : 'Show key'}
-          >
-            {visible ? <EyeOff size={12} /> : <Eye size={12} />}
-          </button>
-        </div>
-        <button
-          onClick={handleSave}
-          className={clsx(
-            'flex items-center gap-1.5 text-xs px-3 py-2 rounded-lg border transition-colors flex-shrink-0',
-            'focus-visible:outline-none focus-visible:ring-1',
-            saved
-              ? 'text-emerald-400 border-emerald-500/30 focus-visible:ring-emerald-500'
-              : 'text-slate-400 border-border-subtle hover:text-slate-300 hover:border-slate-500 focus-visible:ring-slate-500',
-          )}
-        >
-          {saved ? <Check size={11} /> : null}
-          {saved ? 'Saved' : 'Save'}
-        </button>
-      </div>
     </div>
   )
 }
