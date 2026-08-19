@@ -3,5 +3,5 @@
   "buildCommand": "npm run build",
   "outputDirectory": "dist",
   "rewrites": [{ "source": "/(.*)", "destination": "/index.html" }],
-  "ignoreCommand": "git diff --quiet $VERCEL_GIT_PREVIOUS_SHA $VERCEL_GIT_COMMIT_SHA -- ../desktop/src ."
+  "ignoreCommand": "git diff --quiet HEAD^ HEAD -- . ../desktop/src/"
 }
