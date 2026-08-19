@@ -36,14 +36,14 @@ const SL_COLOR   = '#ef5350'
 
 const TP_COLORS: [string, string, string] = ['#22c55e', 'rgba(34, 197, 94, 0.65)', 'rgba(34, 197, 94, 0.40)']
 
-const RISK_DIM        = 'rgba(239, 83, 80, 0.15)'
-const RISK_LIT        = 'rgba(239, 83, 80, 0.28)'
-const RISK_EDGE_DIM   = 'rgba(239, 83, 80, 0.35)'
-const RISK_EDGE_LIT   = 'rgba(239, 83, 80, 0.70)'
-const REWARD_DIM      = 'rgba(34, 197, 94, 0.15)'
-const REWARD_LIT      = 'rgba(34, 197, 94, 0.28)'
-const REWARD_EDGE_DIM = 'rgba(34, 197, 94, 0.35)'
-const REWARD_EDGE_LIT = 'rgba(34, 197, 94, 0.70)'
+const RISK_DIM        = 'rgba(239, 83, 80, 0.06)'
+const RISK_LIT        = 'rgba(239, 83, 80, 0.14)'
+const RISK_EDGE_DIM   = 'rgba(239, 83, 80, 0.22)'
+const RISK_EDGE_LIT   = 'rgba(239, 83, 80, 0.50)'
+const REWARD_DIM      = 'rgba(34, 197, 94, 0.06)'
+const REWARD_LIT      = 'rgba(34, 197, 94, 0.14)'
+const REWARD_EDGE_DIM = 'rgba(34, 197, 94, 0.22)'
+const REWARD_EDGE_LIT = 'rgba(34, 197, 94, 0.50)'
 
 const LABEL_COLLISION_PX = 14
 
@@ -102,14 +102,13 @@ export class TradePlanOverlay implements IAnalysisOverlay {
     const risk     = Math.abs(entryMid - stop)
     const { toSec } = range
 
-    // Zone fills are anchored to the recent past so a large history doesn't
-    // paint the entire chart with the current trade setup's colors.
-    // 50 bars gives enough context while keeping the fills local to current action.
+    // Zone fills are anchored to the recent past — 15 bars gives enough local
+    // context while keeping the fills tight so they don't dominate the chart.
     const candles      = this.lastData!.candles
     const intervalSec  = candles.length >= 2
       ? (candles[candles.length - 1].openTime - candles[0].openTime) / (candles.length - 1) / 1000
       : 0
-    const lookbackSec  = intervalSec > 0 ? Math.round(intervalSec * 50) : 0
+    const lookbackSec  = intervalSec > 0 ? Math.round(intervalSec * 15) : 0
     const lastSec      = Math.floor(candles[candles.length - 1].openTime / 1000)
     const fromSec      = lookbackSec > 0 ? Math.max(range.fromSec, lastSec - lookbackSec) : range.fromSec
 
@@ -190,9 +189,14 @@ export class TradePlanOverlay implements IAnalysisOverlay {
       !usedCoords.some(c => Math.abs(c - entryCoord) < LABEL_COLLISION_PX)
     if (entryCoord !== null && entryLabelVisible) usedCoords.push(entryCoord)
 
-    // Title carries direction arrow so the axis label communicates bias at a glance.
-    // A separate direction-label hline with axisLabelVisible:false would be dead code —
-    // in LW Charts, title text only renders inside the axis label box.
+    // When price is outside the entry zone the setup is not yet executable —
+    // communicate "waiting" directly in the axis label so the chart doesn't
+    // look like an active trade.
+    const currentPrice = this.lastData!.analysis.price.current
+    const waitingForEntry = long
+      ? currentPrice > entryHigh   // long: entry is below, waiting for pullback
+      : currentPrice < entryLow    // short: entry is above, waiting for rally
+
     instructions.push({
       kind:             'hline',
       key:              'entry-mid',
@@ -201,7 +205,9 @@ export class TradePlanOverlay implements IAnalysisOverlay {
       lineWidth:        1,
       lineStyle:        LineStyle.Solid,
       axisLabelVisible: entryLabelVisible,
-      title:            long ? '▲ Long' : '▼ Short',
+      title:            long
+        ? (waitingForEntry ? '▲ Long ⏳' : '▲ Long')
+        : (waitingForEntry ? '▼ Short ⏳' : '▼ Short'),
       visible:          this.visible,
     })
 

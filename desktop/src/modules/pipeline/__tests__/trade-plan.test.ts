@@ -705,3 +705,67 @@ describe('trade plan — entry distance validation', () => {
     expect(plan.setupQualityReason).not.toMatch(/ATR away/i)
   })
 })
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Semantic invariants — trade plan geometry must be geometrically correct:
+//   LONG:  invalidation < entry.lower <= entry.upper < target
+//   SHORT: target < entry.lower <= entry.upper < invalidation
+// These invariants ensure the risk/reward zones render correctly on the chart.
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('computeTradePlan — semantic geometry invariants', () => {
+  it('LONG: invalidation < entry.lower AND target > entry.upper', () => {
+    const sr = makeSR(
+      { lower: 95, upper: 97, center: 96 },
+      { lower: 110, upper: 112, center: 111 },
+    )
+    const plan = computeTradePlan(makeAnalysis('strong bullish', 100), sr, makeConfidence())
+    expect(plan.direction).toBe('long')
+    expect(plan.entryZone).not.toBeNull()
+    expect(plan.invalidationLevel).not.toBeNull()
+    expect(plan.targetLevel).not.toBeNull()
+    // Stop must be below entry zone lower edge
+    expect(plan.invalidationLevel!).toBeLessThan(plan.entryZone!.lower)
+    // Target must be above entry zone upper edge
+    expect(plan.targetLevel!).toBeGreaterThan(plan.entryZone!.upper)
+  })
+
+  it('SHORT: invalidation > entry.upper AND target < entry.lower', () => {
+    const sr = makeSR(
+      { lower: 80, upper: 82, center: 81 },
+      { lower: 103, upper: 105, center: 104 },
+    )
+    const plan = computeTradePlan(makeAnalysis('strong bearish', 100), sr, makeConfidence())
+    expect(plan.direction).toBe('short')
+    expect(plan.entryZone).not.toBeNull()
+    expect(plan.invalidationLevel).not.toBeNull()
+    expect(plan.targetLevel).not.toBeNull()
+    // Stop must be above entry zone upper edge
+    expect(plan.invalidationLevel!).toBeGreaterThan(plan.entryZone!.upper)
+    // Target must be below entry zone lower edge
+    expect(plan.targetLevel!).toBeLessThan(plan.entryZone!.lower)
+  })
+
+  it('LONG ATR fallback: invalidation < entry.lower AND target > entry.upper', () => {
+    // No S/R zones → ATR-based fallback levels must still satisfy geometry
+    const analysis = makeAnalysis('strong bullish', 100)
+    analysis.price.atrPercent = 2
+    const plan = computeTradePlan(analysis, makeSR(), makeConfidence())
+    expect(plan.direction).toBe('long')
+    if (plan.entryZone && plan.invalidationLevel !== null && plan.targetLevel !== null) {
+      expect(plan.invalidationLevel).toBeLessThan(plan.entryZone.lower)
+      expect(plan.targetLevel).toBeGreaterThan(plan.entryZone.upper)
+    }
+  })
+
+  it('SHORT ATR fallback: invalidation > entry.upper AND target < entry.lower', () => {
+    const analysis = makeAnalysis('strong bearish', 100)
+    analysis.price.atrPercent = 2
+    const plan = computeTradePlan(analysis, makeSR(), makeConfidence())
+    expect(plan.direction).toBe('short')
+    if (plan.entryZone && plan.invalidationLevel !== null && plan.targetLevel !== null) {
+      expect(plan.invalidationLevel).toBeGreaterThan(plan.entryZone.upper)
+      expect(plan.targetLevel).toBeLessThan(plan.entryZone.lower)
+    }
+  })
+})
