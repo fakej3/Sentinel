@@ -84,7 +84,10 @@ jobs:
           cache: npm
           cache-dependency-path: package-lock.json
 
-      - run: npm ci
+      # npm install (not npm ci) so platform-specific optional deps in
+      # @tauri-apps/cli (e.g. cli-win32-x64-msvc, cli-darwin-arm64) are
+      # resolved for the current runner OS rather than the Linux-generated lockfile.
+      - run: npm install
 
       # ── Rust ───────────────────────────────────────────────────────────
       - uses: dtolnay/rust-toolchain@stable
