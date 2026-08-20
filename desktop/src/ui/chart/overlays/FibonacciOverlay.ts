@@ -1,253 +1,111 @@
 import type { DrawingEngine } from '../drawing/DrawingEngine'
 import { LineStyle } from '../drawing/types'
-import type { DrawingInstruction, LineStyleValue } from '../drawing/types'
+import type { DrawingInstruction } from '../drawing/types'
 import type { PipelineResult } from '../../../modules/pipeline/types'
-import type { FibLevel } from '../../../modules/fibonacci/types'
 import type { IAnalysisOverlay, ChartTimeRange } from '../types'
 
-// ── Visual helpers ────────────────────────────────────────────────────────────
-
-function colorForLevel(level: FibLevel): string {
-  if (level.isExtension)     return level.confluence ? '#22d3ee' : '#06b6d4'
-  if (level.ratio === 0.000) return level.confluence ? '#f1f5f9' : '#cbd5e1'
-  if (level.ratio === 1.000) return level.confluence ? '#e0e7ff' : '#c7d2fe'
-  if (level.ratio === 0.786) return level.confluence ? '#fbbf24' : '#d97706'
-  if (level.ratio === 0.650) return level.confluence ? '#ffd740' : '#eab308'
-  if (level.ratio === 0.618) return level.confluence ? '#ffd740' : '#eab308'
-  if (level.ratio === 0.500) return level.confluence ? '#a8b8cc' : '#7a8fa8'
-  if (level.ratio === 0.382) return level.confluence ? '#60a5fa' : '#3b82f6'
-  if (level.ratio === 0.236) return level.confluence ? '#94a3b8' : '#64748b'
-  return '#94a3b8'
-}
-
-function lineWidthForLevel(level: FibLevel): 1 | 2 {
-  if (level.confluence) return 2
-  if (level.ratio === 0.650 || level.ratio === 0.618) return 2
-  return 1
-}
-
-function lineStyleForLevel(level: FibLevel): LineStyleValue {
-  return level.isExtension ? LineStyle.Dashed : LineStyle.Dotted
-}
-
-const GP_BASE = {
-  fillColor1: 'rgba(234, 179, 8, 0.12)',
-  fillColor2: 'rgba(234, 179, 8, 0.06)',
-  lineColor:  'rgba(234, 179, 8, 0.55)',
-} as const
-
-const GP_LIT = {
-  fillColor1: 'rgba(234, 179, 8, 0.30)',
-  fillColor2: 'rgba(234, 179, 8, 0.18)',
-  lineColor:  'rgba(234, 179, 8, 0.90)',
-} as const
-
-const PRIORITY: Partial<Record<number, number>> = {
-  0.000: 1, 0.618: 2, 0.650: 3, 0.500: 4, 0.382: 5, 1.000: 6, 0.786: 7, 0.236: 8,
-}
-
-const ANCHOR_RATIOS = new Set([0.000, 1.000])
-
+/** Signal-first Fibonacci: show the impulse and the actionable retracement pocket, not a ladder of every ratio. */
 export class FibonacciOverlay implements IAnalysisOverlay {
   readonly id = 'fibonacci'
-
   private engine: DrawingEngine | null = null
-  private lastData: PipelineResult | null = null
-  private lastRange: ChartTimeRange | null = null
-  private lastHighlightKey: string | null = null
+  private data: PipelineResult | null = null
+  private range: ChartTimeRange | null = null
   private visible = true
+  private highlightKey: string | null = null
 
-  mount(engine: DrawingEngine): void {
-    this.engine = engine
-  }
-
+  mount(engine: DrawingEngine): void { this.engine = engine }
   update(data: PipelineResult | null, range: ChartTimeRange | null): void {
-    this.lastData  = data
-    this.lastRange = range
+    this.data = data
+    this.range = range
     this.submit()
   }
-
-  setVisible(visible: boolean): void {
-    this.visible = visible
-    this.submit()
-  }
-
-  highlight(key: string | null): void {
-    this.lastHighlightKey = key
-    this.submit()
-  }
-
-  dispose(): void {
-    this.engine?.clearLayer(this.id)
-    this.engine = null
-  }
-
-  private submit(): void {
-    this.engine?.render(this.id, this.buildInstructions())
-  }
+  setVisible(visible: boolean): void { this.visible = visible; this.submit() }
+  highlight(key: string | null): void { this.highlightKey = key; this.submit() }
+  dispose(): void { this.engine?.clearLayer(this.id); this.engine = null }
+  private submit(): void { this.engine?.render(this.id, this.buildInstructions()) }
 
   private buildInstructions(): DrawingInstruction[] {
-    const fib   = this.lastData?.fibonacci
-    const range = this.lastRange
-    if (!fib?.available || fib.levels.length === 0 || range === null) return []
+    const fib = this.data?.fibonacci
+    if (!fib?.available || !this.range) return []
 
+    const start = Math.min(Math.floor(fib.swingLow.timestamp / 1000), Math.floor(fib.swingHigh.timestamp / 1000))
+    const end = this.range.toSec
+    const lit = this.highlightKey === 'fib:all' || this.highlightKey === 'fib:golden-pocket'
+    const levels = fib.levels.filter(l => !l.isExtension)
+    const golden = levels.filter(l => l.isGoldenPocket)
+    const zero = levels.find(l => Math.abs(l.ratio) < 0.0001)
+    const one = levels.find(l => Math.abs(l.ratio - 1) < 0.0001)
     const instructions: DrawingInstruction[] = []
-    const key  = this.lastHighlightKey
-    const gpLit = key === 'fib:golden-pocket' || key === 'fib:all'
 
-    // Lightweight Charts requires every time-series data array to be in
-    // chronological order. Order the two anchors by time while keeping their
-    // price/type identity intact; the impulse is a geometric segment, not a
-    // second source of Fibonacci direction.
-    const highSec = Math.floor(fib.swingHigh.timestamp / 1000)
-    const lowSec  = Math.floor(fib.swingLow.timestamp  / 1000)
-    const anchorsByTime = highSec <= lowSec
-      ? [
-          { time: highSec, value: fib.swingHigh.price, kind: 'high' as const },
-          { time: lowSec,  value: fib.swingLow.price,  kind: 'low' as const },
-        ]
-      : [
-          { time: lowSec,  value: fib.swingLow.price,  kind: 'low' as const },
-          { time: highSec, value: fib.swingHigh.price, kind: 'high' as const },
-        ]
-
-    const impulseStartSec = Math.min(highSec, lowSec)
-    // Do NOT clip the series start to the visible viewport. Lightweight Charts
-    // clips series to the viewport itself; clipping here makes the Fibonacci
-    // appear to "float" after a scroll because its visual origin moves with the
-    // viewport instead of staying attached to the canonical swing.
-    const fromTime = impulseStartSec
-    const toTime   = range.toSec
-
-    // Impulse leg — the measured move that gives the grid its visual anchor.
-    if (fromTime < toTime) {
-      instructions.push({
-        kind:      'polyline',
-        key:       'impulse-leg',
-        color:     'rgba(234, 179, 8, 0.48)',
-        lineWidth: 2,
-        lineStyle: LineStyle.SparseDotted,
-        data:      anchorsByTime.map(a => ({ time: a.time, value: a.value })),
-        visible:   this.visible,
-      })
-    }
-
-    // Larger anchor markers make the source swing points obvious at normal zoom.
     instructions.push({
-      kind:    'markerset',
-      key:     'fib-anchors',
-      anchor:  anchorsByTime.map(a => ({ time: a.time, value: a.value })),
-      markers: anchorsByTime.map(a => ({
-        time:     a.time,
-        position: a.kind === 'low' ? 'belowBar' as const : 'aboveBar' as const,
-        shape:    'circle' as const,
-        color:    'rgba(234, 179, 8, 0.92)',
-        text:     '',
-        size:     1.5,
-      })),
+      kind: 'polyline',
+      key: 'impulse-leg',
+      color: 'rgba(245,158,11,0.50)',
+      lineWidth: lit ? 2 : 1,
+      lineStyle: LineStyle.SparseDotted,
+      data: [
+        { time: Math.floor(fib.swingLow.timestamp / 1000), value: fib.swingLow.price },
+        { time: Math.floor(fib.swingHigh.timestamp / 1000), value: fib.swingHigh.price },
+      ],
       visible: this.visible,
     })
 
-    const gp618 = fib.levels.find(l => l.ratio === 0.618)
-    const gp650 = fib.levels.find(l => l.ratio === 0.650)
-    if (gp618 && gp650 && fromTime < toTime) {
-      const gpTop = Math.max(gp618.price, gp650.price)
-      const gpBot = Math.min(gp618.price, gp650.price)
-      const gp    = gpLit ? GP_LIT : GP_BASE
+    instructions.push({
+      kind: 'markerset',
+      key: 'fib-anchors',
+      anchor: [
+        { time: Math.floor(fib.swingLow.timestamp / 1000), value: fib.swingLow.price },
+        { time: Math.floor(fib.swingHigh.timestamp / 1000), value: fib.swingHigh.price },
+      ],
+      markers: [
+        { time: Math.floor(fib.swingLow.timestamp / 1000), position: 'belowBar', shape: 'circle', color: '#f59e0b', text: '', size: 2 },
+        { time: Math.floor(fib.swingHigh.timestamp / 1000), position: 'aboveBar', shape: 'circle', color: '#f59e0b', text: '', size: 2 },
+      ],
+      visible: this.visible,
+    })
+
+    if (golden.length >= 2 && start < end) {
+      const top = Math.max(...golden.map(l => l.price))
+      const bottom = Math.min(...golden.map(l => l.price))
       instructions.push({
         kind: 'zone',
-        key:  'gp',
-        topPrice:    gpTop,
-        bottomPrice: gpBot,
-        ...gp,
-        fromTime,
-        toTime,
+        key: 'golden-pocket',
+        topPrice: top,
+        bottomPrice: bottom,
+        fillColor1: lit ? 'rgba(245,158,11,0.10)' : 'rgba(245,158,11,0.045)',
+        fillColor2: 'rgba(245,158,11,0.015)',
+        lineColor: lit ? 'rgba(245,158,11,0.60)' : 'rgba(245,158,11,0.28)',
+        fromTime: start,
+        toTime: end,
         visible: this.visible,
       })
-    }
-
-    const usedCoords: number[] = []
-
-    const sr = this.lastData!.supportResistance
-    for (const zone of [sr.nearestSupport, sr.nearestResistance]) {
-      if (!zone) continue
-      const c = this.engine?.priceToCoordinate(zone.center) ?? null
-      if (c !== null) usedCoords.push(c)
-    }
-
-    const ms = this.lastData!.marketStructure
-    const lastBos   = ms.bos.events[ms.bos.events.length - 1]
-    const lastChoch = ms.choch.events[ms.choch.events.length - 1]
-    if (lastBos)   { const c = this.engine?.priceToCoordinate(lastBos.level)   ?? null; if (c !== null) usedCoords.push(c) }
-    if (lastChoch) { const c = this.engine?.priceToCoordinate(lastChoch.level) ?? null; if (c !== null) usedCoords.push(c) }
-
-    const plan = this.lastData!.tradePlan
-    if (plan?.actionable) {
-      if (plan.invalidationLevel !== null) {
-        const c = this.engine?.priceToCoordinate(plan.invalidationLevel) ?? null
-        if (c !== null) usedCoords.push(c)
-      }
-      if (plan.entryZone) {
-        const c = this.engine?.priceToCoordinate((plan.entryZone.lower + plan.entryZone.upper) / 2) ?? null
-        if (c !== null) usedCoords.push(c)
-      }
-      if (plan.targetLevel !== null) {
-        const c = this.engine?.priceToCoordinate(plan.targetLevel) ?? null
-        if (c !== null) usedCoords.push(c)
-      }
-    }
-
-    const retraceByPriority = fib.levels
-      .filter(l => !l.isExtension)
-      .sort((a, b) => (PRIORITY[a.ratio] ?? 99) - (PRIORITY[b.ratio] ?? 99))
-    const hiddenLabels = new Set<FibLevel>()
-    for (const level of retraceByPriority) {
-      if (ANCHOR_RATIOS.has(level.ratio)) continue
-      const coord = this.engine?.priceToCoordinate(level.price) ?? null
-      if (coord !== null && usedCoords.some(c => Math.abs(c - coord) < 14)) {
-        hiddenLabels.add(level)
-      } else if (coord !== null) {
-        usedCoords.push(coord)
-      }
-    }
-
-    for (const level of fib.levels) {
-      const suffix    = level.confluence ? ' ✦' : ''
-      const title     = `${level.label}${suffix}`
-      const base      = lineWidthForLevel(level)
-      const lit       =
-        key === 'fib:all' ||
-        key === `fib:ratio:${level.ratio}` ||
-        (key === 'fib:golden-pocket' && (level.ratio === 0.618 || level.ratio === 0.650))
-      const lineWidth         = (lit ? Math.min(base + 2, 4) : base) as 1 | 2 | 3 | 4
-      const axisLabelVisible  = !level.isExtension && (ANCHOR_RATIOS.has(level.ratio) || !hiddenLabels.has(level))
-
-      if (fromTime < toTime) {
+      for (const g of golden) {
         instructions.push({
-          kind:      'polyline',
-          key:       `fib_line_${level.ratio}_${level.isExtension ? 'ext' : 'ret'}`,
-          color:     colorForLevel(level),
-          lineWidth,
-          lineStyle: lineStyleForLevel(level),
-          data:      [
-            { time: fromTime, value: level.price },
-            { time: toTime,   value: level.price },
-          ],
+          kind: 'polyline',
+          key: `fib-${g.ratio}`,
+          color: lit ? 'rgba(245,158,11,0.85)' : 'rgba(245,158,11,0.42)',
+          lineWidth: 1,
+          lineStyle: LineStyle.Dotted,
+          data: [{ time: start, value: g.price }, { time: end, value: g.price }],
           visible: this.visible,
         })
       }
+    }
 
-      // Invisible hline carries the axis label — polylines have no axis label.
+    // Only the impulse anchors receive axis labels. The trade plan owns actual
+    // entry/target levels, preventing duplicate price labels.
+    for (const [ratio, item, title] of [[0, zero, '0'], [1, one, '1']] as const) {
+      if (!item) continue
       instructions.push({
-        kind:             'hline',
-        key:              `fib_${level.ratio}_${level.isExtension ? 'ext' : 'ret'}`,
-        price:            level.price,
-        color:            'rgba(0,0,0,0)',
-        lineWidth:        1,
-        lineStyle:        LineStyle.Solid,
-        axisLabelVisible,
+        kind: 'hline',
+        key: `fib-anchor-${ratio}`,
+        price: item.price,
+        color: 'rgba(245,158,11,0.18)',
+        lineWidth: 1,
+        lineStyle: LineStyle.Dotted,
+        axisLabelVisible: true,
         title,
-        visible:          this.visible,
+        visible: this.visible,
       })
     }
 
