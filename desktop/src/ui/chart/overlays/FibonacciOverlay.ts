@@ -100,9 +100,22 @@ export class FibonacciOverlay implements IAnalysisOverlay {
     const key  = this.lastHighlightKey
     const gpLit = key === 'fib:golden-pocket' || key === 'fib:all'
 
-    // Impulse leg timestamps
+    // Lightweight Charts requires every time-series data array to be in
+    // chronological order. A bullish impulse naturally runs low→high in time,
+    // but a bearish impulse is high→low in time. Always order the two anchors by
+    // timestamp while preserving which price belongs to which swing.
     const highSec = Math.floor(fib.swingHigh.timestamp / 1000)
     const lowSec  = Math.floor(fib.swingLow.timestamp  / 1000)
+    const anchorsByTime = highSec <= lowSec
+      ? [
+          { time: highSec, value: fib.swingHigh.price, kind: 'high' as const },
+          { time: lowSec,  value: fib.swingLow.price,  kind: 'low' as const },
+        ]
+      : [
+          { time: lowSec,  value: fib.swingLow.price,  kind: 'low' as const },
+          { time: highSec, value: fib.swingHigh.price, kind: 'high' as const },
+        ]
+
     const impulseStartSec = Math.min(highSec, lowSec)
     const fromTime = Math.max(range.fromSec, impulseStartSec)
     const toTime   = range.toSec
@@ -115,10 +128,7 @@ export class FibonacciOverlay implements IAnalysisOverlay {
       color:     'rgba(234, 179, 8, 0.35)',
       lineWidth: 1,
       lineStyle: LineStyle.SparseDotted,
-      data:      [
-        { time: lowSec,  value: fib.swingLow.price  },
-        { time: highSec, value: fib.swingHigh.price },
-      ],
+      data:      anchorsByTime.map(a => ({ time: a.time, value: a.value })),
       visible: this.visible,
     })
 
@@ -126,28 +136,15 @@ export class FibonacciOverlay implements IAnalysisOverlay {
     instructions.push({
       kind:    'markerset',
       key:     'fib-anchors',
-      anchor: [
-        { time: lowSec,  value: fib.swingLow.price  },
-        { time: highSec, value: fib.swingHigh.price },
-      ],
-      markers: [
-        {
-          time:     lowSec,
-          position: 'belowBar',
-          shape:    'circle',
-          color:    'rgba(234, 179, 8, 0.80)',
-          text:     '',
-          size:     0.8,
-        },
-        {
-          time:     highSec,
-          position: 'aboveBar',
-          shape:    'circle',
-          color:    'rgba(234, 179, 8, 0.80)',
-          text:     '',
-          size:     0.8,
-        },
-      ],
+      anchor:  anchorsByTime.map(a => ({ time: a.time, value: a.value })),
+      markers: anchorsByTime.map(a => ({
+        time:     a.time,
+        position: a.kind === 'low' ? 'belowBar' as const : 'aboveBar' as const,
+        shape:    'circle' as const,
+        color:    'rgba(234, 179, 8, 0.80)',
+        text:     '',
+        size:     0.8,
+      })),
       visible: this.visible,
     })
 
