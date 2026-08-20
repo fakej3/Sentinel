@@ -4,6 +4,7 @@ import type { ValidationResult } from '../../validation/types'
 import type { TradeDecision, TradePlan } from '../types'
 import { computeDecisionExplanation } from './decision-explanation'
 import { computeDecisionQuality } from './decision-quality'
+import { isEntryExecutable } from './entry-timing'
 
 /**
  * Derive a human-readable trade decision from trend, confidence, validation,
@@ -42,32 +43,23 @@ export function computeDecision(
   } else if (trend === 'moderate bearish') {
     label = (score >= 5.0 && !hasCritical) ? 'Sell' : 'Cautious Sell'
   } else {
-    // strong bearish
     label = (score >= 6.5 && !hasCritical) ? 'Strong Sell' : 'Sell'
   }
 
   // ── Entry timing gate ──────────────────────────────────────────────────────
   // The old decision was computed before TradePlan and therefore only answered
   // "which direction does the market favour?" while the UI presented it as a
-  // trade signal. That produced false actionable Buy/Sell labels: e.g. a bullish
-  // market with an entry zone far below current price was still labelled Buy.
+  // trade signal. That produced false actionable Buy/Sell labels: a bullish
+  // market with an entry zone below current price was still labelled Buy.
   //
-  // The TradePlan is the canonical authority for executable entry. If its setup
-  // is non-actionable, or current price is outside the directional entry zone,
-  // the signal is WAIT (represented by the existing `Watch` label). We do not
-  // retune the trend/confidence engine here; we only prevent a directional bias
-  // from masquerading as an executable entry.
+  // TradePlan is the canonical authority for executable entry. If its setup is
+  // non-actionable or current price is outside the directional entry zone, the
+  // signal becomes WAIT (represented by the existing `Watch` label). This does
+  // not retune trend/confidence; it only prevents directional bias from being
+  // presented as an executable entry.
   let waitingForEntry = false
   if (tradePlan) {
-    if (!tradePlan.actionable || tradePlan.entryZone === null || tradePlan.direction === null) {
-      waitingForEntry = true
-    } else if (tradePlan.direction === 'long') {
-      waitingForEntry = analysis.price.current > tradePlan.entryZone.upper
-        || analysis.price.current < tradePlan.entryZone.lower
-    } else {
-      waitingForEntry = analysis.price.current < tradePlan.entryZone.lower
-        || analysis.price.current > tradePlan.entryZone.upper
-    }
+    waitingForEntry = !isEntryExecutable(analysis.price.current, tradePlan)
 
     if (waitingForEntry) {
       label = 'Watch'
@@ -93,7 +85,6 @@ export function computeDecision(
   // ── Build concise reason bullets (3–5) ────────────────────────────────────
   const { fullTrend, emaContext, volumeContext, indicatorSummary, srContext } = analysis
 
-  // Reason 1: trend direction
   const bull = fullTrend.bullishConditionsMet
   const bear = fullTrend.bearishConditionsMet
   if (trend.includes('bullish')) {
@@ -104,14 +95,12 @@ export function computeDecision(
     reasons.push(`Market is ranging — ${bull} bullish and ${bear} bearish conditions active`)
   }
 
-  // Reason 2: EMA stack
   if (emaContext.emaAlignment === 'bullish_stack') {
     reasons.push('Moving averages stacked bullishly — long-term trend is up')
   } else if (emaContext.emaAlignment === 'bearish_stack') {
     reasons.push('Moving averages stacked bearishly — long-term trend is down')
   }
 
-  // Reason 3: Momentum
   const rsi = indicatorSummary.rsi.value
   if (rsi !== null) {
     if (indicatorSummary.rsi.classification === 'overbought') {
@@ -125,14 +114,12 @@ export function computeDecision(
     }
   }
 
-  // Reason 4: Volume context
   if (volumeContext.confirmsCurrentMove) {
     reasons.push(`Volume confirms the move (${volumeContext.relativeVolume.toFixed(1)}× average)`)
   } else if (!volumeContext.confirmsCurrentMove && volumeContext.relativeVolume < 0.7) {
     reasons.push(`Low volume (${volumeContext.relativeVolume.toFixed(1)}× average) — conviction is weak`)
   }
 
-  // Reason 5: S/R context or validation warning
   if (hasCritical) {
     reasons.push(`${validation.criticalCount} critical validation issue${validation.criticalCount > 1 ? 's' : ''} — treat with caution`)
   } else if (srContext.insideResistance && trend.includes('bullish')) {
@@ -147,15 +134,12 @@ export function computeDecision(
     reasons.push(`${validation.warningCount} warning${validation.warningCount > 1 ? 's' : ''} flagged — monitor closely`)
   }
 
-  // Keep the most actionable timing explanation first without dropping the
-  // canonical trend/evidence reasons. The UI already limits visible bullets.
   if (waitingForEntry) {
     const timingReasons = reasons.filter(r => r.includes('entry zone') || r.includes('Trade plan is non-actionable'))
     const otherReasons = reasons.filter(r => !timingReasons.includes(r))
     reasons.splice(0, reasons.length, ...timingReasons, ...otherReasons)
   }
 
-  // ── Risk level ─────────────────────────────────────────────────────────────
   let riskLevel: TradeDecision['riskLevel']
   if (hasCritical || score < 3) {
     riskLevel = 'High'
