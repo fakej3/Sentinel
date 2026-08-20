@@ -1,5 +1,4 @@
 import type { DrawingEngine } from '../drawing/DrawingEngine'
-import { LineStyle } from '../drawing/types'
 import type { DrawingInstruction } from '../drawing/types'
 import type { PipelineResult } from '../../../modules/pipeline/types'
 import type { IAnalysisOverlay, ChartTimeRange } from '../types'
@@ -11,6 +10,10 @@ import type { IAnalysisOverlay, ChartTimeRange } from '../types'
  * It deliberately renders a projection even when the setup is not actionable
  * yet: that is how the chart communicates "bullish, but wait for the entry"
  * without inventing a second signal.
+ *
+ * The projection is intentionally future-only. TP/SL/entry boundaries are
+ * represented by the bounded green/red/blue zones rather than full-width
+ * horizontal lines, so the trade plan cannot be mistaken for historical S/R.
  */
 export class TradePlanOverlay implements IAnalysisOverlay {
   readonly id = 'trade-plan'
@@ -66,7 +69,6 @@ export class TradePlanOverlay implements IAnalysisOverlay {
 
     const focused = this.highlightKey === 'plan:all' || this.highlightKey === 'entry:zone'
     const actionable = plan.actionable
-    const entryMid = (lower + upper) / 2
     const current = last.close
     const waiting = long ? current > upper : current < lower
     const title = actionable
@@ -80,6 +82,7 @@ export class TradePlanOverlay implements IAnalysisOverlay {
     const red = focused ? 'rgba(239,68,68,0.16)' : 'rgba(239,68,68,0.105)'
     const redFade = 'rgba(239,68,68,0.025)'
     const entryFill = focused ? 'rgba(59,130,246,0.09)' : 'rgba(59,130,246,0.045)'
+    const entryLine = focused ? 'rgba(96,165,250,0.60)' : 'rgba(96,165,250,0.30)'
 
     const out: DrawingInstruction[] = []
 
@@ -147,47 +150,16 @@ export class TradePlanOverlay implements IAnalysisOverlay {
       bottomPrice: lower,
       fillColor1: entryFill,
       fillColor2: 'rgba(59,130,246,0.01)',
-      lineColor: focused ? 'rgba(96,165,250,0.60)' : 'rgba(96,165,250,0.30)',
+      lineColor: entryLine,
       fromTime,
       toTime,
       visible: this.visible,
     })
 
-    // Axis labels are the only full-width elements in this layer. Keep the
-    // lines faint so the green/red future box remains the primary visual.
-    out.push({
-      kind: 'hline',
-      key: 'projection-entry-mid',
-      price: entryMid,
-      color: focused ? 'rgba(96,165,250,0.55)' : 'rgba(96,165,250,0.22)',
-      lineWidth: focused ? 2 : 1,
-      lineStyle: LineStyle.Dashed,
-      axisLabelVisible: true,
-      title,
-      visible: this.visible,
-    })
-    out.push({
-      kind: 'hline',
-      key: 'projection-stop-label',
-      price: invalidation,
-      color: focused ? 'rgba(239,68,68,0.50)' : 'rgba(239,68,68,0.18)',
-      lineWidth: 1,
-      lineStyle: LineStyle.Dashed,
-      axisLabelVisible: true,
-      title: 'SL',
-      visible: this.visible,
-    })
-    out.push({
-      kind: 'hline',
-      key: 'projection-target-label',
-      price: target,
-      color: focused ? 'rgba(34,197,94,0.50)' : 'rgba(34,197,94,0.18)',
-      lineWidth: 1,
-      lineStyle: LineStyle.Dashed,
-      axisLabelVisible: true,
-      title: 'TP1',
-      visible: this.visible,
-    })
+    // Deliberately no full-width hlines here. TP/SL are a future projection,
+    // not historical support/resistance, so their visual extent must stay
+    // bounded to the projection window.
+    void title
 
     return out
   }
