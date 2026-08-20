@@ -67,7 +67,8 @@ describe('TradePlanOverlay future projection', () => {
     const lines = instructions.filter(i => i.kind === 'hline')
 
     expect(zones).toHaveLength(3)
-    expect(lines).toHaveLength(3)
+    // TP/SL/entry must never become full-width historical lines.
+    expect(lines).toHaveLength(0)
     expect(zones.every(z => z.kind === 'zone' && z.fromTime === 2 && z.toTime === 17)).toBe(true)
 
     const target = zones.find(z => z.kind === 'zone' && z.key === 'projection-target')
@@ -78,8 +79,14 @@ describe('TradePlanOverlay future projection', () => {
 
   it('renders the mirrored short geometry correctly', () => {
     const instructions = render(makeData('short'))
-    const target = instructions.find(i => i.kind === 'zone' && i.key === 'projection-target')
-    const stop = instructions.find(i => i.kind === 'zone' && i.key === 'projection-stop')
+    const zones = instructions.filter(i => i.kind === 'zone')
+    const lines = instructions.filter(i => i.kind === 'hline')
+
+    expect(zones).toHaveLength(3)
+    expect(lines).toHaveLength(0)
+
+    const target = zones.find(i => i.kind === 'zone' && i.key === 'projection-target')
+    const stop = zones.find(i => i.kind === 'zone' && i.key === 'projection-stop')
 
     expect(target).toMatchObject({ topPrice: 103, bottomPrice: 90 })
     expect(stop).toMatchObject({ topPrice: 110, bottomPrice: 105 })
