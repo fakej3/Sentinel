@@ -1,0 +1,33 @@
+name: Sync web deployment marker
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'desktop/src/**'
+
+permissions:
+  contents: write
+
+jobs:
+  sync-web-marker:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Mark shared engine revision for Vercel
+        run: |
+          printf '%s\n' "${GITHUB_SHA}" > web/.engine-revision
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          if git diff --quiet -- web/.engine-revision; then
+            echo 'Web deployment marker is already current.'
+            exit 0
+          fi
+          git add web/.engine-revision
+          git commit -m "chore(web): sync shared engine revision [skip ci]"
+          git push origin HEAD:main
