@@ -4,7 +4,14 @@ import type { DrawingInstruction } from '../drawing/types'
 import type { PipelineResult } from '../../../modules/pipeline/types'
 import type { IAnalysisOverlay, ChartTimeRange } from '../types'
 
-/** Minimal trade-plan geometry: entry, invalidation, and the first two targets. */
+/**
+ * Future trade-plan projection.
+ *
+ * The pipeline owns the levels and direction. This overlay only renders them.
+ * It deliberately renders a projection even when the setup is not actionable
+ * yet: that is how the chart communicates "bullish, but wait for the entry"
+ * without inventing a second signal.
+ */
 export class TradePlanOverlay implements IAnalysisOverlay {
   readonly id = 'trade-plan'
   private engine: DrawingEngine | null = null
@@ -14,7 +21,11 @@ export class TradePlanOverlay implements IAnalysisOverlay {
   private highlightKey: string | null = null
 
   mount(engine: DrawingEngine): void { this.engine = engine }
-  update(data: PipelineResult | null, range: ChartTimeRange | null): void { this.data = data; this.range = range; this.submit() }
+  update(data: PipelineResult | null, range: ChartTimeRange | null): void {
+    this.data = data
+    this.range = range
+    this.submit()
+  }
   setVisible(visible: boolean): void { this.visible = visible; this.submit() }
   highlight(key: string | null): void { this.highlightKey = key; this.submit() }
   dispose(): void { this.engine?.clearLayer(this.id); this.engine = null }
@@ -23,72 +34,159 @@ export class TradePlanOverlay implements IAnalysisOverlay {
   private buildInstructions(): DrawingInstruction[] {
     const plan = this.data?.tradePlan
     const range = this.range
-    if (!plan?.actionable || !plan.entryZone || plan.direction === null ||
-        plan.invalidationLevel === null || plan.targetLevel === null || !range) return []
-
     const candles = this.data?.candles ?? []
-    const fromIndex = Math.max(0, candles.length - 18)
-    const fromTime = Math.floor((candles[fromIndex]?.openTime ?? candles[0]?.openTime ?? 0) / 1000)
-    const toTime = range.toSec
+
+    if (!plan || !range || candles.length === 0 ||
+        plan.direction === null ||
+        !plan.entryZone ||
+        plan.invalidationLevel === null ||
+        plan.targetLevel === null) {
+      return []
+    }
+
+    const { lower, upper } = plan.entryZone
+    const invalidation = plan.invalidationLevel
+    const target = plan.targetLevel
     const long = plan.direction === 'long'
-    const focus = this.highlightKey === 'plan:all' || this.highlightKey === 'entry:zone'
-    const current = candles.at(-1)?.close ?? 0
-    const entryMid = (plan.entryZone.lower + plan.entryZone.upper) / 2
-    const waiting = long ? current > plan.entryZone.upper : current < plan.entryZone.lower
+
+    // Never draw geometrically invalid plans. This is a rendering invariant,
+    // not a re-derivation of signal logic.
+    const geometryValid = long
+      ? invalidation < lower && lower < upper && upper < target
+      : target < lower && lower < upper && upper < invalidation
+    if (!geometryValid) return []
+
+    // Projection begins at the live edge and uses the chart's existing right
+    // offset. It therefore points into the future instead of painting a box
+    // over the historical candles.
+    const last = candles[candles.length - 1]
+    const fromTime = Math.floor(last.openTime / 1000)
+    const toTime = range.toSec
+    if (fromTime >= toTime) return []
+
+    const focused = this.highlightKey === 'plan:all' || this.highlightKey === 'entry:zone'
+    const actionable = plan.actionable
+    const entryMid = (lower + upper) / 2
+    const current = last.close
+    const waiting = long ? current > upper : current < lower
+    const title = actionable
+      ? (long ? 'LONG PLAN' : 'SHORT PLAN')
+      : waiting
+        ? (long ? 'LONG · WAIT' : 'SHORT · WAIT')
+        : (long ? 'LONG · SETUP' : 'SHORT · SETUP')
+
+    const green = focused ? 'rgba(34,197,94,0.16)' : 'rgba(34,197,94,0.105)'
+    const greenFade = 'rgba(34,197,94,0.025)'
+    const red = focused ? 'rgba(239,68,68,0.16)' : 'rgba(239,68,68,0.105)'
+    const redFade = 'rgba(239,68,68,0.025)'
+    const entryFill = focused ? 'rgba(59,130,246,0.09)' : 'rgba(59,130,246,0.045)'
+
     const out: DrawingInstruction[] = []
 
-    // One compact entry zone is the visual centre of the plan.
+    // Classic long/short-position geometry: green is the projected reward,
+    // red is the projected invalidation risk. The entry band stays neutral so
+    // the chart never implies that the current price is the entry price.
+    if (long) {
+      out.push({
+        kind: 'zone',
+        key: 'projection-target',
+        topPrice: target,
+        bottomPrice: upper,
+        fillColor1: green,
+        fillColor2: greenFade,
+        lineColor: focused ? 'rgba(34,197,94,0.55)' : 'rgba(34,197,94,0.28)',
+        fromTime,
+        toTime,
+        visible: this.visible,
+      })
+      out.push({
+        kind: 'zone',
+        key: 'projection-stop',
+        topPrice: lower,
+        bottomPrice: invalidation,
+        fillColor1: red,
+        fillColor2: redFade,
+        lineColor: focused ? 'rgba(239,68,68,0.55)' : 'rgba(239,68,68,0.28)',
+        fromTime,
+        toTime,
+        visible: this.visible,
+      })
+    } else {
+      out.push({
+        kind: 'zone',
+        key: 'projection-target',
+        topPrice: lower,
+        bottomPrice: target,
+        fillColor1: green,
+        fillColor2: greenFade,
+        lineColor: focused ? 'rgba(34,197,94,0.55)' : 'rgba(34,197,94,0.28)',
+        fromTime,
+        toTime,
+        visible: this.visible,
+      })
+      out.push({
+        kind: 'zone',
+        key: 'projection-stop',
+        topPrice: invalidation,
+        bottomPrice: upper,
+        fillColor1: red,
+        fillColor2: redFade,
+        lineColor: focused ? 'rgba(239,68,68,0.55)' : 'rgba(239,68,68,0.28)',
+        fromTime,
+        toTime,
+        visible: this.visible,
+      })
+    }
+
+    // Keep the entry area visually distinct without another large historical
+    // rectangle. It occupies only the same future projection window.
     out.push({
       kind: 'zone',
-      key: 'entry-zone',
-      topPrice: plan.entryZone.upper,
-      bottomPrice: plan.entryZone.lower,
-      fillColor1: long ? 'rgba(34,197,94,0.065)' : 'rgba(239,68,68,0.065)',
-      fillColor2: long ? 'rgba(34,197,94,0.018)' : 'rgba(239,68,68,0.018)',
-      lineColor: long ? (focus ? 'rgba(34,197,94,0.75)' : 'rgba(34,197,94,0.38)') : (focus ? 'rgba(239,68,68,0.75)' : 'rgba(239,68,68,0.38)'),
+      key: 'projection-entry',
+      topPrice: upper,
+      bottomPrice: lower,
+      fillColor1: entryFill,
+      fillColor2: 'rgba(59,130,246,0.01)',
+      lineColor: focused ? 'rgba(96,165,250,0.60)' : 'rgba(96,165,250,0.30)',
       fromTime,
       toTime,
       visible: this.visible,
     })
 
+    // Axis labels are the only full-width elements in this layer. Keep the
+    // lines faint so the green/red future box remains the primary visual.
     out.push({
       kind: 'hline',
-      key: 'entry-mid',
+      key: 'projection-entry-mid',
       price: entryMid,
-      color: long ? 'rgba(34,197,94,0.60)' : 'rgba(239,68,68,0.60)',
-      lineWidth: focus ? 2 : 1,
+      color: focused ? 'rgba(96,165,250,0.55)' : 'rgba(96,165,250,0.22)',
+      lineWidth: focused ? 2 : 1,
       lineStyle: LineStyle.Dashed,
       axisLabelVisible: true,
-      title: waiting ? (long ? 'LONG · WAIT' : 'SHORT · WAIT') : (long ? 'LONG ENTRY' : 'SHORT ENTRY'),
+      title,
       visible: this.visible,
     })
-
     out.push({
       kind: 'hline',
-      key: 'invalidation',
-      price: plan.invalidationLevel,
-      color: 'rgba(239,68,68,0.72)',
+      key: 'projection-stop-label',
+      price: invalidation,
+      color: focused ? 'rgba(239,68,68,0.50)' : 'rgba(239,68,68,0.18)',
       lineWidth: 1,
       lineStyle: LineStyle.Dashed,
       axisLabelVisible: true,
-      title: 'INVALIDATION',
+      title: 'SL',
       visible: this.visible,
     })
-
-    // Keep the target story readable: T1 and at most one follow-through target.
-    const targets = plan.targets.length ? plan.targets.slice(0, 2) : [plan.targetLevel]
-    targets.forEach((target, i) => {
-      out.push({
-        kind: 'hline',
-        key: `target-${i}`,
-        price: target,
-        color: i === 0 ? 'rgba(34,197,94,0.65)' : 'rgba(34,197,94,0.38)',
-        lineWidth: i === 0 ? 1 : 1,
-        lineStyle: LineStyle.Dotted,
-        axisLabelVisible: true,
-        title: `T${i + 1}`,
-        visible: this.visible,
-      })
+    out.push({
+      kind: 'hline',
+      key: 'projection-target-label',
+      price: target,
+      color: focused ? 'rgba(34,197,94,0.50)' : 'rgba(34,197,94,0.18)',
+      lineWidth: 1,
+      lineStyle: LineStyle.Dashed,
+      axisLabelVisible: true,
+      title: 'TP1',
+      visible: this.visible,
     })
 
     return out
