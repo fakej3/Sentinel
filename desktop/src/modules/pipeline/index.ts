@@ -52,8 +52,8 @@ import type {
 
 export type {
   PipelineOptions,
-  PipelineResult,
   PipelineConfig,
+  PipelineResult,
   PipelineTimings,
   PipelineErrorCode,
   FetchFn,
@@ -115,8 +115,8 @@ function mergeConfig(partial: Partial<PipelineConfig>): PipelineConfig {
     rsiBullishMin:            effectiveAnalysis.rsiBullishMin,
     rsiBearishMax:            effectiveAnalysis.rsiBearishMax,
     adxWeakThreshold:         effectiveAnalysis.adxWeakThreshold,
-    rsiNeutralLow:            effectiveAnalysis.rsiNeutralLow,
-    rsiNeutralHigh:           effectiveAnalysis.rsiNeutralHigh,
+    rsiNeutralLow:             effectiveAnalysis.rsiNeutralLow,
+    rsiNeutralHigh:            effectiveAnalysis.rsiNeutralHigh,
     minBullishSwingsForTrend: effectiveAnalysis.minBullishSwingsForTrend,
     minBearishSwingsForTrend: effectiveAnalysis.minBearishSwingsForTrend,
     ...partial.validation,
@@ -198,10 +198,6 @@ export async function analyzeMarket(options: PipelineOptions): Promise<PipelineR
   const t3 = Date.now()
   let supportResistance!: SupportResistanceResult
   try {
-    // indicators.atr is passed explicitly so S/R zone geometry, swing
-    // significance, Fibonacci impulse filtering and trade-plan stop buffers
-    // all measure volatility with the SAME number. Recomputing it here would
-    // be a duplicate O(n) pass and a silent divergence path.
     supportResistance = computeSupportResistance(
       marketData.candles, marketStructure, cfg.supportResistance, indicators.atr,
     )
@@ -245,10 +241,7 @@ export async function analyzeMarket(options: PipelineOptions): Promise<PipelineR
 
   // ── Stage 6b: Fibonacci ─────────────────────────────────────────────────────
   // Computed AFTER analysis so its direction comes from the same trend
-  // authority as the trade plan (fullTrend, the 5-condition composite) —
-  // never from the structural swing-count trend alone. Before this, the two
-  // could disagree at trend transitions and the chart would show a bearish
-  // Fibonacci beside a long trade plan.
+  // authority as the trade plan (fullTrend, the 5-condition composite).
   let fibonacci: FibResult | undefined
   try {
     const fullTrendLabel = analysis.fullTrend.trend
@@ -260,7 +253,6 @@ export async function analyzeMarket(options: PipelineOptions): Promise<PipelineR
       marketStructure.swings, fibDirection, supportResistance, indicators.atr,
     )
   } catch {
-    // Fibonacci is optional — a failure here must never block the rest of the pipeline
     fibonacci = undefined
   }
 
@@ -284,7 +276,10 @@ export async function analyzeMarket(options: PipelineOptions): Promise<PipelineR
   }
   const confidenceTime = Date.now() - t7
 
-  // ── Stage 9: Trade Decision + Trade Plan + Market Context + Invalidation ────
+  // ── Stage 9: Trade Plan + executable Decision + intelligence layers ────────
+  // TradePlan MUST exist before TradeDecision. The decision is presented as a
+  // trading signal, so it must know whether an entry is actually executable at
+  // the current price. Directional trend/confidence alone is not enough.
   let decision!: TradeDecision
   let tradePlan!: TradePlan
   let marketContext!: MarketContext
@@ -296,8 +291,8 @@ export async function analyzeMarket(options: PipelineOptions): Promise<PipelineR
   let opportunityAssessment!: OpportunityAssessment
   let sanityAudit!: ConfidenceSanityResult
   try {
-    decision                  = computeDecision(analysis, confidence, validation)
     tradePlan                 = computeTradePlan(analysis, supportResistance, confidence, validation, undefined, marketStructure)
+    decision                  = computeDecision(analysis, confidence, validation, tradePlan)
     marketContext             = computeMarketContext(analysis)
     invalidationScenarios     = computeInvalidationScenarios(analysis, validation, tradePlan)
     confidenceExplanation     = computeConfidenceExplanation(confidence, analysis, cfg.confidence)
@@ -338,8 +333,6 @@ export async function analyzeMarket(options: PipelineOptions): Promise<PipelineR
           confidenceScore: confidence.score,
           confidenceGrade: confidence.grade,
         })
-        // Safety check: AI output must not introduce unsupported hedging language.
-        // If found, silently revert to the deterministic output — AI is always optional.
         const PROHIBITED = ['probably', 'maybe', 'looks like', 'appears to', 'might suggest', 'seems like']
         const hasUnsupported = PROHIBITED.some(
           phrase => enhancement.summary.toLowerCase().includes(phrase)
