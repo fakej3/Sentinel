@@ -9,9 +9,9 @@ import type { IAnalysisOverlay, ChartTimeRange } from '../types'
 
 function colorForLevel(level: FibLevel): string {
   if (level.isExtension)     return level.confluence ? '#22d3ee' : '#06b6d4'
-  if (level.ratio === 0.000) return level.confluence ? '#f1f5f9' : '#cbd5e1'  // slate-200/300 — impulse-origin anchor
-  if (level.ratio === 1.000) return level.confluence ? '#e0e7ff' : '#c7d2fe'  // indigo-100/200 — impulse-end anchor
-  if (level.ratio === 0.786) return level.confluence ? '#fbbf24' : '#d97706'  // amber — distinct from S→R flipped orange (#f97316)
+  if (level.ratio === 0.000) return level.confluence ? '#f1f5f9' : '#cbd5e1'
+  if (level.ratio === 1.000) return level.confluence ? '#e0e7ff' : '#c7d2fe'
+  if (level.ratio === 0.786) return level.confluence ? '#fbbf24' : '#d97706'
   if (level.ratio === 0.650) return level.confluence ? '#ffd740' : '#eab308'
   if (level.ratio === 0.618) return level.confluence ? '#ffd740' : '#eab308'
   if (level.ratio === 0.500) return level.confluence ? '#a8b8cc' : '#7a8fa8'
@@ -30,7 +30,6 @@ function lineStyleForLevel(level: FibLevel): LineStyleValue {
   return level.isExtension ? LineStyle.Dashed : LineStyle.Dotted
 }
 
-// Golden-pocket zone colors
 const GP_BASE = {
   fillColor1: 'rgba(234, 179, 8, 0.12)',
   fillColor2: 'rgba(234, 179, 8, 0.06)',
@@ -47,18 +46,14 @@ const PRIORITY: Partial<Record<number, number>> = {
   0.000: 1, 0.618: 2, 0.650: 3, 0.500: 4, 0.382: 5, 1.000: 6, 0.786: 7, 0.236: 8,
 }
 
-// Impulse anchor levels whose axis labels must always be visible regardless of
-// collision proximity — removing them makes the Fibonacci grid unreadable.
 const ANCHOR_RATIOS = new Set([0.000, 1.000])
-
-// ── Overlay ───────────────────────────────────────────────────────────────────
 
 export class FibonacciOverlay implements IAnalysisOverlay {
   readonly id = 'fibonacci'
 
-  private engine:           DrawingEngine | null = null
-  private lastData:         PipelineResult | null = null
-  private lastRange:        ChartTimeRange | null = null
+  private engine: DrawingEngine | null = null
+  private lastData: PipelineResult | null = null
+  private lastRange: ChartTimeRange | null = null
   private lastHighlightKey: string | null = null
   private visible = true
 
@@ -101,9 +96,9 @@ export class FibonacciOverlay implements IAnalysisOverlay {
     const gpLit = key === 'fib:golden-pocket' || key === 'fib:all'
 
     // Lightweight Charts requires every time-series data array to be in
-    // chronological order. A bullish impulse naturally runs low→high in time,
-    // but a bearish impulse is high→low in time. Always order the two anchors by
-    // timestamp while preserving which price belongs to which swing.
+    // chronological order. Order the two anchors by time while keeping their
+    // price/type identity intact; the impulse is a geometric segment, not a
+    // second source of Fibonacci direction.
     const highSec = Math.floor(fib.swingHigh.timestamp / 1000)
     const lowSec  = Math.floor(fib.swingLow.timestamp  / 1000)
     const anchorsByTime = highSec <= lowSec
@@ -117,22 +112,27 @@ export class FibonacciOverlay implements IAnalysisOverlay {
         ]
 
     const impulseStartSec = Math.min(highSec, lowSec)
-    const fromTime = Math.max(range.fromSec, impulseStartSec)
+    // Do NOT clip the series start to the visible viewport. Lightweight Charts
+    // clips series to the viewport itself; clipping here makes the Fibonacci
+    // appear to "float" after a scroll because its visual origin moves with the
+    // viewport instead of staying attached to the canonical swing.
+    const fromTime = impulseStartSec
     const toTime   = range.toSec
 
-    // Impulse leg — diagonal line from swingLow to swingHigh shows the measured move.
-    // Makes the anchor visually obvious and distinguishes this fib from floating lines.
-    instructions.push({
-      kind:      'polyline',
-      key:       'impulse-leg',
-      color:     'rgba(234, 179, 8, 0.35)',
-      lineWidth: 1,
-      lineStyle: LineStyle.SparseDotted,
-      data:      anchorsByTime.map(a => ({ time: a.time, value: a.value })),
-      visible: this.visible,
-    })
+    // Impulse leg — the measured move that gives the grid its visual anchor.
+    if (fromTime < toTime) {
+      instructions.push({
+        kind:      'polyline',
+        key:       'impulse-leg',
+        color:     'rgba(234, 179, 8, 0.48)',
+        lineWidth: 2,
+        lineStyle: LineStyle.SparseDotted,
+        data:      anchorsByTime.map(a => ({ time: a.time, value: a.value })),
+        visible:   this.visible,
+      })
+    }
 
-    // Anchor markers at swingHigh and swingLow — small gold circles that pin the fib grid.
+    // Larger anchor markers make the source swing points obvious at normal zoom.
     instructions.push({
       kind:    'markerset',
       key:     'fib-anchors',
@@ -141,14 +141,13 @@ export class FibonacciOverlay implements IAnalysisOverlay {
         time:     a.time,
         position: a.kind === 'low' ? 'belowBar' as const : 'aboveBar' as const,
         shape:    'circle' as const,
-        color:    'rgba(234, 179, 8, 0.80)',
+        color:    'rgba(234, 179, 8, 0.92)',
         text:     '',
-        size:     0.8,
+        size:     1.5,
       })),
       visible: this.visible,
     })
 
-    // Golden pocket zone (guard fromTime < toTime to prevent degenerate zones)
     const gp618 = fib.levels.find(l => l.ratio === 0.618)
     const gp650 = fib.levels.find(l => l.ratio === 0.650)
     if (gp618 && gp650 && fromTime < toTime) {
@@ -167,9 +166,6 @@ export class FibonacciOverlay implements IAnalysisOverlay {
       })
     }
 
-    // Determine which retrace labels are visible (priority order, collision-aware).
-    // Pre-seed usedCoords with pixel positions of axis labels from other overlays
-    // so Fibonacci labels never stack on BOS, CHoCH, S/R, SL, Entry, or TP labels.
     const usedCoords: number[] = []
 
     const sr = this.lastData!.supportResistance
@@ -206,8 +202,6 @@ export class FibonacciOverlay implements IAnalysisOverlay {
       .sort((a, b) => (PRIORITY[a.ratio] ?? 99) - (PRIORITY[b.ratio] ?? 99))
     const hiddenLabels = new Set<FibLevel>()
     for (const level of retraceByPriority) {
-      // Anchor levels (0.000 and 1.000) are always visible — they define the
-      // impulse range; suppressing them makes the Fibonacci grid unreadable.
       if (ANCHOR_RATIOS.has(level.ratio)) continue
       const coord = this.engine?.priceToCoordinate(level.price) ?? null
       if (coord !== null && usedCoords.some(c => Math.abs(c - coord) < 14)) {
@@ -228,8 +222,6 @@ export class FibonacciOverlay implements IAnalysisOverlay {
       const lineWidth         = (lit ? Math.min(base + 2, 4) : base) as 1 | 2 | 3 | 4
       const axisLabelVisible  = !level.isExtension && (ANCHOR_RATIOS.has(level.ratio) || !hiddenLabels.has(level))
 
-      // Time-bounded polyline: anchored from impulse start to live edge so the
-      // level visually originates from the measured swing, not from chart history.
       if (fromTime < toTime) {
         instructions.push({
           kind:      'polyline',
