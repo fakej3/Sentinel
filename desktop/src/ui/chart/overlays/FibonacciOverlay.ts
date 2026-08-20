@@ -28,7 +28,10 @@ export class FibonacciOverlay implements IAnalysisOverlay {
     const fib = this.data?.fibonacci
     if (!fib?.available || !this.range) return []
 
-    const start = Math.min(Math.floor(fib.swingLow.timestamp / 1000), Math.floor(fib.swingHigh.timestamp / 1000))
+    const high = { time: Math.floor(fib.swingHigh.timestamp / 1000), value: fib.swingHigh.price }
+    const low = { time: Math.floor(fib.swingLow.timestamp / 1000), value: fib.swingLow.price }
+    const anchors = [low, high].sort((a, b) => a.time - b.time)
+    const start = anchors[0].time
     const end = this.range.toSec
     const lit = this.highlightKey === 'fib:all' || this.highlightKey === 'fib:golden-pocket'
     const levels = fib.levels.filter(l => !l.isExtension)
@@ -37,29 +40,25 @@ export class FibonacciOverlay implements IAnalysisOverlay {
     const one = levels.find(l => Math.abs(l.ratio - 1) < 0.0001)
     const instructions: DrawingInstruction[] = []
 
+    // Always keep the impulse source ordered by time; this is required by the
+    // chart renderer and also keeps bearish impulses visually attached correctly.
     instructions.push({
       kind: 'polyline',
       key: 'impulse-leg',
       color: 'rgba(245,158,11,0.50)',
       lineWidth: lit ? 2 : 1,
       lineStyle: LineStyle.SparseDotted,
-      data: [
-        { time: Math.floor(fib.swingLow.timestamp / 1000), value: fib.swingLow.price },
-        { time: Math.floor(fib.swingHigh.timestamp / 1000), value: fib.swingHigh.price },
-      ],
+      data: anchors,
       visible: this.visible,
     })
 
     instructions.push({
       kind: 'markerset',
       key: 'fib-anchors',
-      anchor: [
-        { time: Math.floor(fib.swingLow.timestamp / 1000), value: fib.swingLow.price },
-        { time: Math.floor(fib.swingHigh.timestamp / 1000), value: fib.swingHigh.price },
-      ],
+      anchor: anchors,
       markers: [
-        { time: Math.floor(fib.swingLow.timestamp / 1000), position: 'belowBar', shape: 'circle', color: '#f59e0b', text: '', size: 2 },
-        { time: Math.floor(fib.swingHigh.timestamp / 1000), position: 'aboveBar', shape: 'circle', color: '#f59e0b', text: '', size: 2 },
+        { time: low.time, position: 'belowBar', shape: 'circle', color: '#f59e0b', text: '', size: 2 },
+        { time: high.time, position: 'aboveBar', shape: 'circle', color: '#f59e0b', text: '', size: 2 },
       ],
       visible: this.visible,
     })
