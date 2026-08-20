@@ -1,28 +1,24 @@
 import type { MarketAnalysisResult } from '../../analysis/types'
 import type { ConfidenceResult } from '../../confidence/types'
 import type { ValidationResult } from '../../validation/types'
-import type { TradeDecision } from '../types'
+import type { TradeDecision, TradePlan } from '../types'
 import { computeDecisionExplanation } from './decision-explanation'
 import { computeDecisionQuality } from './decision-quality'
 
 /**
- * Derive a human-readable trade decision from trend, confidence, and validation.
+ * Derive a human-readable trade decision from trend, confidence, validation,
+ * and (when available) the actual trade plan.
  *
- * Decision matrix:
- *   strong bullish  + high confidence  → Strong Buy
- *   moderate bullish + good confidence → Buy
- *   weak bullish / low confidence      → Cautious Buy
- *   ranging                            → Watch / Neutral
- *   weak bearish / low confidence      → Cautious Sell
- *   moderate bearish + good confidence → Sell
- *   strong bearish  + high confidence  → Strong Sell
- *
- * Validation issues cap the upside label (can't be Strong Buy with critical issues).
+ * Directional bias and executable entry are deliberately separated:
+ * a bullish market can still be a WAIT if the computed entry zone is below
+ * current price. Sentinel must not tell the user to buy now when its own plan
+ * says to wait for a pullback.
  */
 export function computeDecision(
   analysis: MarketAnalysisResult,
   confidence: ConfidenceResult,
   validation: ValidationResult,
+  tradePlan?: TradePlan,
 ): TradeDecision {
   const trend = analysis.fullTrend.trend
   const score = confidence.score
@@ -32,7 +28,7 @@ export function computeDecision(
   let label: TradeDecision['label']
   const reasons: string[] = []
 
-  // ── Determine raw label ────────────────────────────────────────────────────
+  // ── Determine raw directional label ───────────────────────────────────────
   if (trend === 'strong bullish') {
     label = (score >= 6.5 && !hasCritical) ? 'Strong Buy' : 'Buy'
   } else if (trend === 'moderate bullish') {
@@ -48,6 +44,50 @@ export function computeDecision(
   } else {
     // strong bearish
     label = (score >= 6.5 && !hasCritical) ? 'Strong Sell' : 'Sell'
+  }
+
+  // ── Entry timing gate ──────────────────────────────────────────────────────
+  // The old decision was computed before TradePlan and therefore only answered
+  // "which direction does the market favour?" while the UI presented it as a
+  // trade signal. That produced false actionable Buy/Sell labels: e.g. a bullish
+  // market with an entry zone far below current price was still labelled Buy.
+  //
+  // The TradePlan is the canonical authority for executable entry. If its setup
+  // is non-actionable, or current price is outside the directional entry zone,
+  // the signal is WAIT (represented by the existing `Watch` label). We do not
+  // retune the trend/confidence engine here; we only prevent a directional bias
+  // from masquerading as an executable entry.
+  let waitingForEntry = false
+  if (tradePlan) {
+    if (!tradePlan.actionable || tradePlan.entryZone === null || tradePlan.direction === null) {
+      waitingForEntry = true
+    } else if (tradePlan.direction === 'long') {
+      waitingForEntry = analysis.price.current > tradePlan.entryZone.upper
+        || analysis.price.current < tradePlan.entryZone.lower
+    } else {
+      waitingForEntry = analysis.price.current < tradePlan.entryZone.lower
+        || analysis.price.current > tradePlan.entryZone.upper
+    }
+
+    if (waitingForEntry) {
+      label = 'Watch'
+      if (tradePlan.direction === 'long' && tradePlan.entryZone !== null) {
+        if (analysis.price.current > tradePlan.entryZone.upper) {
+          reasons.push(`Bullish bias remains intact, but price is above the long entry zone — wait for a pullback to ${tradePlan.entryZone.lower.toFixed(2)}–${tradePlan.entryZone.upper.toFixed(2)}`)
+        } else if (analysis.price.current < tradePlan.entryZone.lower) {
+          reasons.push(`Bullish setup is not at its entry zone yet — wait for price to reach ${tradePlan.entryZone.lower.toFixed(2)}–${tradePlan.entryZone.upper.toFixed(2)}`)
+        }
+      } else if (tradePlan.direction === 'short' && tradePlan.entryZone !== null) {
+        if (analysis.price.current < tradePlan.entryZone.lower) {
+          reasons.push(`Bearish bias remains intact, but price is below the short entry zone — wait for a rebound to ${tradePlan.entryZone.lower.toFixed(2)}–${tradePlan.entryZone.upper.toFixed(2)}`)
+        } else if (analysis.price.current > tradePlan.entryZone.upper) {
+          reasons.push(`Bearish setup is not at its entry zone yet — wait for price to reach ${tradePlan.entryZone.lower.toFixed(2)}–${tradePlan.entryZone.upper.toFixed(2)}`)
+        }
+      }
+      if (!tradePlan.actionable) {
+        reasons.push(`Trade plan is non-actionable (${tradePlan.setupQuality}) — no entry should be taken at current levels`)
+      }
+    }
   }
 
   // ── Build concise reason bullets (3–5) ────────────────────────────────────
@@ -107,11 +147,19 @@ export function computeDecision(
     reasons.push(`${validation.warningCount} warning${validation.warningCount > 1 ? 's' : ''} flagged — monitor closely`)
   }
 
+  // Keep the most actionable timing explanation first without dropping the
+  // canonical trend/evidence reasons. The UI already limits visible bullets.
+  if (waitingForEntry) {
+    const timingReasons = reasons.filter(r => r.includes('entry zone') || r.includes('Trade plan is non-actionable'))
+    const otherReasons = reasons.filter(r => !timingReasons.includes(r))
+    reasons.splice(0, reasons.length, ...timingReasons, ...otherReasons)
+  }
+
   // ── Risk level ─────────────────────────────────────────────────────────────
   let riskLevel: TradeDecision['riskLevel']
   if (hasCritical || score < 3) {
     riskLevel = 'High'
-  } else if (hasWarnings || score < 5.5) {
+  } else if (hasWarnings || score < 5.5 || waitingForEntry) {
     riskLevel = 'Medium'
   } else {
     riskLevel = 'Low'
