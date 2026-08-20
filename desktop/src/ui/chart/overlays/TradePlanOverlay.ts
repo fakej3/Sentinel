@@ -68,14 +68,6 @@ export class TradePlanOverlay implements IAnalysisOverlay {
     if (fromTime >= toTime) return []
 
     const focused = this.highlightKey === 'plan:all' || this.highlightKey === 'entry:zone'
-    const actionable = plan.actionable
-    const current = last.close
-    const waiting = long ? current > upper : current < lower
-    const title = actionable
-      ? (long ? 'LONG PLAN' : 'SHORT PLAN')
-      : waiting
-        ? (long ? 'LONG · WAIT' : 'SHORT · WAIT')
-        : (long ? 'LONG · SETUP' : 'SHORT · SETUP')
 
     const green = focused ? 'rgba(34,197,94,0.16)' : 'rgba(34,197,94,0.105)'
     const greenFade = 'rgba(34,197,94,0.025)'
@@ -159,8 +151,6 @@ export class TradePlanOverlay implements IAnalysisOverlay {
     // Deliberately no full-width hlines here. TP/SL are a future projection,
     // not historical support/resistance, so their visual extent must stay
     // bounded to the projection window.
-    void title
-
     return out
   }
 }
